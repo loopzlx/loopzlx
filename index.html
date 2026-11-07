@@ -2,185 +2,944 @@
 <html lang="zh-CN" class="scroll-smooth">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=1280">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="description" content="loopzlx — Frontend Developer / Parkour Athlete / UI-UX Architect">
+    <meta property="og:title" content="loopzlx | Cyber Nexus Terminal">
+    <meta property="og:description" content="Frontend Developer · Parkour Athlete · UI/UX Architect">
+    <meta property="og:image" content="avatar.png">
+    <link rel="icon" href="avatar.png">
     <title>loopzlx | Cyber Nexus Terminal</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         :root { --primary:#8a2be2; --secondary:#ff69b4; --grid-color:rgba(138,43,226,.12); --bg-black:#000; }
         body.hacker-mode { --primary:#00ff41; --secondary:#008f11; --grid-color:rgba(0,255,65,.1); }
-        body { background-color:var(--bg-black); color:#e2e8f0; font-family:'Inter',sans-serif; overflow-x:hidden; transition:background .5s,filter .5s; }
+
+        body { background-color:var(--bg-black); color:#e2e8f0; font-family:'Share Tech Mono', monospace; overflow-x:hidden; transition:background .5s,filter .5s; }
+        h1, h2, h3, .font-black, .logo { font-family:'Orbitron', sans-serif; letter-spacing: 0.05em; }
+
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #050505; }
+        ::-webkit-scrollbar-thumb { background: var(--primary); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--secondary); }
+
+        /* 自定义光标仅在支持 hover 的精确指针设备上启用 */
+        @media (hover: hover) and (pointer: fine) {
+            body { cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4" fill="%238a2be2"/><circle cx="12" cy="12" r="8" fill="none" stroke="%238a2be2" stroke-width="1" opacity="0.5"/></svg>') 12 12, auto; }
+            a, button, input, .filter-btn { cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5" fill="%23ff69b4"/><circle cx="12" cy="12" r="10" fill="none" stroke="%23ff69b4" stroke-width="1.5" opacity="0.8"/></svg>') 12 12, pointer; }
+        }
+
+        /* ========= 加载动画：CSS 兜底，5 秒后自动消失（即使 JS 没执行） ========= */
+        #preloader { position: fixed; inset: 0; background: #000; z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; font-family: 'Share Tech Mono', monospace; color: var(--primary); transition: opacity .8s ease, visibility .8s ease; animation: preloaderFallback .8s ease 5s forwards; }
+        #preloader.hidden { opacity: 0; visibility: hidden; pointer-events: none; animation: none; }
+        @keyframes preloaderFallback { to { opacity: 0; visibility: hidden; pointer-events: none; } }
+        .load-bar { width: 200px; height: 2px; background: rgba(255,255,255,0.1); margin-top: 15px; overflow: hidden; }
+        .load-bar-inner { height: 100%; background: var(--primary); width: 0%; transition: width 0.2s; }
+
         .grid-container { position:fixed; inset:0; perspective:1000px; z-index:-2; background:radial-gradient(circle at 50% 50%,#0a0a0a 0%,#000 100%); }
         .grid-plane { position:absolute; width:200%; height:200%; top:-50%; left:-50%; background-image:linear-gradient(var(--grid-color) 1px,transparent 1px),linear-gradient(90deg,var(--grid-color) 1px,transparent 1px); background-size:50px 50px; transform:rotateX(60deg); animation:grid-travel 20s linear infinite; }
         @keyframes grid-travel { from { background-position:0 0; } to { background-position:0 500px; } }
-        #log-window { position:fixed; bottom:24px; right:24px; width:280px; height:160px; background:rgba(0,0,0,.85); border-left:3px solid var(--primary); backdrop-filter:blur(15px); z-index:1000; padding:12px; font-family:'Monaco','Consolas',monospace; display:flex; flex-direction:column; pointer-events:auto; transition:all .5s; box-shadow:0 15px 35px rgba(0,0,0,.6); background-image:linear-gradient(rgba(18,16,16,0) 50%,rgba(0,0,0,.1) 50%),linear-gradient(90deg,rgba(255,0,0,.03),rgba(0,255,0,.01),rgba(0,0,255,.03)); background-size:100% 2px,3px 100%; }
-        #log-content { overflow-y:auto; flex:1; font-size:9px; color:rgba(255,255,255,.5); scroll-behavior:smooth; padding-right:4px; }
-        #log-content::-webkit-scrollbar { width:4px; } #log-content::-webkit-scrollbar-track { background:transparent; } #log-content::-webkit-scrollbar-thumb { background:var(--primary); border-radius:10px; }
-        .log-entry { margin-bottom:4px; animation:log-in .3s ease-out; line-height:1.2; text-shadow:0 0 2px rgba(255,255,255,.2); }
+
+        /* ========= Matrix 画布：固定定位，避免撑破布局 ========= */
+        #matrix-canvas { position: fixed; inset: 0; z-index: -1; pointer-events: none; opacity: 0; transition: opacity .5s ease; }
+
+        /* ========= 弹幕：固定全屏容器 + 横向飞行动画 ========= */
+        #danmaku-container { position: fixed; inset: 0; overflow: hidden; pointer-events: none; z-index: 40; }
+        .danmaku-item {
+            position: absolute;
+            top: 0;
+            left: 100%;
+            white-space: nowrap;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 14px;
+            color: var(--primary);
+            text-shadow: 0 0 6px rgba(138,43,226,.5);
+            will-change: transform;
+            animation-name: danmaku-move;
+            animation-timing-function: linear;
+            animation-fill-mode: forwards;
+            animation-duration: 12s; /* JS 会覆盖 */
+        }
+        @keyframes danmaku-move {
+            from { transform: translateX(0); }
+            to   { transform: translateX(calc(-100vw - 100%)); }
+        }
+
+        /* ========= 命令效果关键帧（之前缺失） ========= */
+        @keyframes shake {
+            0%, 100% { transform: translate(0, 0); }
+            25%      { transform: translate(2px, -2px); }
+            50%      { transform: translate(-2px, 2px); }
+            75%      { transform: translate(2px, 2px); }
+        }
+        @keyframes v-flicker {
+            0%, 100% { opacity: 1; }
+            50%      { opacity: .88; }
+        }
+
+        #log-window { position:fixed; bottom:24px; right:24px; width:280px; height:160px; background:rgba(0,0,0,.85); border-left:3px solid var(--primary); backdrop-filter:blur(15px); z-index:1000; padding:12px; font-family:'Share Tech Mono', monospace; display:flex; flex-direction:column; pointer-events:auto; transition:all .5s; box-shadow:0 15px 35px rgba(0,0,0,.6); background-image:linear-gradient(rgba(18,16,16,0) 50%,rgba(0,0,0,.1) 50%),linear-gradient(90deg,rgba(255,0,0,.03),rgba(0,255,0,.01),rgba(0,0,255,.03)); background-size:100% 2px,3px 100%; }
+        /* 去掉 smooth，避免高频 addLog 时滚动排队卡顿 */
+        #log-content { overflow-y:auto; flex:1; font-size:10px; color:rgba(255,255,255,.5); padding-right:4px; }
+        .log-entry { margin-bottom:4px; animation:log-in .3s ease-out; line-height:1.2; word-break:break-word; }
         @keyframes log-in { from { opacity:0; transform:translateX(10px); } to { opacity:1; transform:translateX(0); } }
-        .log-time { color:var(--primary); margin-right:6px; font-weight:bold; } #log-mode { font-weight:bold; transition:color .5s; } body.hacker-mode #log-mode { color:#ff003c; text-shadow:0 0 8px #ff003c; }
-        #danmaku-container { position:fixed; inset:0; pointer-events:none; z-index:5; overflow:hidden; }
-        .danmaku-item { position:absolute; white-space:nowrap; font-family:monospace; font-weight:bold; color:rgba(255,255,255,.2); animation:move-left linear forwards; }
-        @keyframes move-left { from { transform:translateX(100vw); } to { transform:translateX(-100%); } }
-        @keyframes shake { 0% { transform:translate(1px,1px) rotate(0); } 10% { transform:translate(-1px,-2px) rotate(-1deg); } 30% { transform:translate(3px,2px) rotate(0); } 50% { transform:translate(-1px,2px) rotate(1deg); } 70% { transform:translate(3px,1px) rotate(-1deg); } 100% { transform:translate(1px,-2px) rotate(-1deg); } }
-        #main-nav.scrolled { background:rgba(0,0,0,.8); backdrop-filter:blur(20px); border-bottom:1px solid var(--primary); padding:1rem 0; }
-        .lang-switch { display:flex; gap:8px; align-items:center; padding:4px 12px; background:rgba(255,255,255,.05); border-radius:4px; border:1px solid rgba(255,255,255,.1); }
-        .lang-btn { color:rgba(255,255,255,.3); cursor:pointer; font-size:10px; font-weight:bold; transition:all .3s cubic-bezier(.4,0,.2,1); }
-        .lang-btn.active { color:var(--secondary); text-shadow:0 0 12px var(--secondary); transform:scale(1.1); } .lang-btn:hover:not(.active) { color:rgba(255,255,255,.8); }
-        .glass-card { background:rgba(255,255,255,.02); backdrop-filter:blur(12px); border:1px solid rgba(255,255,255,.05); transition:text-shadow .3s ease,border-color .3s ease; }
-        .reveal { opacity:0; transform:translateY(30px); transition:1s cubic-bezier(.22,1,.36,1); } .reveal.active { opacity:1; transform:translateY(0); }
+        .log-time { color:var(--primary); margin-right:6px; font-weight:bold; }
+        #log-mode { font-weight:bold; transition:color .5s; } body.hacker-mode #log-mode { color:#ff003c; text-shadow:0 0 8px #ff003c; }
+
+        .glass-card { position: relative; background: rgba(255,255,255,.02); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,.05); background-image: linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px); background-size: 10px 10px; transition: all .3s ease; }
+        .glass-card::before, .glass-card::after { content: ''; position: absolute; width: 15px; height: 15px; border: 2px solid var(--primary); pointer-events: none; transition: border-color 0.3s; }
+        .glass-card::before { top: -1px; left: -1px; border-right: none; border-bottom: none; }
+        .glass-card::after { bottom: -1px; right: -1px; border-left: none; border-top: none; }
+        body.hacker-mode .glass-card::before, body.hacker-mode .glass-card::after { border-color: var(--secondary); }
+        /* hover 光晕跟随主题（color-mix 兼容浏览器覆盖，旧版回退到紫） */
+        .glass-card:hover {
+            border-color: rgba(138,43,226,0.3);
+            border-color: color-mix(in srgb, var(--primary) 30%, transparent);
+            box-shadow: 0 0 20px rgba(138,43,226,0.1);
+            box-shadow: 0 0 20px color-mix(in srgb, var(--primary) 12%, transparent);
+        }
+
+        /* ========= 入场动画兜底：默认可见，只有 JS 成功初始化后（body.js-ready）才隐藏未激活元素 ========= */
+        .reveal { transition: 1s cubic-bezier(.22,1,.36,1); }
+        body.js-ready .reveal:not(.active) { opacity: 0; transform: translateY(30px); }
+
+        .glitch-text { position: relative; display: inline-block; }
+        .glitch-text::before, .glitch-text::after { content: attr(data-text); position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; transition: opacity 0.3s; pointer-events: none; }
+        .glitch-text:hover::before { opacity: 1; left: 2px; text-shadow: -2px 0 red; clip-path: inset(20% 0 30% 0); animation: glitch-anim 0.5s infinite linear alternate-reverse; }
+        .glitch-text:hover::after { opacity: 1; left: -2px; text-shadow: 2px 0 blue; clip-path: inset(10% 0 60% 0); animation: glitch-anim 0.5s infinite linear alternate-reverse; }
+        @keyframes glitch-anim {
+            0% { clip-path: inset(10% 0 80% 0); transform: translate(0); }
+            20% { clip-path: inset(80% 0 5% 0); transform: translate(-2px, 2px); }
+            40% { clip-path: inset(30% 0 50% 0); transform: translate(-2px, -2px); }
+            60% { clip-path: inset(60% 0 20% 0); transform: translate(2px, 2px); }
+            80% { clip-path: inset(40% 0 40% 0); transform: translate(2px, -2px); }
+            100% { clip-path: inset(20% 0 60% 0); transform: translate(0); }
+        }
+
+        .social-link { transition:all .3s ease; color:rgba(255,255,255,.4); }
+        .social-link:hover { transform:translateY(-3px); filter:drop-shadow(0 0 8px var(--primary)); color: var(--primary); }
+
         .cursor-blink::after { content:''; display:inline-block; width:8px; height:1.2em; background:var(--secondary); margin-left:4px; vertical-align:middle; animation:blink .8s infinite; }
-        @keyframes blink { 50% { opacity:0; } } .screen-flash { animation:flash-trigger .25s ease-out; } @keyframes flash-trigger { 0% { filter:invert(1); } 100% { filter:invert(0); } }
-        #matrix-canvas { position:fixed; inset:0; z-index:-1; display:none; opacity:.4; pointer-events:none; transition:opacity 1s ease,background 1s ease; } body.hacker-mode #matrix-canvas { display:block; }
-        .social-link { transition:all .3s ease; color:rgba(255,255,255,.4); } .social-link:hover { transform:translateY(-3px); filter:drop-shadow(0 0 8px currentColor); }
-        .gravity-applied { transition:transform 2s cubic-bezier(.22,1,.36,1); }
-        .audio-player { position:fixed; bottom:40px; left:40px; z-index:100; display:flex; align-items:center; gap:15px; padding:12px 20px; background:rgba(0,0,0,.6); backdrop-filter:blur(15px); border:1px solid var(--primary); border-radius:999px; }
+        @keyframes blink { 50% { opacity:0; } }
+
+        .project-item img { filter: grayscale(100%) contrast(1.2) brightness(0.5) sepia(100%) hue-rotate(220deg); transition: all 0.5s ease; }
+        .project-item:hover img { filter: grayscale(0%) contrast(1) brightness(1) sepia(0%); transform: scale(1.05); }
+
+        .terminal-input-wrapper { position: relative; flex-grow: 1; display: flex; align-items: center; }
+        .terminal-prompt { position: absolute; left: 4px; color: var(--primary); font-family: 'Share Tech Mono', monospace; font-size: 16px; opacity: 0.7; animation: blink 1s step-end infinite; }
+        #danmaku-input { padding-left: 28px !important; }
+
+        .audio-player { position:fixed; bottom:40px; left:40px; z-index:100; display:flex; align-items:center; gap:15px; padding:12px 20px; background:rgba(0,0,0,.6); backdrop-filter:blur(15px); border:1px solid var(--primary); border-radius:999px; transition: all 0.3s; }
+        .audio-player:hover { box-shadow: 0 0 15px rgba(138,43,226,0.5); }
         .disc-anim { width:35px; height:35px; border-radius:50%; border:2px solid var(--secondary); animation:rotate 4s linear infinite; animation-play-state:paused; } .playing .disc-anim { animation-play-state:running; }
         @keyframes rotate { from { transform:rotate(0); } to { transform:rotate(360deg); } }
         .spectrum { display:flex; align-items:flex-end; gap:3px; height:15px; } .bar { width:3px; background:var(--primary); border-radius:2px; height:4px; }
         .playing .bar { animation:bar-jump .6s ease-in-out infinite alternate; } @keyframes bar-jump { 0% { height:4px; } 100% { height:15px; } }
+        .filter-btn { transition:color .3s,text-shadow .3s; }
+        .filter-btn.active { color:var(--secondary); text-shadow:0 0 12px var(--secondary); }
+
+        /* ===== 音频播放器补全 ===== */
+        .player-label { font-size: 9px; letter-spacing: .2em; color: rgba(255,255,255,.5); }
+        #play-btn { display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; flex-shrink: 0; }
+
+        /* ===== 顶部导航适配补丁 ===== */
+        #main-nav {
+            padding-top: calc(1rem + env(safe-area-inset-top, 0px));
+            padding-bottom: 1rem;
+            border-bottom: 1px solid transparent;
+            transition: background .35s ease, border-color .35s ease, box-shadow .35s ease, padding .35s ease;
+        }
+        @media (min-width: 768px) {
+            #main-nav { padding-top: calc(1.5rem + env(safe-area-inset-top, 0px)); padding-bottom: 1.5rem; }
+        }
+        #main-nav.scrolled {
+            background: rgba(0,0,0,.72);
+            backdrop-filter: blur(18px) saturate(180%);
+            -webkit-backdrop-filter: blur(18px) saturate(180%);
+            border-bottom-color: rgba(255,255,255,.08);
+            box-shadow: 0 8px 30px rgba(0,0,0,.5);
+            padding-top: calc(.75rem + env(safe-area-inset-top, 0px));
+            padding-bottom: .75rem;
+        }
+        #main-nav .nav-links > a { position: relative; }
+        #main-nav .nav-links > a::after {
+            content:''; position:absolute; left:0; bottom:-6px; width:0; height:1px;
+            background: var(--primary); box-shadow: 0 0 8px var(--primary);
+            transition: width .3s ease;
+        }
+        #main-nav .nav-links > a:hover::after { width:100%; }
+        .lang-switch {
+            display: flex; align-items: center; gap: 6px;
+            padding: 4px 10px;
+            font-size: 10px; font-weight: 700; letter-spacing: .15em;
+            border: 1px solid rgba(255,255,255,.12);
+            border-radius: 999px;
+            user-select: none;
+            transition: border-color .3s;
+        }
+        .lang-switch:hover { border-color: rgba(138,43,226,.5); }
+        /* 使用 button 元素，重置默认外观 */
+        .lang-btn {
+            background: none;
+            border: 0;
+            padding: 0;
+            margin: 0;
+            font: inherit;
+            letter-spacing: inherit;
+            line-height: 1;
+            color: rgba(255,255,255,.35);
+            transition: color .25s, text-shadow .25s;
+        }
+        .lang-btn:hover { color: #fff; }
+        .lang-btn.active { color: var(--primary); text-shadow: 0 0 10px var(--primary); }
+        .lang-btn:focus-visible { outline: 1px solid var(--secondary); outline-offset: 2px; border-radius: 2px; }
+        #mobile-menu {
+            max-height: calc(100dvh - 6rem);
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            box-shadow: 0 20px 50px rgba(0,0,0,.8);
+        }
+
+        /* ===== Hero 全屏：桌面端同样撑满首屏 ===== */
+        .hero-screen { min-height: 100vh; min-height: 100svh; }
+
+        @media (max-width:767px) {
+            .audio-player { bottom:14px; left:14px; padding:6px 10px; gap:0; }
+            .audio-player .disc-anim { width:28px; height:28px; }
+            .audio-player .spectrum, .audio-player .player-label { display:none; }
+            #log-window { width:130px; height:90px; bottom:14px; right:14px; padding:6px; }
+            #log-window > div:first-child { font-size:6px; margin-bottom:4px; padding-bottom:4px; }
+            #log-content { font-size:8px; }
+            .log-time { margin-right:3px; }
+        }
+
+        /* ===== 无障碍：尊重「减少动态效果」系统偏好 ===== */
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: .01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: .01ms !important;
+                scroll-behavior: auto !important;
+            }
+            .grid-plane { animation: none !important; }
+            .disc-anim { animation: none !important; }
+            .cursor-blink::after { animation: none !important; opacity: 1 !important; }
+            .danmaku-item { animation-duration: 6s !important; }
+        }
     </style>
+    <noscript>
+        <style>
+            #preloader { display: none !important; }
+            .reveal { opacity: 1 !important; transform: none !important; }
+            #mobile-menu { display: none !important; }
+        </style>
+    </noscript>
 </head>
 <body>
+    <div id="preloader">
+        <div class="text-sm tracking-widest mb-2 font-bold">INITIALIZING_KERNEL...</div>
+        <div class="load-bar"><div class="load-bar-inner" id="load-progress"></div></div>
+        <div class="text-[10px] mt-2 opacity-50" id="load-percent">0%</div>
+    </div>
+
     <div class="grid-container"><div class="grid-plane"></div></div>
     <canvas id="matrix-canvas"></canvas>
     <div id="danmaku-container"></div>
+
     <div id="log-window">
         <div style="font-size:8px;margin-bottom:8px;letter-spacing:2px;opacity:.5;display:flex;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.1);padding-bottom:6px"><span>KERNEL_V4.4_OS</span><span id="log-mode">STABLE</span></div>
         <div id="log-content"></div>
     </div>
-    <nav class="fixed w-full z-50 py-8 px-6 md:px-12 transition-all" id="main-nav">
-        <div class="max-w-7xl mx-auto flex justify-between items-center">
-            <div class="text-2xl font-black italic text-white tracking-tighter uppercase"><span id="logo-main" style="color:var(--primary)">LOOPZLX</span></div>
-            <div class="hidden md:flex items-center space-x-8 text-[10px] font-bold uppercase tracking-widest">
-                <a href="#home" data-en="Home" data-zh="主页">Home</a><a href="#about" data-en="About" data-zh="关于">About</a><a href="#skills" data-en="Matrix" data-zh="矩阵">Matrix</a><a href="#projects" data-en="Projects" data-zh="项目">Projects</a>
-                <div class="lang-switch font-mono"><span class="lang-btn active" id="btn-en" onclick="setLang('en')">EN</span><span class="text-gray-700">/</span><span class="lang-btn" id="btn-zh" onclick="setLang('zh')">ZH</span></div>
-                <a href="mailto:yq6751@outlook.com" class="px-6 py-2 rounded-full border border-white/20 hover:bg-white hover:text-black transition-all" data-en="Contact" data-zh="联系">Contact</a>
+
+    <nav class="fixed w-full z-50 px-5 md:px-12" id="main-nav">
+        <div class="max-w-7xl mx-auto flex justify-between items-center gap-4">
+            <a href="#home" class="text-lg sm:text-2xl font-black italic text-white tracking-tighter uppercase shrink-0">
+                <span id="logo-main" style="color:var(--primary)">LOOPZLX</span>
+            </a>
+
+            <!-- 调整为 xl:flex，避免在平板/中等宽度屏（如 lg 断点 1024px）下导致内容过多挤压换行 -->
+            <div class="nav-links hidden xl:flex items-center gap-6 xl:gap-8 text-[11px] font-bold uppercase tracking-widest whitespace-nowrap">
+                <a href="#home"     data-en="Home"     data-zh="主页" class="text-white/60 hover:text-white hover:drop-shadow-[0_0_8px_var(--primary)] transition-all">Home</a>
+                <a href="#about"    data-en="About"    data-zh="关于" class="text-white/60 hover:text-white hover:drop-shadow-[0_0_8px_var(--primary)] transition-all">About</a>
+                <a href="#skills"   data-en="Matrix"   data-zh="矩阵" class="text-white/60 hover:text-white hover:drop-shadow-[0_0_8px_var(--primary)] transition-all">Matrix</a>
+                <a href="#projects" data-en="Projects" data-zh="项目" class="text-white/60 hover:text-white hover:drop-shadow-[0_0_8px_var(--primary)] transition-all">Projects</a>
+                <div class="lang-switch font-mono">
+                    <button type="button" class="lang-btn active" id="btn-en" data-lang="en">EN</button>
+                    <span class="text-gray-700">/</span>
+                    <button type="button" class="lang-btn" id="btn-zh" data-lang="zh">ZH</button>
+                </div>
+                <a href="mailto:yq6751@outlook.com" class="px-5 py-2 rounded-full border border-white/20 hover:bg-white hover:text-black transition-all" data-en="Contact" data-zh="联系">Contact</a>
             </div>
+
+            <!-- 按钮对应改为 xl:hidden -->
+            <button id="menu-toggle" class="xl:hidden text-white text-lg w-10 h-10 shrink-0 flex items-center justify-center border border-white/20 rounded-lg hover:border-[var(--primary)] transition-colors" aria-label="Toggle menu" aria-expanded="false">
+                <i class="fas fa-bars"></i>
+            </button>
+        </div>
+
+        <!-- 下拉菜单同步改为 xl:hidden -->
+        <div id="mobile-menu" class="hidden xl:hidden flex-col gap-4 max-w-7xl mx-auto mt-4 p-5 border border-white/10 rounded-2xl bg-black/95 backdrop-blur-xl text-[11px] font-bold uppercase tracking-widest">
+            <a href="#home"     data-en="Home"     data-zh="主页" class="text-white/70 hover:text-white py-1">Home</a>
+            <a href="#about"    data-en="About"    data-zh="关于" class="text-white/70 hover:text-white py-1">About</a>
+            <a href="#skills"   data-en="Matrix"   data-zh="矩阵" class="text-white/70 hover:text-white py-1">Matrix</a>
+            <a href="#projects" data-en="Projects" data-zh="项目" class="text-white/70 hover:text-white py-1">Projects</a>
+            <div class="lang-switch font-mono self-start">
+                <button type="button" class="lang-btn active" id="m-btn-en" data-lang="en">EN</button>
+                <span class="text-gray-700">/</span>
+                <button type="button" class="lang-btn" id="m-btn-zh" data-lang="zh">ZH</button>
+            </div>
+            <a href="mailto:yq6751@outlook.com" class="self-start px-6 py-2 rounded-full border border-white/20 hover:bg-white hover:text-black transition-all" data-en="Contact" data-zh="联系">Contact</a>
         </div>
     </nav>
-    <div class="audio-player" id="audio-container">
-        <audio id="bg-audio" loop><source src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" type="audio/mpeg"></audio>
-        <button id="play-btn"><div class="disc-anim flex items-center justify-center bg-black"><i class="fas fa-play text-[10px] text-white" id="play-icon"></i></div></button>
-        <div class="flex flex-col ml-1"><span class="text-[8px] font-bold text-gray-500 uppercase">SIGNAL_STMT</span><div class="spectrum"><div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div></div></div>
-    </div>
-    <section id="home" class="w-full h-screen flex flex-col items-center justify-center text-center relative px-6">
-        <div class="absolute top-36 w-full max-w-7xl px-6 md:px-12 flex justify-between items-start opacity-30 reveal">
-            <div class="text-[10px] font-mono uppercase tracking-[0.3em]" style="color:var(--primary)" data-en="Neural Link: Stable" data-zh="神经连接：稳定">Neural Link: Stable</div>
-            <div class="text-right font-mono"><div id="live-clock" class="text-2xl font-bold text-white tracking-tighter">00:00:00</div><div id="live-date" class="text-[10px] text-gray-500 mt-1 uppercase tracking-widest">2026.02.15 SUN</div></div>
-        </div>
-        <div class="z-10">
-            <img src="https://avatars.githubusercontent.com/u/49837965?v=4" class="w-28 h-28 rounded-full border border-white/10 p-1 mb-6 mx-auto reveal">
-            <h1 class="text-5xl md:text-8xl font-black mb-6 text-white tracking-tighter uppercase reveal">loopzlx</h1>
-            <div class="flex gap-8 mb-8 justify-center reveal">
-                <a href="https://github.com/zero123t" target="_blank" class="social-link hover:text-white text-2xl" title="GitHub"><i class="fab fa-github"></i></a>
-                <a href="https://youtube.com/@loopelzeta?si=bzGWMIR7JFG1kxIH" target="_blank" class="social-link hover:text-[#ff0000] text-2xl" title="YouTube"><i class="fab fa-youtube"></i></a>
-                <a href="https://space.bilibili.com/3546616348806078" target="_blank" class="social-link hover:text-[#00aeec] text-2xl" title="Bilibili"><i class="fa-brands fa-bilibili"></i></a>
-                <a href="https://qm.qq.com/q/shpXHNfIpa" target="_blank" class="social-link hover:text-[#12b7f5] text-2xl" title="QQ Group"><i class="fab fa-qq"></i></a>
+
+    <section id="home" class="w-full hero-screen flex flex-col items-center justify-center text-center relative px-5 sm:px-6 py-24">
+        <div class="absolute top-20 sm:top-28 left-0 right-0 max-w-7xl mx-auto px-5 sm:px-12 flex justify-between items-start opacity-30 pointer-events-none">
+            <div class="text-[7px] sm:text-[10px] font-mono uppercase tracking-[0.2em] sm:tracking-[0.3em] text-left" style="color:var(--primary)" data-en="Neural Link: Stable" data-zh="神经连接：稳定">Neural Link: Stable</div>
+            <div class="text-right font-mono">
+                <div id="live-clock" class="text-sm sm:text-2xl font-bold text-white tracking-tighter">00:00:00</div>
+                <div id="live-date" class="text-[7px] sm:text-[10px] text-gray-500 mt-1 uppercase tracking-wider sm:tracking-widest">2026.02.15 SUN</div>
             </div>
-            <p class="text-lg md:text-xl font-mono text-gray-400 h-8 reveal uppercase"><span id="typing-text" class="cursor-blink"></span></p>
+        </div>
+
+        <div class="z-10 w-full">
+            <img src="avatar.png" alt="loopzlx avatar" class="w-20 h-20 sm:w-28 sm:h-28 rounded-full border-2 border-white/20 p-1 mb-5 sm:mb-6 mx-auto reveal hover:border-[var(--primary)] transition-colors duration-300" onerror="this.src='https://avatars.githubusercontent.com/u/49837965?v=4'">
+            <h1 class="text-4xl sm:text-6xl md:text-8xl font-black mb-5 sm:mb-6 text-white tracking-tighter uppercase reveal glitch-text" data-text="loopzlx">loopzlx</h1>
+            <div class="flex gap-5 sm:gap-8 mb-6 sm:mb-8 justify-center reveal">
+                <a href="https://github.com/zero123t" target="_blank" rel="noopener" class="social-link text-xl sm:text-2xl" title="GitHub"><i class="fab fa-github"></i></a>
+                <a href="https://youtube.com/@loopelzeta?si=bzGWMIR7JFG1kxIH" target="_blank" rel="noopener" class="social-link text-xl sm:text-2xl" title="YouTube"><i class="fab fa-youtube"></i></a>
+                <a href="https://space.bilibili.com/3546616348806078" target="_blank" rel="noopener" class="social-link text-xl sm:text-2xl" title="Bilibili"><i class="fa-brands fa-bilibili"></i></a>
+                <a href="https://qm.qq.com/q/shpXHNfIpa" target="_blank" rel="noopener" class="social-link text-xl sm:text-2xl" title="QQ Group"><i class="fab fa-qq"></i></a>
+            </div>
+            <p class="text-base sm:text-lg md:text-xl font-mono text-gray-400 h-8 reveal uppercase px-2"><span id="typing-text" class="cursor-blink"></span></p>
         </div>
     </section>
-    <section id="about" class="py-32 px-6 md:px-12 max-w-7xl mx-auto">
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-20 items-center">
-            <div class="lg:col-span-7 space-y-10 reveal"><h2 class="text-5xl md:text-7xl font-black italic text-white uppercase leading-tight" data-en="Life is a Chase." data-zh="生活是一场追逐。">Life is a Chase.</h2><div class="glass-card p-10 rounded-2xl border-l-4" style="border-color:var(--primary)"><p class="text-xl md:text-2xl text-gray-200 font-light italic leading-relaxed" id="about-quote">"In the forest of code, I am the algorithm finding the path."</p></div></div>
-            <div class="lg:col-span-5 reveal"><div class="aspect-[4/5] rounded-[3rem] border border-white/10 relative overflow-hidden bg-white/5"><div class="absolute inset-0 bg-gradient-to-br from-black/60 to-transparent"></div><div class="absolute bottom-10 right-10 glass-card p-8 rounded-[2rem]"><div class="text-5xl font-black" style="color:var(--secondary)">01</div><div class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Pure Flow</div></div></div></div>
+
+    <section id="about" class="py-20 md:py-32 px-5 sm:px-6 md:px-12 max-w-7xl mx-auto">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-20 items-center">
+            <div class="lg:col-span-7 space-y-6 md:space-y-10 reveal">
+                <h2 class="text-3xl sm:text-5xl md:text-7xl font-black italic text-white uppercase leading-tight" data-en="Life is a Chase." data-zh="生活是一场追逐。">Life is a Chase.</h2>
+                <div class="glass-card p-6 md:p-10 rounded-2xl border-l-4" style="border-left-color:var(--primary)">
+                    <p class="text-lg sm:text-xl md:text-2xl text-gray-200 font-light italic leading-relaxed" id="about-quote">"In the forest of code, I am the algorithm finding the path."</p>
+                </div>
+            </div>
+            <div class="lg:col-span-5 reveal">
+                <div class="h-64 sm:h-80 lg:h-auto lg:aspect-[4/5] rounded-3xl lg:rounded-[3rem] glass-card flex flex-col items-center justify-center relative overflow-hidden">
+                    <i class="fas fa-fingerprint text-6xl mb-4 opacity-20" style="color:var(--primary)"></i>
+                    <div class="text-[10px] font-mono tracking-[0.3em] uppercase opacity-30">BIO_SCAN_ACTIVE</div>
+                    <div class="absolute bottom-6 right-6 md:bottom-10 md:right-10 glass-card p-5 md:p-8 rounded-2xl md:rounded-[2rem]">
+                        <div class="text-3xl md:text-5xl font-black" style="color:var(--secondary)">01</div>
+                        <div class="text-[9px] md:text-[10px] font-bold text-gray-400 uppercase tracking-widest">Pure Flow</div>
+                    </div>
+                </div>
+            </div>
         </div>
     </section>
-    <section id="skills" class="py-32 px-6 max-w-7xl mx-auto">
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-            <div class="reveal"><h2 class="text-5xl font-black text-white mb-2 uppercase italic" data-en="Skill Matrix" data-zh="技能矩阵">Skill Matrix</h2><div class="w-20 h-1.5 mb-8" style="background-color:var(--primary)"></div><div class="space-y-6 font-mono text-xs text-gray-400"><p data-en="Neural sync active." data-zh="神经连接已激活。">Neural sync active.</p><div class="space-y-4" id="skill-list"></div></div></div>
-            <div class="flex justify-center items-center reveal min-h-[400px]"><svg id="radar-svg" width="400" height="400" viewBox="0 0 400 400"><g id="radar-grids"></g><g id="radar-axes"></g><polygon id="radar-value-area" points="200,200 200,200 200,200 200,200 200,200 200,200" fill="rgba(138,43,226,0.2)" stroke="var(--secondary)" stroke-width="2" class="transition-all duration-1000 ease-out"/><g id="radar-labels" class="text-[10px] fill-gray-500 font-mono font-bold uppercase"></g></svg></div>
+
+    <section id="skills" class="py-20 md:py-32 px-5 sm:px-6 max-w-7xl mx-auto">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 items-center">
+            <div class="reveal">
+                <h2 class="text-4xl sm:text-5xl font-black text-white mb-2 uppercase italic" data-en="Skill Matrix" data-zh="技能矩阵">Skill Matrix</h2>
+                <div class="w-20 h-1.5 mb-6 md:mb-8" style="background-color:var(--primary); box-shadow: 0 0 10px var(--primary);"></div>
+                <div class="space-y-4 md:space-y-6 font-mono text-xs text-gray-400">
+                    <p data-en="Neural sync active." data-zh="神经连接已激活。">Neural sync active.</p>
+                    <div class="space-y-3 md:space-y-4" id="skill-list"></div>
+                </div>
+            </div>
+            <div class="flex justify-center items-center reveal min-h-[280px] sm:min-h-[360px] lg:min-h-[400px]">
+                <svg id="radar-svg" viewBox="0 0 400 400" class="w-full max-w-[400px] h-auto drop-shadow-[0_0_15px_rgba(255,105,180,0.2)]">
+                    <g id="radar-grids"></g>
+                    <g id="radar-axes"></g>
+                    <polygon id="radar-value-area" points="200,200 200,200 200,200 200,200 200,200 200,200" fill="rgba(138,43,226,0.2)" stroke="var(--secondary)" stroke-width="2"/>
+                    <g id="radar-labels" class="text-[10px] fill-gray-500 font-mono font-bold uppercase"></g>
+                </svg>
+            </div>
         </div>
     </section>
-    <section id="projects" class="py-32 px-6 max-w-7xl mx-auto">
-        <div class="flex flex-col md:flex-row justify-between items-end mb-16 reveal"><div><h2 class="text-5xl font-black text-white mb-2 uppercase italic" data-en="Projects" data-zh="精选项目">Projects</h2><div class="w-20 h-1.5" style="background-color:var(--primary)"></div></div><div class="mt-8 flex gap-8 text-[10px] font-bold uppercase tracking-widest"><button class="filter-btn active" data-filter="all" data-en="All" data-zh="全部">All</button><button class="filter-btn text-gray-600 hover:text-white" data-filter="dev" data-en="Dev" data-zh="开发">Dev</button><button class="filter-btn text-gray-600 hover:text-white" data-filter="parkour" data-en="Parkour" data-zh="跑酷">Parkour</button></div></div>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8" id="project-grid"></div>
+
+    <section id="projects" class="py-20 md:py-32 px-5 sm:px-6 max-w-7xl mx-auto">
+        <div class="flex flex-col md:flex-row justify-between md:items-end mb-10 md:mb-16 gap-6 reveal">
+            <div>
+                <h2 class="text-4xl sm:text-5xl font-black text-white mb-2 uppercase italic" data-en="Projects" data-zh="精选项目">Projects</h2>
+                <div class="w-20 h-1.5" style="background-color:var(--primary); box-shadow: 0 0 10px var(--primary);"></div>
+            </div>
+            <div class="flex flex-wrap gap-4 md:gap-8 text-[10px] font-bold uppercase tracking-widest">
+                <button class="filter-btn active" data-filter="all" data-en="All" data-zh="全部">All</button>
+                <button class="filter-btn text-gray-600 hover:text-white" data-filter="dev" data-en="Dev" data-zh="开发">Dev</button>
+                <button class="filter-btn text-gray-600 hover:text-white" data-filter="parkour" data-en="Parkour" data-zh="跑酷">Parkour</button>
+            </div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8" id="project-grid"></div>
     </section>
-    <section id="transmission" class="py-32 px-6 max-w-7xl mx-auto reveal">
-        <h2 class="text-5xl font-black text-white mb-2 uppercase italic" data-en="Transmission" data-zh="实时信号">Transmission</h2><div class="w-20 h-1.5 mb-12" style="background-color:var(--primary)"></div>
-        <div class="glass-card p-8 rounded-3xl flex flex-col md:flex-row gap-6 items-center"><input type="text" id="danmaku-input" maxlength="30" placeholder="Type /help for command list..." class="bg-transparent border-b border-white/20 w-full outline-none px-4 py-2 text-sm font-mono text-white placeholder-gray-600 focus:border-[var(--primary)] transition-all"><button onclick="sendDanmaku()" class="px-10 py-3 text-white text-[10px] font-bold uppercase rounded-full transition-all" style="background-color:var(--primary)" data-en="Broadcast" data-zh="广播">Broadcast</button></div>
+
+    <section id="transmission" class="py-20 md:py-32 px-5 sm:px-6 max-w-7xl mx-auto reveal">
+        <h2 class="text-4xl sm:text-5xl font-black text-white mb-2 uppercase italic" data-en="Transmission" data-zh="实时信号">Transmission</h2>
+        <div class="w-20 h-1.5 mb-8 md:mb-12" style="background-color:var(--primary); box-shadow: 0 0 10px var(--primary);"></div>
+        <div class="glass-card p-5 md:p-8 rounded-2xl md:rounded-3xl flex flex-col md:flex-row gap-4 md:gap-6 items-stretch md:items-center">
+            <div class="terminal-input-wrapper">
+                <span class="terminal-prompt">>_</span>
+                <input type="text" id="danmaku-input" maxlength="30"
+                       data-en-ph="Type /help for command list..." data-zh-ph="输入 /help 查看命令列表..."
+                       placeholder="Type /help for command list..."
+                       class="bg-transparent border-b border-white/20 w-full outline-none px-3 py-2 text-sm font-mono text-white placeholder-gray-600 focus:border-[var(--primary)] transition-all">
+            </div>
+            <button id="broadcast-btn" class="px-6 md:px-10 py-3 text-white text-[11px] font-bold uppercase rounded-full transition-all whitespace-nowrap" style="background-color:var(--primary); box-shadow: 0 0 10px rgba(138,43,226,0.5);" data-en="Broadcast" data-zh="广播">Broadcast</button>
+        </div>
     </section>
-    <footer class="py-20 text-center opacity-30 text-[10px] tracking-[1em] uppercase">© 2026 loopzlx</footer>
+
+    <footer class="py-12 md:py-20 text-center opacity-30 text-[10px] tracking-[0.6em] md:tracking-[1em] uppercase">© 2026 loopzlx</footer>
+
+    <!-- ===== 音频播放器（之前只有 CSS/JS，HTML 缺失） ===== -->
+    <!-- 请将你的背景音乐文件命名为 bgm.mp3 并放到同目录 -->
+    <div class="audio-player" id="audio-container">
+        <div class="disc-anim"></div>
+        <div class="spectrum">
+            <div class="bar"></div>
+            <div class="bar"></div>
+            <div class="bar"></div>
+        </div>
+        <span class="player-label font-mono">STREAM</span>
+        <button id="play-btn" aria-label="Play/Pause">
+            <i class="fas fa-play text-white" id="play-icon"></i>
+        </button>
+        <audio id="bg-audio" src="bgm.mp3" preload="none" loop></audio>
+    </div>
+
     <script>
+    (function () {
+        'use strict';
+
+        /* 环境自检（可在 F12 控制台看到） */
+        console.log('%c[Cyber] boot', 'color:#8a2be2;font-weight:bold');
+
+        /* -------- 加载进度 -------- */
+        let progress = 0;
+        const progressBar = document.getElementById('load-progress');
+        const percentText = document.getElementById('load-percent');
+        const preloader = document.getElementById('preloader');
+        if (progressBar && percentText) {
+            const loadInterval = setInterval(() => {
+                progress += Math.random() * 20;
+                if (progress >= 100) {
+                    progress = 100;
+                    clearInterval(loadInterval);
+                    if (preloader) preloader.classList.add('hidden');
+                }
+                progressBar.style.width = progress + '%';
+                percentText.textContent = Math.floor(progress) + '%';
+            }, 100);
+        }
+
         const config = {
-            zh: { quote:"“在代码的逻辑森林里，我是寻找路径的算法；在城市的钢筋废墟中，我是重力规律的叛徒。”", words:["前端开发者","跑酷运动员","UI/UX 设计师"], skills:[{n:"开发工程",v:.95},{n:"视觉设计",v:.82},{n:"运动敏捷",v:.90}] },
-            en: { quote:"“In the forest of code, I am the algorithm finding the path; in the concrete ruins of the city, I am the traitor of gravity.”", words:["Frontend Developer","Parkour Athlete","UI/UX Architect"], skills:[{n:"Development",v:.95},{n:"Design",v:.82},{n:"Movement",v:.90}] }
+            zh: {
+                quote: "“在代码的逻辑森林里，我是寻找路径的算法；在城市的钢筋废墟中，我是重力规律的叛徒。”",
+                words: ["前端开发者", "跑酷运动员", "UI/UX 设计师"]
+            },
+            en: {
+                quote: "“In the forest of code, I am the algorithm finding the path; in the concrete ruins of the city, I am the traitor of gravity.”",
+                words: ["Frontend Developer", "Parkour Athlete", "UI/UX Architect"]
+            }
         };
-        const radarData = [{en:"Code",zh:"编程",val:.95},{en:"Design",zh:"设计",val:.82},{en:"Motion",zh:"动效",val:.75},{en:"Flow",zh:"流动",val:.90},{en:"Visual",zh:"视觉",val:.85},{en:"Logic",zh:"逻辑",val:.88}];
-        const projectList = [{cat:'dev',title:'Cyber Terminal',en:'CLI Portfolio',zh:'终端作品集'},{cat:'parkour',title:'Flow Archive',en:'Urban Movement',zh:'城市影像'},{cat:'dev',title:'Neural Matrix',en:'SVG Data Viz',zh:'数据可视化'}];
+
+        const radarData = [
+            { en: "Code",   zh: "编程", val: 0.95 },
+            { en: "Design", zh: "设计", val: 0.82 },
+            { en: "Motion", zh: "动效", val: 0.75 },
+            { en: "Flow",   zh: "流动", val: 0.90 },
+            { en: "Visual", zh: "视觉", val: 0.85 },
+            { en: "Logic",  zh: "逻辑", val: 0.88 }
+        ];
+
+        const projectList = [
+            { cat: 'dev',     title: 'Cyber Terminal', en: 'CLI Portfolio',   zh: '终端作品集' },
+            { cat: 'parkour', title: 'Flow Archive',   en: 'Urban Movement',  zh: '城市影像' },
+            { cat: 'dev',     title: 'Neural Matrix',  en: 'SVG Data Viz',    zh: '数据可视化' }
+        ];
+
         let currentLang = 'en';
-        let matrixRunning = false;
+        let typingWords = config.en.words;
+        let typeTimer = null, wI = 0, cI = 0, isDeleting = false;
+        let matrixRunning = false, matrixRaf = null, matrixWasRunning = false;
+        let discoTimer = null, gravityTimer = null;
+        let glitchTimer = null, vibrateTimer = null;
+
+        const $ = id => document.getElementById(id);
+        const logContent = $('log-content');
+        const logMode = $('log-mode');
+        const typingEl = $('typing-text');
+        const mCanvas = $('matrix-canvas');
+        const mCtx = mCanvas ? mCanvas.getContext('2d') : null;
+        const dCont = $('danmaku-container');
+        const audio = $('bg-audio');
 
         function addLog(msg) {
-            const container=document.getElementById('log-content');
-            const time=new Date().toLocaleTimeString('en-GB',{hour12:false,hour:'2-digit',minute:'2-digit',second:'2-digit'});
-            const entry=document.createElement('div'); entry.className='log-entry';
-            let color="rgba(255,255,255,0.6)";
-            if(msg.includes("Critical")||msg.includes("FAILURE")||msg.includes("WARNING")) color="var(--secondary)";
-            if(msg.includes("Execute")||msg.includes("SUCCESS")||msg.includes("Active")) color="var(--primary)";
-            entry.innerHTML=`<span class="log-time">[${time}]</span> <span style="color:${color}">${msg.toUpperCase()}</span>`;
-            container.appendChild(entry); if(container.children.length>100) container.removeChild(container.firstChild); container.scrollTop=container.scrollHeight;
+            if (!logContent) return;
+            const now = new Date().toLocaleTimeString('en-GB', { hour12: false });
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            let color = 'rgba(255,255,255,0.6)';
+            if (/Critical|FAILURE|WARNING|Error/i.test(msg)) color = 'var(--secondary)';
+            if (/Execute|SUCCESS|Active|Granted/i.test(msg)) color = 'var(--primary)';
+            const time = document.createElement('span');
+            time.className = 'log-time';
+            time.textContent = '[' + now + ']';
+            const text = document.createElement('span');
+            text.style.color = color;
+            text.textContent = String(msg).toUpperCase();
+            entry.append(time, document.createTextNode(' '), text);
+            logContent.appendChild(entry);
+            while (logContent.children.length > 100) logContent.removeChild(logContent.firstChild);
+            // 直接滚动（去掉 CSS smooth 后不会排队卡顿）
+            logContent.scrollTop = logContent.scrollHeight;
         }
+
         function setLang(lang) {
-            currentLang=lang;
-            document.querySelectorAll('.lang-btn').forEach(btn=>{if(btn.id===`btn-${lang}`) btn.classList.add('active'); else btn.classList.remove('active');});
-            document.querySelectorAll('[data-en]').forEach(el=>{el.textContent=el.getAttribute(`data-${lang}`);});
-            document.getElementById('about-quote').textContent=config[lang].quote;
-            typingWords=config[lang].words; wI=0; cI=0;
-            document.getElementById('skill-list').innerHTML=config[lang].skills.map(s=>`<div class="flex justify-between border-b border-white/5 pb-2"><span>${s.n}</span><span style="color:var(--secondary)">${s.v*100}%</span></div>`).join('');
-            updateRadarLabels(); addLog(`System: Switched to ${lang.toUpperCase()}`);
+            if (!config[lang]) return;
+            currentLang = lang;
+            document.documentElement.lang = (lang === 'zh') ? 'zh-CN' : 'en';
+            document.querySelectorAll('[data-original]').forEach(n => delete n.dataset.original);
+            document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.lang === lang));
+            document.querySelectorAll('[data-en]').forEach(el => {
+                const v = el.getAttribute('data-' + lang);
+                if (v !== null) el.textContent = v;
+            });
+            document.querySelectorAll('[data-en-ph]').forEach(el => {
+                const v = el.getAttribute('data-' + lang + '-ph');
+                if (v !== null) el.placeholder = v;
+            });
+            const quote = $('about-quote');
+            if (quote) quote.textContent = config[lang].quote;
+            typingWords = config[lang].words;
+            restartTyping();
+            renderSkillList();
+            updateRadarLabels();
+            updateClock();
+            addLog('System: Switched to ' + lang.toUpperCase());
         }
-        async function sendDanmaku() {
-            const inputEl=document.getElementById('danmaku-input'), val=inputEl.value.trim().toLowerCase(), mCanvas=document.getElementById('matrix-canvas');
-            if(!val) return;
-            document.body.classList.add('screen-flash'); setTimeout(()=>document.body.classList.remove('screen-flash'),250);
-            if(val.startsWith('/')) {
-                const cmd=val.split(' ')[0]; addLog(`Execute: ${cmd}`);
-                switch(cmd) {
-                    case '/root': document.body.classList.add('hacker-mode'); document.getElementById('log-mode').textContent='EXPLOIT'; matrixRunning=true; initMatrix(); drawMatrix(); addLog('Critical: Admin access granted'); break;
-                    case '/matrix': addLog('System: Overriding UI with Matrix Stream...'); document.body.classList.add('hacker-mode'); matrixRunning=true; initMatrix(); drawMatrix(); mCanvas.style.opacity='1'; mCanvas.style.background='black'; break;
-                    case '/echo': addLog('Effect: Visual Echo Synchronized'); document.querySelectorAll('h1,h2,.glass-card').forEach(el=>{el.style.textShadow='5px 5px 0px var(--primary), -5px -5px 0px var(--secondary)';}); break;
-                    case '/vibrate': addLog('Critical: Structural Integrity Compromised'); document.body.style.animation='shake .2s infinite'; setTimeout(()=>{document.body.style.animation='none';addLog('System: Stability restored');},3000); break;
-                    case '/disco': addLog('System: Neural Rave Active'); if(window.discoTimer) clearInterval(window.discoTimer); window.discoTimer=setInterval(()=>{const h=Math.floor(Math.random()*360);document.documentElement.style.setProperty('--primary',`hsl(${h},100%,50%)`);document.documentElement.style.setProperty('--secondary',`hsl(${h+150},100%,50%)`);},150); break;
-                    case '/gravity': addLog('WARNING: GRAVITY_ENGINE_FAILURE'); document.querySelectorAll('.reveal,img,.glass-card,.project-item,h1,p,nav').forEach(el=>{el.classList.add('gravity-applied');const x=(Math.random()-.5)*400,y=Math.random()*400,r=(Math.random()-.5)*180;el.style.transform=`translate(${x}px, ${y}px) rotate(${r}deg)`;}); break;
-                    case '/glitch': addLog('CRITICAL: DATA CORRUPTION'); document.body.style.filter='contrast(1.5) saturate(2) hue-rotate(45deg)'; document.body.style.animation='v-flicker .05s infinite'; break;
-                    case '/binary': addLog('Deconstructing Language...'); document.querySelectorAll('h1,h2,p,a,span:not(.log-time)').forEach(node=>{if(!node.dataset.original) node.dataset.original=node.textContent;node.textContent=node.textContent.replace(/[^\s]/g,()=>Math.round(Math.random()));}); break;
-                    case '/exit': document.body.classList.remove('hacker-mode'); document.getElementById('log-mode').textContent='STABLE'; matrixRunning=false; document.body.style.filter='none'; document.body.style.animation='none'; mCanvas.style.opacity='.4'; mCanvas.style.background='transparent'; if(window.discoTimer) clearInterval(window.discoTimer); document.querySelectorAll('[data-original]').forEach(node=>{node.textContent=node.dataset.original;delete node.dataset.original;}); document.querySelectorAll('h1,h2,.glass-card').forEach(el=>el.style.textShadow='none'); document.querySelectorAll('*').forEach(el=>{el.style.transform='';el.classList.remove('gravity-applied');}); document.documentElement.style.setProperty('--primary','#8a2be2'); document.documentElement.style.setProperty('--secondary','#ff69b4'); addLog('Session reset'); break;
-                    case '/help': for(const c of ['/root','/matrix','/echo','/vibrate','/disco','/gravity','/glitch','/binary','/exit']) {await new Promise(r=>setTimeout(r,150));addLog(`Cmd: ${c}`);} break;
-                    default: addLog(`Error: Unknown '${cmd}'`);
-                }
-            } else { createD(inputEl.value,true); addLog(`Broadcast: "${val.substring(0,10)}..."`); }
-            inputEl.value='';
+
+        function renderSkillList() {
+            const el = $('skill-list');
+            if (!el) return;
+            el.innerHTML = radarData.map(d => {
+                const name = currentLang === 'en' ? d.en : d.zh;
+                return `<div class="flex justify-between border-b border-white/5 pb-2"><span>${name}</span><span style="color:var(--secondary)">${Math.round(d.val * 100)}%</span></div>`;
+            }).join('');
         }
-        function updateClock() {
-            const now=new Date(); document.getElementById('live-clock').textContent=now.toTimeString().split(' ')[0];
-            const weeks={en:['SUN','MON','TUE','WED','THU','FRI','SAT'],zh:['周日','周一','周二','周三','周四','周五','周六']};
-            document.getElementById('live-date').textContent=`${now.getFullYear()}.${String(now.getMonth()+1).padStart(2,'0')}.${String(now.getDate()).padStart(2,'0')} ${weeks[currentLang][now.getDay()]}`;
+
+        function restartTyping() {
+            clearTimeout(typeTimer);
+            wI = 0; cI = 0; isDeleting = false;
+            if (typingEl) typingEl.textContent = '';
+            type();
         }
-        const typingEl=document.getElementById('typing-text'); let typingWords=config.en.words,wI=0,cI=0,isDeleting=false;
+
         function type() {
-            const currentWord=typingWords[wI]; typingEl.textContent=isDeleting?currentWord.substring(0,cI-1):currentWord.substring(0,cI+1); cI=isDeleting?cI-1:cI+1;
-            let speed=isDeleting?50:120; if(!isDeleting&&cI===currentWord.length){speed=2000;isDeleting=true;} else if(isDeleting&&cI===0){isDeleting=false;wI=(wI+1)%typingWords.length;speed=500;} setTimeout(type,speed);
+            if (!typingEl) return;
+            clearTimeout(typeTimer);
+            const word = typingWords[wI] || '';
+            typingEl.textContent = isDeleting ? word.substring(0, cI - 1) : word.substring(0, cI + 1);
+            cI = isDeleting ? cI - 1 : cI + 1;
+            let speed = isDeleting ? 50 : 120;
+            if (!isDeleting && cI === word.length) { speed = 2000; isDeleting = true; }
+            else if (isDeleting && cI === 0) { isDeleting = false; wI = (wI + 1) % typingWords.length; speed = 500; }
+            typeTimer = setTimeout(type, speed);
         }
+
+        function updateClock() {
+            const clock = $('live-clock'), dateEl = $('live-date');
+            if (!clock || !dateEl) return;
+            const now = new Date();
+            clock.textContent = now.toTimeString().split(' ')[0];
+            const weeks = { en: ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'], zh: ['周日', '周一', '周二', '周三', '周四', '周五', '周六'] };
+            const y = now.getFullYear(), m = String(now.getMonth() + 1).padStart(2, '0'), d = String(now.getDate()).padStart(2, '0');
+            dateEl.textContent = `${y}.${m}.${d} ${weeks[currentLang][now.getDay()]}`;
+        }
+
+        const RADAR_CX = 200, RADAR_CY = 200, RADAR_R = 140;
+        const radarAngle = i => i * Math.PI * 2 / radarData.length - Math.PI / 2;
+
         function initRadar() {
-            const cx=200,cy=200,r=140,total=radarData.length,grids=document.getElementById('radar-grids'),axes=document.getElementById('radar-axes'),labels=document.getElementById('radar-labels');
-            for(let i=1;i<=5;i++){const poly=document.createElementNS('http://www.w3.org/2000/svg','polygon');const pts=radarData.map((_,j)=>`${cx+(r/5*i)*Math.cos(j*Math.PI*2/total-Math.PI/2)},${cy+(r/5*i)*Math.sin(j*Math.PI*2/total-Math.PI/2)}`).join(' ');poly.setAttribute('points',pts);poly.setAttribute('fill','none');poly.setAttribute('stroke','rgba(255,255,255,.05)');grids.appendChild(poly);}
-            radarData.forEach((d,i)=>{const x=cx+r*Math.cos(i*Math.PI*2/total-Math.PI/2),y=cy+r*Math.sin(i*Math.PI*2/total-Math.PI/2),line=document.createElementNS('http://www.w3.org/2000/svg','line');line.setAttribute('x1',cx);line.setAttribute('y1',cy);line.setAttribute('x2',x);line.setAttribute('y2',y);line.setAttribute('stroke','rgba(255,255,255,.05)');axes.appendChild(line);const txt=document.createElementNS('http://www.w3.org/2000/svg','text');txt.setAttribute('x',cx+(r+35)*Math.cos(i*Math.PI*2/total-Math.PI/2));txt.setAttribute('y',cy+(r+25)*Math.sin(i*Math.PI*2/total-Math.PI/2));txt.setAttribute('text-anchor','middle');txt.setAttribute('class','radar-label');txt.setAttribute('data-id',i);labels.appendChild(txt);});
-            updateRadarLabels(); setTimeout(()=>{const pts=radarData.map((d,i)=>`${cx+(r*d.val)*Math.cos(i*Math.PI*2/total-Math.PI/2)},${cy+(r*d.val)*Math.sin(i*Math.PI*2/total-Math.PI/2)}`).join(' ');document.getElementById('radar-value-area').setAttribute('points',pts);},1000);
+            const grids = $('radar-grids'), axes = $('radar-axes'), labels = $('radar-labels');
+            if (!grids || !axes || !labels) return;
+            grids.innerHTML = ''; axes.innerHTML = ''; labels.innerHTML = '';
+            const SVG_NS = 'http://www.w3.org/2000/svg';
+            for (let lvl = 1; lvl <= 5; lvl++) {
+                const rr = RADAR_R / 5 * lvl;
+                const pts = radarData.map((_, i) => `${RADAR_CX + rr * Math.cos(radarAngle(i))},${RADAR_CY + rr * Math.sin(radarAngle(i))}`).join(' ');
+                const poly = document.createElementNS(SVG_NS, 'polygon');
+                poly.setAttribute('points', pts); poly.setAttribute('fill', 'none'); poly.setAttribute('stroke', 'rgba(255,255,255,.05)');
+                grids.appendChild(poly);
+            }
+            radarData.forEach((d, i) => {
+                const line = document.createElementNS(SVG_NS, 'line');
+                line.setAttribute('x1', RADAR_CX); line.setAttribute('y1', RADAR_CY);
+                line.setAttribute('x2', RADAR_CX + RADAR_R * Math.cos(radarAngle(i)));
+                line.setAttribute('y2', RADAR_CY + RADAR_R * Math.sin(radarAngle(i)));
+                line.setAttribute('stroke', 'rgba(255,255,255,.05)');
+                axes.appendChild(line);
+                const txt = document.createElementNS(SVG_NS, 'text');
+                txt.setAttribute('x', RADAR_CX + (RADAR_R + 32) * Math.cos(radarAngle(i)));
+                txt.setAttribute('y', RADAR_CY + (RADAR_R + 28) * Math.sin(radarAngle(i)));
+                txt.setAttribute('text-anchor', 'middle'); txt.setAttribute('dominant-baseline', 'middle');
+                txt.setAttribute('class', 'radar-label'); txt.setAttribute('data-id', i);
+                labels.appendChild(txt);
+            });
+            updateRadarLabels();
+            animateRadar();
         }
-        function updateRadarLabels(){document.querySelectorAll('.radar-label').forEach(el=>{const d=radarData[el.getAttribute('data-id')];el.textContent=currentLang==='en'?d.en:d.zh;});}
-        const dCont=document.getElementById('danmaku-container'),mCanvas=document.getElementById('matrix-canvas'),mCtx=mCanvas.getContext('2d');
-        function createD(text,isSelf=false){const el=document.createElement('div');el.className='danmaku-item';el.textContent=text;const top=Math.random()*80+5,dur=Math.random()*5+10;el.style.top=`${top}%`;el.style.animationDuration=`${dur}s`;if(isSelf){el.style.color='var(--secondary)';el.style.fontSize='18px';}dCont.appendChild(el);setTimeout(()=>el.remove(),dur*1000);}
-        function initMatrix(){mCanvas.width=window.innerWidth;mCanvas.height=window.innerHeight;const cols=Math.floor(mCanvas.width/18);window.mDrops=Array(cols).fill(1);}
-        function drawMatrix(){if(!matrixRunning)return;mCtx.fillStyle='rgba(0,0,0,.05)';mCtx.fillRect(0,0,mCanvas.width,mCanvas.height);mCtx.fillStyle='#0f0';mCtx.font='18px monospace';window.mDrops.forEach((y,i)=>{mCtx.fillText(String.fromCharCode(Math.random()*128),i*18,y*18);if(y*18>mCanvas.height&&Math.random()>.975)window.mDrops[i]=0;window.mDrops[i]++;});requestAnimationFrame(drawMatrix);}
-        function initProjects(){document.getElementById('project-grid').innerHTML=projectList.map((p,i)=>`<div class="project-item reveal glass-card rounded-[2.5rem] overflow-hidden group" data-category="${p.cat}"><div class="h-60 bg-gray-900 relative"><img src="https://picsum.photos/600/400?random=${i}" class="w-full h-full object-cover opacity-20 group-hover:scale-110 transition duration-700"></div><div class="p-8"><h3 class="text-xl font-bold text-white mb-2 uppercase">${p.title}</h3><p class="text-gray-500 text-sm font-light mb-4" data-en="${p.en}" data-zh="${p.zh}">${p.en}</p></div></div>`).join('');}
-        window.addEventListener('scroll',()=>document.getElementById('main-nav').classList.toggle('scrolled',window.scrollY>50));
-        document.getElementById('danmaku-input').addEventListener('keypress',e=>e.key==='Enter'&&sendDanmaku());
-        const audio=document.getElementById('bg-audio');
-        document.getElementById('play-btn').addEventListener('click',()=>{const icon=document.getElementById('play-icon'),cont=document.getElementById('audio-container');if(audio.paused){audio.play();icon.className='fas fa-pause text-white';cont.classList.add('playing');addLog('Audio: Stream active');}else{audio.pause();icon.className='fas fa-play text-white';cont.classList.remove('playing');addLog('Audio: Stream paused');}});
-        const observer=new IntersectionObserver(es=>es.forEach(e=>e.isIntersecting&&e.target.classList.add('active')),{threshold:.1});
-        window.onload=()=>{initProjects();initRadar();setLang('en');type();setInterval(updateClock,1000);document.querySelectorAll('.reveal').forEach(el=>observer.observe(el));addLog('Kernel: OS Initialization successful');setInterval(()=>addLog(`Monitor: ${['Sync OK','Buffer stable','Link active'][Math.floor(Math.random()*3)]}`),6000);};
+
+        function updateRadarLabels() {
+            document.querySelectorAll('.radar-label').forEach(el => {
+                const d = radarData[Number(el.getAttribute('data-id'))];
+                if (d) el.textContent = currentLang === 'en' ? d.en : d.zh;
+            });
+        }
+
+        function animateRadar() {
+            const area = $('radar-value-area');
+            if (!area) return;
+            const start = performance.now(), DURATION = 1200;
+            function frame(now) {
+                const p = Math.min((now - start) / DURATION, 1);
+                const e = 1 - Math.pow(1 - p, 3);
+                area.setAttribute('points', radarData.map((d, i) => {
+                    const rr = RADAR_R * d.val * e;
+                    return `${RADAR_CX + rr * Math.cos(radarAngle(i))},${RADAR_CY + rr * Math.sin(radarAngle(i))}`;
+                }).join(' '));
+                if (p < 1) requestAnimationFrame(frame);
+            }
+            requestAnimationFrame(frame);
+        }
+
+        function initProjects() {
+            const grid = $('project-grid');
+            if (!grid) return;
+            grid.innerHTML = projectList.map((p, i) => `
+                <div class="project-item reveal glass-card rounded-2xl md:rounded-[2.5rem] overflow-hidden group" data-category="${p.cat}">
+                    <div class="h-48 md:h-60 bg-gray-900 relative overflow-hidden">
+                        <img src="https://picsum.photos/600/400?random=${i}" alt="${p.title}" loading="lazy" width="600" height="400" class="w-full h-full object-cover">
+                    </div>
+                    <div class="p-6 md:p-8">
+                        <h3 class="text-lg md:text-xl font-bold text-white mb-2 uppercase tracking-wide">${p.title}</h3>
+                        <p class="text-gray-500 text-sm font-light mb-0" data-en="${p.en}" data-zh="${p.zh}">${p.en}</p>
+                    </div>
+                </div>`).join('');
+        }
+
+        function initFilters() {
+            const btns = document.querySelectorAll('.filter-btn');
+            btns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    btns.forEach(b => { b.classList.remove('active'); b.classList.add('text-gray-600'); b.classList.remove('text-white'); });
+                    btn.classList.add('active'); btn.classList.remove('text-gray-600'); btn.classList.add('text-white');
+                    const filter = btn.dataset.filter;
+                    document.querySelectorAll('.project-item').forEach(item => {
+                        item.style.display = (filter === 'all' || item.dataset.category === filter) ? '' : 'none';
+                    });
+                    addLog('Filter: ' + String(filter).toUpperCase());
+                });
+            });
+        }
+
+        function createD(text, isSelf) {
+            if (!dCont) return;
+            const el = document.createElement('div');
+            el.className = 'danmaku-item';
+            el.textContent = text;
+            const top = Math.random() * 80 + 5, dur = Math.random() * 5 + 10;
+            el.style.top = top + '%';
+            el.style.animationDuration = dur + 's';
+            if (isSelf) {
+                el.style.color = 'var(--secondary)';
+                el.style.fontSize = '18px';
+                el.style.textShadow = '0 0 10px var(--secondary)';
+            }
+            dCont.appendChild(el);
+            setTimeout(() => el.remove(), dur * 1000);
+        }
+
+        /* ========= Matrix 画布：支持 DPR 高清渲染 ========= */
+        function initMatrix() {
+            if (!mCanvas || !mCtx) return;
+            const dpr = Math.min(window.devicePixelRatio || 1, 2);
+            const w = window.innerWidth, h = window.innerHeight;
+            mCanvas.width = Math.floor(w * dpr);
+            mCanvas.height = Math.floor(h * dpr);
+            mCanvas.style.width = w + 'px';
+            mCanvas.style.height = h + 'px';
+            mCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+            const cols = Math.max(1, Math.floor(w / 18));
+            window.mDrops = new Array(cols).fill(1);
+        }
+
+        function startMatrix() {
+            if (matrixRunning || !mCtx) return;
+            matrixRunning = true;
+            initMatrix();
+            mCtx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+            matrixRaf = requestAnimationFrame(drawMatrix);
+        }
+
+        function drawMatrix() {
+            if (!matrixRunning || !mCtx) { matrixRaf = null; return; }
+            const w = window.innerWidth, h = window.innerHeight;
+            mCtx.fillStyle = 'rgba(0,0,0,.05)';
+            mCtx.fillRect(0, 0, w, h);
+            mCtx.fillStyle = '#0f0';
+            mCtx.font = '18px monospace';
+            window.mDrops.forEach((y, i) => {
+                mCtx.fillText(String.fromCharCode(Math.floor(Math.random() * 128)), i * 18, y * 18);
+                if (y * 18 > h && Math.random() > 0.975) window.mDrops[i] = 0;
+                window.mDrops[i]++;
+            });
+            matrixRaf = requestAnimationFrame(drawMatrix);
+        }
+
+        function stopMatrix() {
+            matrixRunning = false;
+            if (matrixRaf) cancelAnimationFrame(matrixRaf);
+            matrixRaf = null;
+        }
+
+        function resetGravity() {
+            document.querySelectorAll('.gravity-applied').forEach(el => { el.style.transform = ''; el.classList.remove('gravity-applied'); });
+        }
+
+        function resetAll() {
+            document.body.classList.remove('hacker-mode');
+            document.body.style.filter = 'none';
+            document.body.style.animation = 'none';
+            if (logMode) logMode.textContent = 'STABLE';
+            stopMatrix();
+            if (mCanvas) {
+                mCanvas.style.opacity = '0';
+                mCanvas.style.background = 'transparent';
+            }
+            if (discoTimer) { clearInterval(discoTimer); discoTimer = null; }
+            if (gravityTimer) { clearTimeout(gravityTimer); gravityTimer = null; }
+            if (glitchTimer) { clearTimeout(glitchTimer); glitchTimer = null; }
+            if (vibrateTimer) { clearTimeout(vibrateTimer); vibrateTimer = null; }
+            resetGravity();
+            document.querySelectorAll('[data-original]').forEach(node => { node.textContent = node.dataset.original; delete node.dataset.original; });
+            document.querySelectorAll('h1, h2, .glass-card').forEach(el => { el.style.textShadow = ''; });
+            document.documentElement.style.setProperty('--primary', '#8a2be2');
+            document.documentElement.style.setProperty('--secondary', '#ff69b4');
+        }
+
+        const commands = {
+            '/root': () => {
+                document.body.classList.add('hacker-mode');
+                if (logMode) logMode.textContent = 'EXPLOIT';
+                startMatrix();
+                if (mCanvas) mCanvas.style.opacity = '.5';
+                addLog('Critical: Admin access granted');
+            },
+            '/matrix': () => {
+                document.body.classList.add('hacker-mode');
+                if (logMode) logMode.textContent = 'EXPLOIT';
+                startMatrix();
+                if (mCanvas) { mCanvas.style.opacity = '1'; mCanvas.style.background = 'black'; }
+                addLog('System: Matrix stream engaged');
+            },
+            '/echo': () => {
+                document.querySelectorAll('h1, h2, .glass-card').forEach(el => {
+                    el.style.textShadow = '5px 5px 0 var(--primary), -5px -5px 0 var(--secondary)';
+                });
+                addLog('Effect: Visual echo synchronized');
+            },
+            '/vibrate': () => {
+                document.body.style.animation = 'shake .2s infinite';
+                addLog('Critical: Structural integrity compromised');
+                if (vibrateTimer) clearTimeout(vibrateTimer);
+                vibrateTimer = setTimeout(() => {
+                    document.body.style.animation = 'none';
+                    vibrateTimer = null;
+                    addLog('System: Stability restored');
+                }, 3000);
+            },
+            '/disco': () => {
+                if (discoTimer) clearInterval(discoTimer);
+                discoTimer = setInterval(() => {
+                    const h = Math.floor(Math.random() * 360);
+                    document.documentElement.style.setProperty('--primary', `hsl(${h},100%,50%)`);
+                    document.documentElement.style.setProperty('--secondary', `hsl(${(h + 150) % 360},100%,50%)`);
+                }, 150);
+                addLog('System: Neural rave active');
+            },
+            '/gravity': () => {
+                document.querySelectorAll('.reveal, .glass-card, .project-item, h1, h2, p, img').forEach(el => {
+                    el.classList.add('gravity-applied');
+                    const x = (Math.random() - 0.5) * 400, y = Math.random() * 400, r = (Math.random() - 0.5) * 180;
+                    el.style.transform = `translate(${x}px, ${y}px) rotate(${r}deg)`;
+                });
+                addLog('Warning: Gravity engine failure');
+                if (gravityTimer) clearTimeout(gravityTimer);
+                gravityTimer = setTimeout(() => {
+                    resetGravity();
+                    gravityTimer = null;
+                    addLog('System: Gravity restored');
+                }, 5000);
+            },
+            '/glitch': () => {
+                document.body.style.filter = 'contrast(1.5) saturate(2) hue-rotate(45deg)';
+                document.body.style.animation = 'v-flicker .06s infinite';
+                addLog('Critical: Data corruption detected');
+                // 关键：3 秒后自动恢复，避免永久重绘拖死页面
+                if (glitchTimer) clearTimeout(glitchTimer);
+                glitchTimer = setTimeout(() => {
+                    document.body.style.filter = 'none';
+                    document.body.style.animation = 'none';
+                    glitchTimer = null;
+                    addLog('System: Visual integrity restored');
+                }, 3000);
+            },
+            '/binary': () => {
+                document.querySelectorAll('h1, h2, p, a, span').forEach(node => {
+                    if (node.closest('#log-window') || node.id === 'typing-text' || node.id === 'logo-main' || node.children.length > 0) return;
+                    if (node.dataset.original) return; // 防止二次执行时把已替换的二进制再次处理
+                    node.dataset.original = node.textContent;
+                    node.textContent = node.textContent.replace(/[^\s]/g, () => Math.floor(Math.random() * 10));
+                });
+                addLog('System: Language deconstructed');
+            },
+            '/exit': () => {
+                resetAll();
+                addLog('Session reset');
+            },
+            '/help': async () => {
+                addLog('Available commands:');
+                for (const key of Object.keys(commands)) {
+                    await new Promise(r => setTimeout(r, 120));
+                    addLog('Cmd: ' + key);
+                }
+            }
+        };
+
+        function sendDanmaku() {
+            const inputEl = $('danmaku-input');
+            if (!inputEl) return;
+            const raw = inputEl.value.trim();
+            if (!raw) return;
+            if (raw.startsWith('/')) {
+                const cmd = raw.split(/\s+/)[0].toLowerCase(), fn = commands[cmd];
+                addLog('Execute: ' + cmd);
+                if (fn) fn(); else addLog('Error: Unknown command "' + cmd + '"');
+            } else {
+                createD(raw, true);
+                addLog('Broadcast: "' + raw.substring(0, 12) + '..."');
+            }
+            inputEl.value = '';
+        }
+
+        function initMenu() {
+            const toggle = $('menu-toggle'), menu = $('mobile-menu');
+            if (!toggle || !menu) return;
+            function setMenu(show) {
+                menu.classList.toggle('hidden', !show);
+                menu.classList.toggle('flex', show);
+                toggle.innerHTML = show ? '<i class="fas fa-times"></i>' : '<i class="fas fa-bars"></i>';
+                toggle.setAttribute('aria-expanded', String(show));
+            }
+            toggle.addEventListener('click', () => setMenu(menu.classList.contains('hidden')));
+            menu.querySelectorAll('a').forEach(a => a.addEventListener('click', () => setMenu(false)));
+        }
+
+        function initAudio() {
+            const playBtn = $('play-btn');
+            if (!playBtn || !audio) return;
+            playBtn.addEventListener('click', () => {
+                const icon = $('play-icon'), cont = $('audio-container');
+                if (!icon || !cont) return;
+                if (audio.paused) {
+                    const p = audio.play();
+                    if (p && p.then) {
+                        p.then(() => {
+                            icon.className = 'fas fa-pause text-white';
+                            cont.classList.add('playing');
+                            addLog('Audio: Stream active');
+                        }).catch(() => addLog('Warning: Audio stream unavailable'));
+                    }
+                } else {
+                    audio.pause();
+                    icon.className = 'fas fa-play text-white';
+                    cont.classList.remove('playing');
+                    addLog('Audio: Stream paused');
+                }
+            });
+        }
+
+        /* =============== 核心初始化 =============== */
+        function init() {
+            try {
+                initProjects();
+                initFilters();
+                initRadar();
+                initMenu();
+                initAudio();
+                setLang('en');
+                updateClock();
+                setInterval(updateClock, 1000);
+
+                document.querySelectorAll('.lang-btn').forEach(btn => btn.addEventListener('click', () => setLang(btn.dataset.lang)));
+
+                const bc = $('broadcast-btn');
+                if (bc) bc.addEventListener('click', sendDanmaku);
+                const di = $('danmaku-input');
+                // 修正：keypress 已废弃，改用 keydown
+                if (di) di.addEventListener('keydown', e => { if (e.key === 'Enter') sendDanmaku(); });
+
+                window.addEventListener('scroll', () => {
+                    const nav = $('main-nav');
+                    if (nav) nav.classList.toggle('scrolled', window.scrollY > 50);
+                }, { passive: true });
+
+                window.addEventListener('resize', () => { if (matrixRunning) initMatrix(); });
+
+                // 页面隐藏时暂停 Matrix 渲染，回到前台恢复，省电且避免后台空转
+                document.addEventListener('visibilitychange', () => {
+                    if (document.hidden) {
+                        if (matrixRunning) { matrixWasRunning = true; stopMatrix(); }
+                    } else if (matrixWasRunning) {
+                        matrixWasRunning = false;
+                        startMatrix();
+                    }
+                });
+
+                addLog('Kernel: OS initialization successful');
+                setInterval(() => {
+                    const pool = ['Sync OK', 'Buffer stable', 'Link active'];
+                    addLog('Monitor: ' + pool[Math.floor(Math.random() * pool.length)]);
+                }, 6000);
+            } catch (err) {
+                console.error('[Cyber] init error:', err);
+            } finally {
+                /* ---- 入场动画兜底：先标记视口内元素，再启用 js-ready，避免闪烁/白屏 ---- */
+                const reveals = Array.from(document.querySelectorAll('.reveal'));
+                const vh = window.innerHeight || document.documentElement.clientHeight;
+                reveals.forEach(el => {
+                    const r = el.getBoundingClientRect();
+                    if (r.top < vh && r.bottom > 0) el.classList.add('active');
+                });
+                if ('IntersectionObserver' in window) {
+                    const observer = new IntersectionObserver(entries => {
+                        entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('active'); });
+                    }, { threshold: 0.1 });
+                    reveals.forEach(el => observer.observe(el));
+                } else {
+                    reveals.forEach(el => el.classList.add('active'));
+                }
+                document.body.classList.add('js-ready');
+                console.log('%c[Cyber] UI ready', 'color:#00ff41;font-weight:bold');
+            }
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', init);
+        } else {
+            init();
+        }
+    })();
     </script>
 </body>
 </html>
