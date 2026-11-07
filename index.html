@@ -57,11 +57,6 @@
         body.hacker-mode #log-mode { color: #ff003c; text-shadow: 0 0 8px #ff003c; }
 
         /* 游戏与特效 */
-        #snake-canvas {
-            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            border: 2px solid var(--primary); background: rgba(0, 0, 0, 0.9);
-            z-index: 2000; box-shadow: 0 0 50px var(--primary); display: none;
-        }
         #danmaku-container { position: fixed; inset: 0; pointer-events: none; z-index: 5; overflow: hidden; }
         .danmaku-item { position: absolute; white-space: nowrap; font-family: monospace; font-weight: bold; color: rgba(255, 255, 255, 0.2); animation: move-left linear forwards; }
         @keyframes move-left { from { transform: translateX(100vw); } to { transform: translateX(-100%); } }
@@ -108,7 +103,7 @@
         .social-link:hover { transform: translateY(-3px); filter: drop-shadow(0 0 8px currentColor); }
         .gravity-applied { transition: transform 2s cubic-bezier(0.22, 1, 0.36, 1); }
 
-        .audio-player { position: fixed; bottom: 40px; left: 40px; z-index: 100; display: flex; align-items: center; gap: 15px; padding: 12px 20px; background: rgba(0,0,0,0.6); backdrop-filter: blur(15px); border: 1px solid var(--primary); border-radius: 50px; }
+        .audio-player { position: fixed; bottom: 40px; left: 40px; z-index: 100; display: flex; align-items: center; gap: 15px; padding: 12px 20px; background: rgba(0,0,0,0.6); backdrop-filter: blur(15px); border: 1px solid var(--primary); border-radius: 999px; }
         .disc-anim { width: 35px; height: 35px; border-radius: 50%; border: 2px solid var(--secondary); animation: rotate 4s linear infinite; animation-play-state: paused; }
         .playing .disc-anim { animation-play-state: running; }
         @keyframes rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
@@ -127,10 +122,10 @@
     <canvas id="matrix-canvas"></canvas>
     <div id="danmaku-container"></div>
     
-    <div id="copy-toast" class="fixed bottom-10 left-1/2 transform -translate-x-1/2 bg-[var(--primary)] text-black px-6 py-2 rounded font-black tracking-widest text-xs shadow-[0_0_20px_var(--primary)] z-[9999] hidden uppercase" data-en="COPIED_TO_CLIPBOARD" data-zh="已复制到剪贴板">COPIED_TO_CLIPBOARD</div>
+    <div id="copy-toast" class="fixed bottom-10 left-1/2 transform -translate-x-1/2 bg-[var(--primary)] text-black px-6 py-2 rounded font-black tracking-widest text-xs shadow-[0_0_20px_var(--primary)] hidden uppercase" data-en="COPIED_TO_CLIPBOARD" data-zh="已复制">COPIED_TO_CLIPBOARD</div>
 
     <div id="log-window">
-        <div style="font-size: 8px; margin-bottom: 8px; letter-spacing: 2px; opacity: 0.5; display: flex; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 4px;">
+        <div style="font-size: 8px; margin-bottom: 8px; letter-spacing: 2px; opacity: 0.5; display: flex; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 6px;">
             <span>KERNEL_V4.4_OS</span>
             <span id="log-mode">STABLE</span>
         </div>
@@ -222,7 +217,7 @@
             <div class="flex justify-center items-center reveal min-h-[400px]">
                 <svg id="radar-svg" width="400" height="400" viewBox="0 0 400 400">
                     <g id="radar-grids"></g><g id="radar-axes"></g>
-                    <polygon id="radar-value-area" points="200,200 200,200 200,200 200,200 200,200 200,200" fill="rgba(138,43,226,0.2)" stroke="var(--secondary)" stroke-width="2" class="transition-all duration-[1.5s] ease-out" />
+                    <polygon id="radar-value-area" points="200,200 200,200 200,200 200,200 200,200 200,200" fill="rgba(138,43,226,0.2)" stroke="var(--secondary)" stroke-width="2" class="transition-all duration-1000 ease-out"/>
                     <g id="radar-labels" class="text-[10px] fill-gray-500 font-mono font-bold uppercase"></g>
                 </svg>
             </div>
@@ -251,7 +246,7 @@
         <div class="glass-card p-6 md:p-8 rounded-3xl mb-8 sticky top-24 z-40 backdrop-blur-2xl">
             <div class="relative flex items-center bg-black/50 border border-white/20 rounded-2xl p-4 focus-within:border-[var(--secondary)] transition-all">
                 <textarea id="mainInput" class="w-full bg-transparent text-white text-xl outline-none resize-none h-8 placeholder-gray-600 font-mono" placeholder="TYPE SOMETHING..."></textarea>
-                <button id="clearBtn" class="absolute right-4 w-8 h-8 flex items-center justify-center bg-white/10 hover:bg-[var(--secondary)] text-white hover:text-black rounded-full transition-all text-xs font-bold">✕</button>
+                <button id="clearBtn" class="absolute right-4 w-8 h-8 flex items-center justify-center bg-white/10 hover:bg-[var(--secondary)] text-white hover:text-black rounded-full transition-all text-xs font-black">✕</button>
             </div>
         </div>
         
@@ -262,8 +257,8 @@
         <h2 class="text-5xl font-black text-white mb-2 uppercase italic" data-en="Transmission" data-zh="实时信号">Transmission</h2>
         <div class="w-20 h-1.5 mb-12" style="background-color:var(--primary)"></div>
         <div class="glass-card p-8 rounded-3xl flex flex-col md:flex-row gap-6 items-center">
-            <input type="text" id="danmaku-input" maxlength="30" placeholder="Type /help for command list..." class="bg-transparent border-b border-white/20 w-full outline-none px-4 py-2 text-sm font-mono text-white focus:border-white transition-all">
-            <button onclick="sendDanmaku()" class="px-10 py-3 text-white text-[10px] font-bold uppercase rounded-full transition-all" style="background-color:var(--primary)" data-en="Broadcast" data-zh="广播发送">Broadcast</button>
+            <input type="text" id="danmaku-input" maxlength="30" placeholder="Type /help for command list..." class="bg-transparent border-b border-white/20 w-full outline-none px-4 py-2 text-sm font-mono text-white placeholder-gray-600 focus:border-[var(--primary)] transition-all">
+            <button onclick="sendDanmaku()" class="px-10 py-3 text-white text-[10px] font-bold uppercase rounded-full transition-all" style="background-color:var(--primary)" data-en="Broadcast" data-zh="广播">Broadcast</button>
         </div>
     </section>
 
@@ -310,11 +305,13 @@
             },
             "MONOSPACE": {
                 a:'𝚊',b:'𝚋',c:'𝚌',d:'𝚍',e:'𝚎',f:'𝚏',g:'𝚐',h:'𝚑',i:'𝚒',j:'𝚓',k:'𝚔',l:'𝚕',m:'𝚖',n:'𝚗',o:'𝚘',p:'𝚙',q:'𝚚',r:'𝚛',s:'𝚜',t:'𝚝',u:'𝚞',v:'𝚟',w:'𝚠',x:'𝚡',y:'𝚢',z:'𝚣',
-                A:'𝙰',B:'𝙱',C:'𝙲',D:'𝙳',E:'𝙴',F:'𝙵',G:'𝙶',H:'𝙷',I:'𝙸',J:'𝙹',K:'𝙺',L:'𝙻',M:'𝙼',N:'𝙽',O:'𝙾',P:'𝙿',Q:'𝚀',R:'𝚁',S:'𝚂',T:'𝚃',U:'𝚄',V:'𝚅',W:'𝚆',X:'𝚇',Y:'𝚈',Z:'𝙉'
+                A:'𝙰',B:'𝙱',C:'𝙲',D:'𝙳',E:'𝙴',F:'𝙵',G:'𝙶',H:'𝙷',I:'𝙸',J:'𝙹',K:'𝙺',L:'𝙻',M:'𝙼',N:'𝙽',O:'𝙾',P:'𝙿',Q:'𝚀',R:'𝚁',S:'𝚂',T:'𝚃',U:'𝚄',V:'𝚅',W:'𝚆',X:'𝚇',Y:'𝚈',Z:'𝚉',
+                0:'𝟎',1:'𝟏',2:'𝟐',3:'𝟑',4:'𝟒',5:'𝟓',6:'𝟔',7:'𝟕',8:'𝟖',9:'𝟗'
             },
             "SCRIPT": {
                 a:'𝓪',b:'𝓫',c:'𝓬',d:'𝓭',e:'𝓮',f:'𝓯',g:'𝓰',h:'𝓱',i:'𝓲',j:'𝓳',k:'𝓴',l:'𝓵',m:'𝓶',n:'𝓷',o:'𝓸',p:'𝓹',q:'𝓺',r:'𝓻',s:'𝓼',t:'𝓽',u:'𝓾',v:'𝓿',w:'𝔀',x:'𝔁',y:'𝔂',z:'𝔃',
-                A:'𝓐',B:'𝓑',C:'𝓒',D:'𝓓',E:'𝓔',F:'𝓕',G:'𝓖',H:'𝓗',I:'𝓘',J:'𝓙',K:'𝓚',L:'𝓛',M:'𝓜',N:'𝓝',O:'𝓞',P:'𝓟',Q:'𝓠',R:'𝓡',S:'𝓢',T:'𝓣',U:'',V:'𝓥',W:'𝓦',X:'𝓧',Y:'𝓨',Z:'𝓩'
+                A:'𝓐',B:'𝓑',C:'𝓒',D:'𝓓',E:'𝓔',F:'𝓕',G:'𝓖',H:'𝓗',I:'𝓘',J:'𝓙',K:'𝓚',L:'𝓛',M:'𝓜',N:'𝓝',O:'𝓞',P:'𝓟',Q:'𝓠',R:'𝓡',S:'𝓢',T:'𝓣',U:'𝓤',V:'𝓥',W:'𝓦',X:'𝓧',Y:'𝓨',Z:'𝓩',
+                0:'𝟎',1:'𝟏',2:'𝟐',3:'𝟑',4:'𝟒',5:'𝟓',6:'𝟔',7:'𝟕',8:'𝟖',9:'𝟗'
             }
         };
 
@@ -336,7 +333,6 @@
             container.scrollTop = container.scrollHeight;
         }
 
-        /* 语言切换逻辑 */
         function setLang(lang) {
             currentLang = lang;
             document.querySelectorAll('.lang-btn').forEach(btn => {
@@ -356,7 +352,6 @@
             addLog(`System: Switched to ${lang.toUpperCase()}`);
         }
 
-        /* Type Lab 逻辑 */
         const typeInput = document.getElementById('mainInput');
         const typeResults = document.getElementById('type-results');
         const clearBtn = document.getElementById('clearBtn');
@@ -405,7 +400,6 @@
         typeInput.addEventListener('input', renderType);
         clearBtn.onclick = () => { typeInput.value = ''; renderType(); typeInput.focus(); };
 
-        /* 指令逻辑 */
         async function sendDanmaku() {
             const inputEl = document.getElementById('danmaku-input');
             const val = inputEl.value.trim().toLowerCase();
@@ -441,10 +435,6 @@
                         addLog("Critical: Structural Integrity Compromised");
                         document.body.style.animation = "shake 0.2s infinite";
                         setTimeout(() => { document.body.style.animation = "none"; addLog("System: Stability restored"); }, 3000);
-                        break;
-                    case '/snake':
-                        addLog("System: Initializing Snake Protocol...");
-                        initSnakeGame();
                         break;
                     case '/disco':
                         addLog("System: Neural Rave Active");
@@ -484,7 +474,6 @@
                         mCanvas.style.opacity = "0.4";
                         mCanvas.style.background = "transparent";
                         if(window.discoTimer) clearInterval(window.discoTimer);
-                        if(window.snakeInterval) { clearInterval(window.snakeInterval); document.getElementById('snake-canvas')?.remove(); }
                         document.querySelectorAll('[data-original]').forEach(node => { node.textContent = node.dataset.original; delete node.dataset.original; });
                         document.querySelectorAll('h1, h2, .glass-card').forEach(el => el.style.textShadow = "none");
                         document.querySelectorAll('*').forEach(el => { el.style.transform = ''; el.classList.remove('gravity-applied'); });
@@ -493,7 +482,7 @@
                         addLog("Session reset");
                         break;
                     case '/help':
-                        const cmds = ["/root", "/matrix", "/echo", "/vibrate", "/snake", "/disco", "/gravity", "/glitch", "/binary", "/exit"];
+                        const cmds = ["/root", "/matrix", "/echo", "/vibrate", "/disco", "/gravity", "/glitch", "/binary", "/exit"];
                         for(let c of cmds) { await new Promise(r => setTimeout(r, 150)); addLog(`Cmd: ${c}`); }
                         break;
                     default:
@@ -504,39 +493,6 @@
                 addLog(`Broadcast: "${val.substring(0,10)}..."`);
             }
             inputEl.value = '';
-        }
-
-        /* 游戏及其他逻辑 */
-        function initSnakeGame() {
-            let existing = document.getElementById('snake-canvas');
-            if(existing) existing.remove();
-            const canvas = document.createElement('canvas');
-            canvas.id = 'snake-canvas'; canvas.width = 400; canvas.height = 400;
-            document.body.appendChild(canvas);
-            canvas.style.display = 'block';
-            const ctx = canvas.getContext('2d');
-            let snake = [{x: 10, y: 10}], food = {x: 15, y: 15}, dx = 1, dy = 0, score = 0;
-            function draw() {
-                const head = {x: snake[0].x + dx, y: snake[0].y + dy};
-                if (head.x < 0 || head.x >= 20 || head.y < 0 || head.y >= 20 || snake.some(s => s.x === head.x && s.y === head.y)) {
-                    addLog(`Game Over! Score: ${score}`);
-                    clearInterval(window.snakeInterval); setTimeout(() => canvas.remove(), 2000); return;
-                }
-                snake.unshift(head);
-                if (head.x === food.x && head.y === food.y) {
-                    score += 10; food = {x: Math.floor(Math.random()*20), y: Math.floor(Math.random()*20)};
-                } else { snake.pop(); }
-                ctx.fillStyle = 'black'; ctx.fillRect(0,0,400,400);
-                ctx.fillStyle = '#00ff41'; snake.forEach(s => ctx.fillRect(s.x*20, s.y*20, 18, 18));
-                ctx.fillStyle = '#ff69b4'; ctx.fillRect(food.x*20, food.y*20, 18, 18);
-            }
-            window.onkeydown = (e) => {
-                if (e.key === 'ArrowUp' && dy === 0) { dx = 0; dy = -1; }
-                if (e.key === 'ArrowDown' && dy === 0) { dx = 0; dy = 1; }
-                if (e.key === 'ArrowLeft' && dx === 0) { dx = -1; dy = 0; }
-                if (e.key === 'ArrowRight' && dx === 0) { dx = 1; dy = 0; }
-            };
-            window.snakeInterval = setInterval(draw, 100);
         }
 
         function updateClock() {
@@ -584,6 +540,7 @@
                 document.getElementById('radar-value-area').setAttribute("points", pts);
             }, 1000);
         }
+
         function updateRadarLabels() { document.querySelectorAll('.radar-label').forEach(el => { const d = radarData[el.getAttribute('data-id')]; el.textContent = currentLang === 'en' ? d.en : d.zh; }); }
 
         const dCont = document.getElementById('danmaku-container'), mCanvas = document.getElementById('matrix-canvas'), mCtx = mCanvas.getContext('2d');
@@ -594,6 +551,7 @@
             if(isSelf) { el.style.color = 'var(--secondary)'; el.style.fontSize = '18px'; }
             dCont.appendChild(el); setTimeout(() => el.remove(), dur * 1000);
         }
+
         function initMatrix() { mCanvas.width = window.innerWidth; mCanvas.height = window.innerHeight; const cols = Math.floor(mCanvas.width / 18); window.mDrops = Array(cols).fill(1); }
         function drawMatrix() {
             if(!matrixRunning) return;
