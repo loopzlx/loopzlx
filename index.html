@@ -2,21 +2,18 @@
 <html lang="zh-CN" class="scroll-smooth">
 <head>
     <meta charset="UTF-8">
-    <!-- 修改处：将视口固定为 1280 像素，手机端将自动以桌面端视角缩放展示 -->
     <meta name="viewport" content="width=1280">
-    <title>LoopelZeta | Cyber Nexus Terminal</title>
+    <title>loopzlx | Cyber Nexus Terminal</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        /* 核心变量 */
-        :root { 
-            --primary: #8a2be2; 
-            --secondary: #ff69b4; 
-            --grid-color: rgba(138, 43, 226, 0.12); 
+        :root {
+            --primary: #8a2be2;
+            --secondary: #ff69b4;
+            --grid-color: rgba(138, 43, 226, 0.12);
             --bg-black: #000;
         }
 
-        /* 黑客模式变量覆盖 */
         body.hacker-mode {
             --primary: #00ff41;
             --secondary: #008f11;
@@ -25,12 +22,10 @@
 
         body { background-color: var(--bg-black); color: #e2e8f0; font-family: 'Inter', sans-serif; overflow-x: hidden; transition: background 0.5s, filter 0.5s; }
 
-        /* 3D 动态底座 */
         .grid-container { position: fixed; inset: 0; perspective: 1000px; z-index: -2; background: radial-gradient(circle at 50% 50%, #0a0a0a 0%, #000 100%); }
         .grid-plane { position: absolute; width: 200%; height: 200%; top: -50%; left: -50%; background-image: linear-gradient(var(--grid-color) 1px, transparent 1px), linear-gradient(90deg, var(--grid-color) 1px, transparent 1px); background-size: 50px 50px; transform: rotateX(60deg); animation: grid-travel 20s linear infinite; }
         @keyframes grid-travel { from { background-position: 0 0; } to { background-position: 0 500px; } }
 
-        /* 系统日志栏 */
         #log-window {
             position: fixed; bottom: 24px; right: 24px; width: 280px; height: 160px;
             background: rgba(0, 0, 0, 0.85); border-left: 3px solid var(--primary);
@@ -41,9 +36,9 @@
             background-image: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
             background-size: 100% 2px, 3px 100%;
         }
-        #log-content { 
-            overflow-y: auto; 
-            flex: 1; font-size: 9px; color: rgba(255, 255, 255, 0.5); 
+        #log-content {
+            overflow-y: auto;
+            flex: 1; font-size: 9px; color: rgba(255, 255, 255, 0.5);
             scroll-behavior: smooth; padding-right: 4px;
         }
         #log-content::-webkit-scrollbar { width: 4px; }
@@ -56,12 +51,10 @@
         #log-mode { font-weight: bold; transition: color 0.5s; }
         body.hacker-mode #log-mode { color: #ff003c; text-shadow: 0 0 8px #ff003c; }
 
-        /* 游戏与特效 */
         #danmaku-container { position: fixed; inset: 0; pointer-events: none; z-index: 5; overflow: hidden; }
         .danmaku-item { position: absolute; white-space: nowrap; font-family: monospace; font-weight: bold; color: rgba(255, 255, 255, 0.2); animation: move-left linear forwards; }
         @keyframes move-left { from { transform: translateX(100vw); } to { transform: translateX(-100%); } }
 
-        /* 震动指令动画 */
         @keyframes shake {
             0% { transform: translate(1px, 1px) rotate(0deg); }
             10% { transform: translate(-1px, -2px) rotate(-1deg); }
@@ -71,25 +64,22 @@
             100% { transform: translate(1px, -2px) rotate(-1deg); }
         }
 
-        /* 导航与按键 */
         #main-nav.scrolled { background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(20px); border-bottom: 1px solid var(--primary); padding: 1rem 0; }
         .lang-switch { display: flex; gap: 8px; align-items: center; padding: 4px 12px; background: rgba(255,255,255,0.05); border-radius: 4px; border: 1px solid rgba(255,255,255,0.1); }
-        
-        .lang-btn { 
-            color: rgba(255,255,255,0.3); 
-            cursor: pointer; 
-            font-size: 10px; 
-            font-weight: bold; 
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+        .lang-btn {
+            color: rgba(255,255,255,0.3);
+            cursor: pointer;
+            font-size: 10px;
+            font-weight: bold;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        .lang-btn.active { 
-            color: var(--secondary); 
-            text-shadow: 0 0 12px var(--secondary); 
+        .lang-btn.active {
+            color: var(--secondary);
+            text-shadow: 0 0 12px var(--secondary);
             transform: scale(1.1);
         }
         .lang-btn:hover:not(.active) { color: rgba(255,255,255,0.8); }
 
-        /* 其他组件 */
         .glass-card { background: rgba(255, 255, 255, 0.02); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.05); transition: text-shadow 0.3s ease, border-color 0.3s ease; }
         .reveal { opacity: 0; transform: translateY(30px); transition: 1s cubic-bezier(0.22, 1, 0.36, 1); }
         .reveal.active { opacity: 1; transform: translateY(0); }
@@ -112,7 +102,6 @@
         .playing .bar { animation: bar-jump 0.6s ease-in-out infinite alternate; }
         @keyframes bar-jump { 0% { height: 4px; } 100% { height: 15px; } }
 
-        /* Type Lab Specific Styles */
         .type-scroll::-webkit-scrollbar { display: none; }
         .type-scroll { scrollbar-width: none; }
     </style>
@@ -121,8 +110,8 @@
     <div class="grid-container"><div class="grid-plane"></div></div>
     <canvas id="matrix-canvas"></canvas>
     <div id="danmaku-container"></div>
-    
-    <div id="copy-toast" class="fixed bottom-10 left-1/2 transform -translate-x-1/2 bg-[var(--primary)] text-black px-6 py-2 rounded font-black tracking-widest text-xs shadow-[0_0_20px_var(--primary)] hidden uppercase" data-en="COPIED_TO_CLIPBOARD" data-zh="已复制">COPIED_TO_CLIPBOARD</div>
+
+    <div id="copy-toast" class="fixed bottom-10 left-1/2 transform -translate-x-1/2 bg-[var(--primary)] text-black px-6 py-2 rounded font-black tracking-widest text-xs shadow-[0_0_20px_var(--primary)] hidden uppercase">COPIED_TO_CLIPBOARD</div>
 
     <div id="log-window">
         <div style="font-size: 8px; margin-bottom: 8px; letter-spacing: 2px; opacity: 0.5; display: flex; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 6px;">
@@ -135,7 +124,7 @@
     <nav class="fixed w-full z-50 py-8 px-6 md:px-12 transition-all" id="main-nav">
         <div class="max-w-7xl mx-auto flex justify-between items-center">
             <div class="text-2xl font-black italic text-white tracking-tighter uppercase">
-                <span id="logo-main" style="color:var(--primary)">LOOPEL</span>ZETA
+                <span id="logo-main" style="color:var(--primary)">LOOPZLX</span>
             </div>
             <div class="hidden md:flex items-center space-x-8 text-[10px] font-bold uppercase tracking-widest">
                 <a href="#home" data-en="Home" data-zh="主页">Home</a>
@@ -169,11 +158,11 @@
                 <div id="live-date" class="text-[10px] text-gray-500 mt-1 uppercase tracking-widest">2026.02.15 SUN</div>
             </div>
         </div>
-        
+
         <div class="z-10">
             <img src="https://avatars.githubusercontent.com/u/49837965?v=4" class="w-28 h-28 rounded-full border border-white/10 p-1 mb-6 mx-auto reveal">
-            <h1 class="text-5xl md:text-8xl font-black mb-6 text-white tracking-tighter uppercase reveal">Loopel Zeta</h1>
-            
+            <h1 class="text-5xl md:text-8xl font-black mb-6 text-white tracking-tighter uppercase reveal">loopzlx</h1>
+
             <div class="flex gap-8 mb-8 justify-center reveal">
                 <a href="https://github.com/zero123t" target="_blank" class="social-link hover:text-white text-2xl" title="GitHub"><i class="fab fa-github"></i></a>
                 <a href="https://youtube.com/@loopelzeta?si=bzGWMIR7JFG1kxIH" target="_blank" class="social-link hover:text-[#ff0000] text-2xl" title="YouTube"><i class="fab fa-youtube"></i></a>
@@ -242,14 +231,14 @@
     <section id="typelab" class="py-32 px-6 max-w-7xl mx-auto reveal">
         <h2 class="text-5xl font-black text-white mb-2 uppercase italic" data-en="Typeface Lab" data-zh="字体实验">Typeface Lab</h2>
         <div class="w-20 h-1.5 mb-12" style="background-color:var(--secondary)"></div>
-        
+
         <div class="glass-card p-6 md:p-8 rounded-3xl mb-8 sticky top-24 z-40 backdrop-blur-2xl">
             <div class="relative flex items-center bg-black/50 border border-white/20 rounded-2xl p-4 focus-within:border-[var(--secondary)] transition-all">
                 <textarea id="mainInput" class="w-full bg-transparent text-white text-xl outline-none resize-none h-8 placeholder-gray-600 font-mono" placeholder="TYPE SOMETHING..."></textarea>
                 <button id="clearBtn" class="absolute right-4 w-8 h-8 flex items-center justify-center bg-white/10 hover:bg-[var(--secondary)] text-white hover:text-black rounded-full transition-all text-xs font-black">✕</button>
             </div>
         </div>
-        
+
         <div id="type-results" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
     </section>
 
@@ -262,10 +251,9 @@
         </div>
     </section>
 
-    <footer class="py-20 text-center opacity-30 text-[10px] tracking-[1em] uppercase">© 2026 Loopel Zeta</footer>
+    <footer class="py-20 text-center opacity-30 text-[10px] tracking-[1em] uppercase">© 2026 loopzlx</footer>
 
     <script>
-        /* 核心配置 */
         const config = {
             zh: {
                 quote: "“在代码的逻辑森林里，我是寻找路径的算法；在城市的钢筋废墟中，我是重力规律的叛徒。”",
@@ -291,7 +279,6 @@
             { cat: 'dev', title: 'Neural Matrix', en: 'SVG Data Viz', zh: '数据可视化' }
         ];
 
-        /* Type Lab 字典映射 */
         const MAPS = {
             "SANS_BOLD": {
                 a:'𝐚',b:'𝐛',c:'𝐜',d:'𝐝',e:'𝐞',f:'𝐟',g:'𝐠',h:'𝐡',i:'𝐢',j:'𝐣',k:'𝐤',l:'𝐥',m:'𝐦',n:'𝐧',o:'𝐨',p:'𝐩',q:'𝐪',r:'𝐫',s:'𝐬',t:'𝐭',u:'𝐮',v:'𝐯',w:'𝐰',x:'𝐱',y:'𝐲',z:'𝐳',
@@ -318,7 +305,6 @@
         let currentLang = 'en';
         let matrixRunning = false;
 
-        /* 日志系统 */
         function addLog(msg) {
             const container = document.getElementById('log-content');
             const time = new Date().toLocaleTimeString('en-GB', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
@@ -336,7 +322,7 @@
         function setLang(lang) {
             currentLang = lang;
             document.querySelectorAll('.lang-btn').forEach(btn => {
-                if(btn.id === `btn-${lang}`) { btn.classList.add('active'); } 
+                if(btn.id === `btn-${lang}`) { btn.classList.add('active'); }
                 else { btn.classList.remove('active'); }
             });
             document.querySelectorAll('[data-en]').forEach(el => { el.textContent = el.getAttribute(`data-${lang}`); });
@@ -364,7 +350,7 @@
             el.select();
             document.execCommand('copy');
             document.body.removeChild(el);
-            
+
             toast.style.display = 'block';
             addLog(`System: Text copied to clipboard`);
             setTimeout(() => toast.style.display = 'none', 1200);
@@ -469,7 +455,7 @@
                         document.body.classList.remove('hacker-mode');
                         document.getElementById('log-mode').textContent = 'STABLE';
                         matrixRunning = false;
-                        document.body.style.filter = 'none'; 
+                        document.body.style.filter = 'none';
                         document.body.style.animation = "none";
                         mCanvas.style.opacity = "0.4";
                         mCanvas.style.background = "transparent";
@@ -551,7 +537,6 @@
             if(isSelf) { el.style.color = 'var(--secondary)'; el.style.fontSize = '18px'; }
             dCont.appendChild(el); setTimeout(() => el.remove(), dur * 1000);
         }
-
         function initMatrix() { mCanvas.width = window.innerWidth; mCanvas.height = window.innerHeight; const cols = Math.floor(mCanvas.width / 18); window.mDrops = Array(cols).fill(1); }
         function drawMatrix() {
             if(!matrixRunning) return;
@@ -586,7 +571,7 @@
         window.onload = () => {
             initProjects(); initRadar(); setLang('en'); type(); setInterval(updateClock, 1000);
             document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
-            
+
             typeInput.value = "text"; renderType();
 
             addLog("Kernel: OS Initialization successful");
