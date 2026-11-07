@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>4K Mania Demo</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0; height: 100%;
+    background: #07070d; overflow: hidden;
+    font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+    -webkit-user-select: none; user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    touch-action: none; overscroll-behavior: none;
+  }
+  #wrap {
+    position: fixed; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right)
+             env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+  canvas {
+    display: block; border-radius: 10px;
+    box-shadow: 0 0 60px rgba(60,120,255,.15);
+    width: min(calc(100vw - 24px), calc((100vh - 24px) * 0.6471));
+    height: auto; touch-action: none;
+  }
+  #start {
+    position: fixed; inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    color: #e8eefc; background: rgba(5,6,12,.92);
+    cursor: pointer; z-index: 10; padding: 20px; text-align: center;
+    touch-action: manipulation;
+  }
+  #start h1 { font-size: 26px; margin: 0 0 18px; letter-spacing: 3px; }
+  #start p { color: #8893ab; margin: 6px 0; font-size: 14px; }
+  #start .k { color: #4be3ff; font-weight: 700; font-size: 17px; letter-spacing: 6px; margin: 10px 0; }
+  #start .go { margin-top: 28px; color: #fff; font-size: 15px;
+    border: 1px solid #4a7aff; border-radius: 999px; padding: 10px 30px; }
+  #start .rank-big { font-size: 72px; font-weight: bold; line-height: 1; margin: 14px 0; }
+</style>
+</head>
+<body>
+<div id="wrap"><canvas id="cv"></canvas></div>
+<div id="start">
+  <h1>4K MANIA DEMO</h1>
+  <p>四轨下落式音游 · 判定窗口参考 osu!mania OD8</p>
+  <p>长条：按下立刻判定，按住到尾自动结算</p>
+  <p class="k">D  F  J  K</p>
+  <p>手机 / 平板：直接触摸对应轨道</p>
+  <p style="color:#ff5c7a">血条归零即 FAILED</p>
+  <div class="go">点击或触摸开始</div>
+</div>
+
+<script>
+(() => {
+'use strict';
+
+/* ==================== 常量 ==================== */
+const LANE_W = 110;
+const W = LANE_W * 4;
+const H = 680;
+const JUDGE_Y = Math.round(H * 0.85);
+const APPROACH = 1.15;
+const PX_PER_SEC = JUDGE_Y / APPROACH;
+const LEAD_IN = 1.6;
+
+const BPM = 140;
+const BEAT = 60 / BPM;
+const BAR  = BEAT * 4;
+
+const CHART = [
+  "x...x...",
+  "x...x...",
+  "x.x.x...",
+  "x.x.x...",
+  "x.x.x.x.",
+  "x...x.x.",
+  "x.x.x.x.",
+  "x.x.x.x.",
+  "x...x...",
+  "x...x...",
+  "x.x...x.",
+  "x.L...x.",
+  "x.x.x.x.",
+  "x.xxx.x.",
+  "L...L...",
+  "x.x.x.x.",
+];
+
+const LANE_SEQ = [0,2,1,3,2,0,3,1,1,3,0,2,3,1,2,0];
+
+const WINDOWS = [
+  {name:'PERFECT', ms:16,  score:320, color:'#ffe066'},
+  {name:'GREAT',   ms:40,  score:300, color:'#6ee7b7'},
+  {name:'GOOD',    ms:73,  score:200, color:'#60a5fa'},
+  {name:'OK',      ms:103, score:100, color:'#c4b5fd'},
+  {name:'MEH',     ms:127, score:50,  color:'#f9a8d4'},
+];
+const MISS_MS = 164;
+
+// 血量收益/惩罚（osu!mania 风格）
+const HP_GAIN = {
+  PERFECT:  1.0,
+  GREAT:    0.7,
+  GOOD:     0.3,
+  OK:       0.1,
+  MEH:     -1.0,
+  MISS:    -3.5,
+  BREAK:   -4.5,
+};
+
+const KEY_LABELS = ['D','F','J','K'];
+const KEY_CODES  = {KeyD:0, KeyF:1, KeyJ:2, KeyK:3};
+
+/* ==================== 画布 ==================== */
+const cv  = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+// 高 DPI 屏支持：按 devicePixelRatio 放大物理像素，逻辑坐标仍为 W×H
+const DPR = Math.min(window.devicePixelRatio || 1, 2);
+cv.width  = W * DPR;
+cv.height = H * DPR;
+ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+
+/* ==================== 运行时状态 ==================== */
+let audioCtx, masterGain, noiseBuf;
+let songStartTime = 0, songEndTime = 0;
+let songTime = 0;
+let notes = [];
+let running = false;
+
+const kbHeld    = [false, false, false, false];
+const touchHeld = [false, false, false, false];
+const laneHeld  = [false, false, false, false];
+const pointerLane = new Map();
+
+let combo = 0, maxCombo = 0;
+let totalScore = 0, judgedCount = 0;
+let counts = {};
+let popups = [];
+
+let health = 60;
+let displayHealth = 60;
+let failed = false;
+
+/* ==================== 工具 ==================== */
+function scoreOf(res) {
+  const w = WINDOWS.find(x => x.name === res);
+  return w ? w.score : 0;
+}
+function colorOf(res) {
+  const w = WINDOWS.find(x => x.name === res);
+  return w ? w.color : '#ff5c7a';
+}
+function addPopup(name, color) {
+  popups.push({ name, t: performance.now(), color });
+}
+function adjustHealth(delta) {
+  health = Math.max(0, Math.min(100, health + delta));
+  if (health <= 0) failed = true;
+}
+function getAcc() {
+  return judgedCount ? (totalScore / (judgedCount * 320) * 100) : 100;
+}
+function getRank(acc) {
+  if (acc >= 99.5) return 'SS';
+  if (acc >= 95)   return 'S';
+  if (acc >= 90)   return 'A';
+  if (acc >= 80)   return 'B';
+  if (acc >= 70)   return 'C';
+  return 'D';
+}
+function colorOfRank(r) {
+  return {
+    SS: '#ffe066', S: '#ffd700', A: '#6ee7b7',
+    B: '#60a5fa',  C: '#c4b5fd', D: '#8893ab', F: '#ff5c7a'
+  }[r] || '#8893ab';
+}
+
+/* ==================== 音频合成 ==================== */
+function initAudio() {
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  masterGain = audioCtx.createGain();
+  masterGain.gain.value = 0.32;
+  masterGain.connect(audioCtx.destination);
+
+  const len = Math.floor(audioCtx.sampleRate * 1);
+  noiseBuf = audioCtx.createBuffer(1, len, audioCtx.sampleRate);
+  const d = noiseBuf.getChannelData(0);
+  for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+}
+
+function playKick(t) {
+  const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+  o.frequency.setValueAtTime(140, t);
+  o.frequency.exponentialRampToValueAtTime(45, t + 0.09);
+  g.gain.setValueAtTime(0.9, t);
+  g.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
+  o.connect(g).connect(masterGain);
+  o.start(t); o.stop(t + 0.2);
+}
+function playSnare(t) {
+  const src = audioCtx.createBufferSource(); src.buffer = noiseBuf;
+  const bp = audioCtx.createBiquadFilter();
+  bp.type = 'bandpass'; bp.frequency.value = 1800; bp.Q.value = 0.8;
+  const g = audioCtx.createGain();
+  g.gain.setValueAtTime(0.32, t);
+  g.gain.exponentialRampToValueAtTime(0.001, t + 0.13);
+  src.connect(bp).connect(g).connect(masterGain);
+  src.start(t); src.stop(t + 0.16);
+}
+function playHat(t, vol) {
+  const src = audioCtx.createBufferSource(); src.buffer = noiseBuf;
+  const hp = audioCtx.createBiquadFilter();
+  hp.type = 'highpass'; hp.frequency.value = 7500;
+  const g = audioCtx.createGain();
+  g.gain.setValueAtTime(vol, t);
+  g.gain.exponentialRampToValueAtTime(0.001, t + 0.04);
+  src.connect(hp).connect(g).connect(masterGain);
+  src.start(t); src.stop(t + 0.05);
+}
+const PENTA = [261.63, 293.66, 329.63, 392.00, 440.00, 523.25];
+function playPitch(t, freq) {
+  const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+  o.type = 'triangle'; o.frequency.value = freq;
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(0.10, t + 0.006);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + 0.13);
+  o.connect(g).connect(masterGain);
+  o.start(t); o.stop(t + 0.16);
+}
+
+/* ==================== 谱面 ==================== */
+function buildChart() {
+  notes = [];
+  let idx = 0;
+  CHART.forEach((pat, bar) => {
+    for (let s = 0; s < 8; s++) {
+      const ch = pat[s];
+      if (ch === '.') continue;
+      const t = LEAD_IN + bar * BAR + s * (BEAT / 2);
+      const lane = LANE_SEQ[idx % LANE_SEQ.length];
+      idx++;
+      if (ch === 'L') {
+        notes.push({
+          lane, time: t, type: 'hold', endTime: t + BEAT * 2,
+          judged: false, headJudged: false, holding: false,
+          broken: false, headRes: null, tailRes: null,
+        });
+      } else {
+        notes.push({ lane, time: t, type: 'tap', judged: false });
+      }
+    }
+  });
+  notes.sort((a, b) => a.time - b.time);
+}
+
+/* ==================== 音乐调度 ==================== */
+function scheduleSong() {
+  const bars = CHART.length;
+  for (let i = 0; i < bars * 8; i++) {
+    const t = songStartTime + i * (BEAT / 2);
+    if (i % 2 === 0) playKick(t);
+    if (i % 4 === 2) playSnare(t);
+    playHat(t, i % 2 === 0 ? 0.075 : 0.035);
+  }
+  let p = 0;
+  for (const n of notes) {
+    playPitch(songStartTime + n.time, PENTA[p % PENTA.length]);
+    p++;
+  }
+}
+
+/* ==================== 判定 ==================== */
+function judgeDiff(ms) {
+  ms = Math.abs(ms);
+  for (const w of WINDOWS) if (ms <= w.ms) return w.name;
+  return 'MISS';
+}
+
+function getSongTime() { return audioCtx.currentTime - songStartTime; }
+
+function addMiss() {
+  combo = 0;
+  judgedCount++;
+  counts['MISS'] = (counts['MISS'] || 0) + 1;
+  addPopup('MISS', '#ff5c7a');
+  adjustHealth(HP_GAIN.MISS);
+}
+
+function pressHold(n, res) {
+  n.headJudged = true;
+  n.holding = true;
+  n.headRes = res;
+
+  combo++;
+  if (combo > maxCombo) maxCombo = combo;
+  totalScore += scoreOf(res);
+  judgedCount++;
+  counts[res] = (counts[res] || 0) + 1;
+  addPopup(res, colorOf(res));
+  adjustHealth(HP_GAIN[res]);
+}
+
+function finishHoldTail(n, res) {
+  n.holding = false;
+  n.judged = true;
+  n.tailRes = res;
+
+  // 尾判 MISS 不再续连击 / 不加分
+  if (res === 'MISS') {
+    combo = 0;
+    judgedCount++;
+    counts.MISS = (counts.MISS || 0) + 1;
+    addPopup('MISS', '#ff5c7a');
+    adjustHealth(HP_GAIN.MISS);
+    return;
+  }
+
+  combo++;
+  if (combo > maxCombo) maxCombo = combo;
+  totalScore += scoreOf(res);
+  judgedCount++;
+  counts[res] = (counts[res] || 0) + 1;
+  addPopup(res, colorOf(res));
+  adjustHealth(HP_GAIN[res]);
+}
+
+function breakHold(n) {
+  n.holding = false;
+  n.judged = true;
+  n.broken = true;
+  n.brokenTime = songTime;
+  combo = 0;
+  counts.BREAK = (counts.BREAK || 0) + 1;
+  addPopup('BREAK', '#ff5c7a');
+  adjustHealth(HP_GAIN.BREAK);
+}
+
+/* ==================== 输入 ==================== */
+function doKeyDown(lane) {
+  const t = getSongTime();
+  let best = null, bestDiff = Infinity;
+
+  for (const n of notes) {
+    if (n.judged || n.lane !== lane) continue;
+    if (n.type === 'hold' && n.headJudged) continue;
+    const d = Math.abs(t - n.time) * 1000;
+    if (d < bestDiff) { bestDiff = d; best = n; }
+  }
+
+  if (!best || bestDiff > MISS_MS) return;
+
+  const res = judgeDiff((t - best.time) * 1000);
+  if (res === 'MISS') return;
+
+  if (best.type === 'tap') {
+    best.judged = true;
+    combo++;
+    if (combo > maxCombo) maxCombo = combo;
+    totalScore += scoreOf(res);
+    judgedCount++;
+    counts[res] = (counts[res] || 0) + 1;
+    addPopup(res, colorOf(res));
+    adjustHealth(HP_GAIN[res]);
+  } else {
+    pressHold(best, res);
+  }
+}
+
+function doKeyUp(lane) {
+  const t = getSongTime();
+
+  for (const n of notes) {
+    if (n.judged || n.lane !== lane) continue;
+    if (n.type !== 'hold' || !n.holding) continue;
+
+    if (t < n.endTime - MISS_MS / 1000) {
+      breakHold(n);
+    } else {
+      const tailRes = judgeDiff((t - n.endTime) * 1000);
+      finishHoldTail(n, tailRes);
+    }
+  }
+}
+
+function pressLane(lane, source) {
+  if (!running || failed) return;
+  if (source === 'kb') kbHeld[lane] = true;
+  else                 touchHeld[lane] = true;
+
+  if (laneHeld[lane]) return;
+  laneHeld[lane] = true;
+  doKeyDown(lane);
+}
+
+function releaseLane(lane, source) {
+  if (source === 'kb') kbHeld[lane] = false;
+  else                 touchHeld[lane] = false;
+
+  if (!laneHeld[lane]) return;
+  if (kbHeld[lane] || touchHeld[lane]) return;
+  laneHeld[lane] = false;
+  doKeyUp(lane);
+}
+
+/* ==================== Pointer 事件 ==================== */
+function laneFromClientX(clientX) {
+  const r = cv.getBoundingClientRect();
+  const x = (clientX - r.left) / r.width * W;
+  if (x < 0 || x >= W) return -1;
+  return Math.min(3, Math.floor(x / LANE_W));
+}
+
+cv.addEventListener('pointerdown', (e) => {
+  if (e.pointerType === 'mouse' && e.button !== 0) return;
+  e.preventDefault();
+  if (!running) return;
+
+  const lane = laneFromClientX(e.clientX);
+  if (lane < 0) return;
+  for (const l of pointerLane.values()) if (l === lane) return;
+
+  pointerLane.set(e.pointerId, lane);
+  try { cv.setPointerCapture(e.pointerId); } catch (_) {}
+  pressLane(lane, 'touch');
+});
+
+cv.addEventListener('pointerup', (e) => {
+  const lane = pointerLane.get(e.pointerId);
+  if (lane === undefined) return;
+  e.preventDefault();
+  pointerLane.delete(e.pointerId);
+  releaseLane(lane, 'touch');
+});
+
+cv.addEventListener('pointercancel', (e) => {
+  const lane = pointerLane.get(e.pointerId);
+  if (lane === undefined) return;
+  pointerLane.delete(e.pointerId);
+  releaseLane(lane, 'touch');
+});
+
+cv.addEventListener('pointermove', (e) => {
+  if (pointerLane.has(e.pointerId)) e.preventDefault();
+}, { passive: false });
+
+// 指针捕获丢失（手指滑出 canvas / 系统打断）时安全释放轨道
+cv.addEventListener('lostpointercapture', (e) => {
+  const lane = pointerLane.get(e.pointerId);
+  if (lane === undefined) return;
+  pointerLane.delete(e.pointerId);
+  releaseLane(lane, 'touch');
+});
+
+/* ==================== 键盘 ==================== */
+window.addEventListener('keydown', (e) => {
+  const lane = KEY_CODES[e.code];
+  if (lane === undefined) return;
+  e.preventDefault();
+  if (e.repeat) return;
+  pressLane(lane, 'kb');
+});
+
+window.addEventListener('keyup', (e) => {
+  const lane = KEY_CODES[e.code];
+  if (lane === undefined) return;
+  e.preventDefault();
+  releaseLane(lane, 'kb');
+});
+
+window.addEventListener('blur', () => {
+  for (let i = 0; i < 4; i++) {
+    if (touchHeld[i]) releaseLane(i, 'touch');
+    if (kbHeld[i])    releaseLane(i, 'kb');
+  }
+  pointerLane.clear();
+});
+
+document.addEventListener('visibilitychange', () => {
+  if (!audioCtx) return;
+  if (document.hidden) {
+    for (let i = 0; i < 4; i++) {
+      if (touchHeld[i]) releaseLane(i, 'touch');
+      if (kbHeld[i])    releaseLane(i, 'kb');
+    }
+    pointerLane.clear();
+    // 挂起音频上下文：songTime 被冻结，回来时不会一次性爆 MISS
+    if (audioCtx.state === 'running') audioCtx.suspend();
+  } else if (audioCtx.state === 'suspended') {
+    audioCtx.resume();
+  }
+});
+
+/* ==================== 帧更新 ==================== */
+function updateNotes() {
+  for (const n of notes) {
+    if (n.judged) continue;
+
+    if (n.type === 'tap') {
+      if (songTime > n.time + MISS_MS / 1000) {
+        n.judged = true;
+        addMiss();
+      }
+    } else {
+      if (!n.headJudged) {
+        if (songTime > n.time + MISS_MS / 1000) {
+          n.headJudged = true;
+          n.judged = true;
+          n.broken = true;
+          n.brokenTime = songTime;
+          addMiss();
+        }
+      } else if (n.holding) {
+        if (songTime > n.endTime + MISS_MS / 1000) {
+          finishHoldTail(n, 'PERFECT');
+        }
+      }
+    }
+  }
+}
+
+/* ==================== 绘制 ==================== */
+function roundRect(x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y,     x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x,     y + h, r);
+  ctx.arcTo(x,     y + h, x,     y,     r);
+  ctx.arcTo(x,     y,     x + w, y,     r);
+  ctx.closePath();
+}
+
+function drawNote(n) {
+  const x = n.lane * LANE_W;
+
+  if (n.type === 'tap') {
+    const y = JUDGE_Y - (n.time - songTime) * PX_PER_SEC;
+    if (y < -40 || y > H + 40) return;
+    ctx.fillStyle = '#4be3ff';
+    ctx.shadowColor = '#4be3ff';
+    ctx.shadowBlur = 12;
+    roundRect(x + 10, y - 11, LANE_W - 20, 22, 6);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    return;
+  }
+
+  const yHeadRaw = JUDGE_Y - (n.time    - songTime) * PX_PER_SEC;
+  const yTail    = JUDGE_Y - (n.endTime - songTime) * PX_PER_SEC;
+  const yHead    = n.holding ? JUDGE_Y : yHeadRaw;
+
+  const bodyX = x + 26;
+  const bodyW = LANE_W - 52;
+
+  const bodyTop = Math.max(yTail, -10);
+  const bodyBot = Math.min(yHead, JUDGE_Y);
+  if (bodyBot > bodyTop) {
+    let bodyColor = '#1c3350';
+    if (n.broken)       bodyColor = '#5c1e2e';
+    else if (n.holding) bodyColor = '#2f7fd0';
+
+    ctx.fillStyle = bodyColor;
+    ctx.fillRect(bodyX, bodyTop, bodyW, bodyBot - bodyTop);
+
+    if (n.holding) {
+      ctx.fillStyle = 'rgba(120,220,255,0.22)';
+      ctx.fillRect(bodyX - 4, bodyTop, bodyW + 8, bodyBot - bodyTop);
+    }
+  }
+
+  if (yHead > -40 && yHead < H + 40) {
+    ctx.fillStyle = n.broken ? '#ff5c7a' : (n.headJudged ? '#9ef0ff' : '#4be3ff');
+    ctx.shadowColor = ctx.fillStyle;
+    ctx.shadowBlur = 12;
+    roundRect(x + 10, yHead - 11, LANE_W - 20, 22, 6);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+  }
+
+  if (!n.broken && yTail > -40 && yTail < H + 40) {
+    ctx.fillStyle = '#7ee8ff';
+    roundRect(x + 14, yTail - 7, LANE_W - 28, 14, 5);
+    ctx.fill();
+  }
+}
+
+function drawHealthBar() {
+  const y = 52;
+  const h = 10;
+  const ratio = displayHealth / 100;
+
+  // 背景
+  ctx.fillStyle = '#0b0e18';
+  ctx.fillRect(0, y, W, h);
+
+  // 填充
+  const fillW = W * ratio;
+  if (fillW > 0) {
+    let c1, c2;
+    if (ratio > 0.6)      { c1 = '#22c55e'; c2 = '#4ade80'; }
+    else if (ratio > 0.3) { c1 = '#eab308'; c2 = '#fbbf24'; }
+    else                  { c1 = '#dc2626'; c2 = '#ef4444'; }
+
+    // 低血量闪烁
+    if (ratio < 0.3) {
+      const blink = 0.55 + 0.45 * Math.abs(Math.sin(performance.now() / 180));
+      ctx.globalAlpha = blink;
+    }
+
+    const g = ctx.createLinearGradient(0, 0, fillW, 0);
+    g.addColorStop(0, c1);
+    g.addColorStop(1, c2);
+    ctx.fillStyle = g;
+    ctx.fillRect(0, y, fillW, h);
+
+    // 顶部高光
+    ctx.fillStyle = 'rgba(255,255,255,0.25)';
+    ctx.fillRect(0, y, fillW, 2);
+
+    ctx.globalAlpha = 1;
+  }
+
+  // 边框
+  ctx.strokeStyle = '#1b2236';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(0.5, y + 0.5, W - 1, h - 1);
+}
+
+function drawHUD() {
+  // 顶栏
+  ctx.fillStyle = 'rgba(10,12,22,0.92)';
+  ctx.fillRect(0, 0, W, 62);
+  ctx.strokeStyle = '#1b2236';
+  ctx.beginPath(); ctx.moveTo(0, 62); ctx.lineTo(W, 62); ctx.stroke();
+
+  ctx.textBaseline = 'middle';
+
+  // 分数
+  ctx.textAlign = 'left';
+  ctx.fillStyle = '#e8eefc';
+  ctx.font = 'bold 22px ui-monospace, Consolas, monospace';
+  ctx.fillText(String(totalScore).padStart(7, '0'), 14, 26);
+
+  // 评级（居中）
+  const acc = getAcc();
+  const rank = getRank(acc);
+  ctx.textAlign = 'center';
+  ctx.font = 'bold 30px ui-monospace, Consolas, monospace';
+  ctx.fillStyle = colorOfRank(rank);
+  ctx.shadowColor = colorOfRank(rank);
+  ctx.shadowBlur = 10;
+  ctx.fillText(rank, W / 2, 26);
+  ctx.shadowBlur = 0;
+
+  // 准确率 + 最大连击
+  ctx.textAlign = 'right';
+  ctx.font = '13px ui-monospace, Consolas, monospace';
+  ctx.fillStyle = '#8fa4c8';
+  ctx.fillText(acc.toFixed(2) + '%', W - 14, 18);
+  ctx.fillText(maxCombo + 'x', W - 14, 36);
+
+  // 血条
+  drawHealthBar();
+
+  // 连击
+  if (combo > 1) {
+    ctx.textAlign = 'center';
+    ctx.font = 'bold 40px ui-monospace, Consolas, monospace';
+    ctx.fillStyle = 'rgba(200,225,255,0.85)';
+    ctx.fillText(combo, W / 2, JUDGE_Y - 110);
+    ctx.font = 'bold 13px ui-monospace, Consolas, monospace';
+    ctx.fillStyle = 'rgba(140,170,220,0.7)';
+    ctx.fillText('COMBO', W / 2, JUDGE_Y - 78);
+  }
+
+  // 判定弹字
+  const now = performance.now();
+  for (let i = popups.length - 1; i >= 0; i--) {
+    const p = popups[i];
+    const age = (now - p.t) / 550;
+    if (age > 1) { popups.splice(i, 1); continue; }
+    ctx.globalAlpha = 1 - age;
+    ctx.textAlign = 'center';
+    ctx.font = 'bold 22px ui-monospace, Consolas, monospace';
+    ctx.fillStyle = p.color;
+    ctx.fillText(p.name, W / 2, JUDGE_Y - 40 - age * 26);
+    ctx.globalAlpha = 1;
+  }
+
+  // 键位
+  for (let i = 0; i < 4; i++) {
+    const cx = i * LANE_W + LANE_W / 2;
+    ctx.textAlign = 'center';
+    ctx.font = 'bold 15px ui-monospace, Consolas, monospace';
+    ctx.fillStyle = laneHeld[i] ? '#8fd8ff' : '#2f3d58';
+    ctx.fillText(KEY_LABELS[i], cx, JUDGE_Y + 34);
+  }
+}
+
+function draw() {
+  ctx.fillStyle = '#0a0b14';
+  ctx.fillRect(0, 0, W, H);
+
+  for (let i = 0; i < 4; i++) {
+    ctx.fillStyle = (i % 2 === 0) ? '#10131f' : '#0d101a';
+    ctx.fillRect(i * LANE_W, 0, LANE_W, H);
+  }
+
+  for (let i = 0; i < 4; i++) {
+    if (!laneHeld[i]) continue;
+    const g = ctx.createLinearGradient(0, 0, 0, JUDGE_Y);
+    g.addColorStop(0, 'rgba(80,180,255,0)');
+    g.addColorStop(1, 'rgba(80,180,255,0.16)');
+    ctx.fillStyle = g;
+    ctx.fillRect(i * LANE_W, 0, LANE_W, JUDGE_Y);
+  }
+
+  ctx.strokeStyle = '#1a2136';
+  ctx.lineWidth = 1;
+  for (let i = 1; i < 4; i++) {
+    ctx.beginPath();
+    ctx.moveTo(i * LANE_W, 0);
+    ctx.lineTo(i * LANE_W, H);
+    ctx.stroke();
+  }
+
+  ctx.fillStyle = '#3d6fff';
+  ctx.shadowColor = '#3d6fff';
+  ctx.shadowBlur = 18;
+  ctx.fillRect(0, JUDGE_Y - 2, W, 4);
+  ctx.shadowBlur = 0;
+
+  for (const n of notes) {
+    if (n.judged) {
+      // 断裂 / 头部 MISS 的长条：短暂淡出显示，给出视觉反馈
+      if (n.broken && n.brokenTime != null) {
+        const age = songTime - n.brokenTime;
+        if (age < 0.35) {
+          ctx.globalAlpha = 1 - age / 0.35;
+          drawNote(n);
+          ctx.globalAlpha = 1;
+        }
+      }
+      continue;
+    }
+    drawNote(n);
+  }
+
+  const vg = ctx.createLinearGradient(0, 0, 0, H);
+  vg.addColorStop(0, 'rgba(5,6,12,0.55)');
+  vg.addColorStop(0.25, 'rgba(5,6,12,0)');
+  vg.addColorStop(1, 'rgba(5,6,12,0)');
+  ctx.fillStyle = vg;
+  ctx.fillRect(0, 0, W, H);
+
+  drawHUD();
+}
+
+/* ==================== 主循环 ==================== */
+function loop() {
+  if (!running) return;
+  requestAnimationFrame(loop);
+
+  songTime = getSongTime();
+  updateNotes();
+
+  if (failed) {
+    finish(true);
+    return;
+  }
+
+  displayHealth += (health - displayHealth) * 0.18;
+  draw();
+
+  if (songTime > songEndTime) finish(false);
+}
+
+/* ==================== 开始 / 结束 ==================== */
+async function startGame() {
+  if (running) return;
+
+  const startEl = document.getElementById('start');
+  startEl.style.display = 'none';
+
+  initAudio();
+  await audioCtx.resume();
+
+  combo = 0; maxCombo = 0;
+  totalScore = 0; judgedCount = 0;
+  counts = {}; popups = [];
+  kbHeld.fill(false);
+  touchHeld.fill(false);
+  laneHeld.fill(false);
+  pointerLane.clear();
+
+  health = 60;
+  displayHealth = 60;
+  failed = false;
+
+  buildChart();
+
+  songStartTime = audioCtx.currentTime + 0.7;
+  songEndTime   = LEAD_IN + CHART.length * BAR + 1.2;
+  scheduleSong();
+
+  running = true;
+  requestAnimationFrame(loop);
+}
+
+function finish(isFailed) {
+  running = false;
+
+  if (isFailed && masterGain) {
+    try {
+      masterGain.gain.setTargetAtTime(0.001, audioCtx.currentTime, 0.08);
+    } catch (_) {}
+  }
+
+  const acc  = getAcc();
+  const rank = isFailed ? 'F' : getRank(acc);
+  const el   = document.getElementById('start');
+
+  el.innerHTML = `
+    <h1 style="color:${isFailed ? '#ff5c7a' : '#e8eefc'};margin-bottom:0">
+      ${isFailed ? 'FAILED' : 'RESULT'}
+    </h1>
+    <div class="rank-big" style="color:${colorOfRank(rank)};text-shadow:0 0 30px ${colorOfRank(rank)}88">
+      ${rank}
+    </div>
+    <p style="font-size:22px;color:#e8eefc;margin:8px 0">${totalScore}</p>
+    <p>准确率 <b style="color:#6ee7b7">${acc.toFixed(2)}%</b></p>
+    <p>最大连击 <b style="color:#4be3ff">${maxCombo}</b></p>
+    <p style="margin-top:10px">
+      PERFECT ${counts.PERFECT||0} · GREAT ${counts.GREAT||0} ·
+      GOOD ${counts.GOOD||0} · OK ${counts.OK||0} ·
+      MEH ${counts.MEH||0} · MISS ${counts.MISS||0}<br>
+      BREAK ${counts.BREAK||0}
+    </p>
+    <div class="go">点击再来一次</div>
+  `;
+  el.style.display = 'flex';
+  el.onclick = () => location.reload();
+}
+
+/* ==================== 事件绑定 ==================== */
+document.getElementById('start').onclick = startGame;
+
+ctx.fillStyle = '#0a0b14';
+ctx.fillRect(0, 0, W, H);
+
+})();
+</script>
+</body>
+</html>
