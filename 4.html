@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <!-- 修改处：将视口固定为 1280 像素，手机端将自动以桌面端视角缩放展示 -->
+    <meta name="viewport" content="width=1280">
+    <title>LoopelZeta | Cyber Nexus Terminal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        /* 核心变量 */
+        :root { 
+            --primary: #8a2be2; 
+            --secondary: #ff69b4; 
+            --grid-color: rgba(138, 43, 226, 0.12); 
+            --bg-black: #000;
+        }
+
+        /* 黑客模式变量覆盖 */
+        body.hacker-mode {
+            --primary: #00ff41;
+            --secondary: #008f11;
+            --grid-color: rgba(0, 255, 65, 0.1);
+        }
+
+        body { background-color: var(--bg-black); color: #e2e8f0; font-family: 'Inter', sans-serif; overflow-x: hidden; transition: background 0.5s, filter 0.5s; }
+
+        /* 3D 动态底座 */
+        .grid-container { position: fixed; inset: 0; perspective: 1000px; z-index: -2; background: radial-gradient(circle at 50% 50%, #0a0a0a 0%, #000 100%); }
+        .grid-plane { position: absolute; width: 200%; height: 200%; top: -50%; left: -50%; background-image: linear-gradient(var(--grid-color) 1px, transparent 1px), linear-gradient(90deg, var(--grid-color) 1px, transparent 1px); background-size: 50px 50px; transform: rotateX(60deg); animation: grid-travel 20s linear infinite; }
+        @keyframes grid-travel { from { background-position: 0 0; } to { background-position: 0 500px; } }
+
+        /* 系统日志栏 */
+        #log-window {
+            position: fixed; bottom: 24px; right: 24px; width: 280px; height: 160px;
+            background: rgba(0, 0, 0, 0.85); border-left: 3px solid var(--primary);
+            backdrop-filter: blur(15px); z-index: 1000; padding: 12px;
+            font-family: 'Monaco', 'Consolas', monospace; display: flex; flex-direction: column;
+            pointer-events: auto; 
+            transition: all 0.5s; box-shadow: 0 15px 35px rgba(0,0,0,0.6);
+            background-image: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+            background-size: 100% 2px, 3px 100%;
+        }
+        #log-content { 
+            overflow-y: auto; 
+            flex: 1; font-size: 9px; color: rgba(255, 255, 255, 0.5); 
+            scroll-behavior: smooth; padding-right: 4px;
+        }
+        #log-content::-webkit-scrollbar { width: 4px; }
+        #log-content::-webkit-scrollbar-track { background: transparent; }
+        #log-content::-webkit-scrollbar-thumb { background: var(--primary); border-radius: 10px; }
+
+        .log-entry { margin-bottom: 4px; animation: log-in 0.3s ease-out; line-height: 1.2; text-shadow: 0 0 2px rgba(255,255,255,0.2); }
+        @keyframes log-in { from { opacity: 0; transform: translateX(10px); } to { opacity: 1; transform: translateX(0); } }
+        .log-time { color: var(--primary); margin-right: 6px; font-weight: bold; }
+        #log-mode { font-weight: bold; transition: color 0.5s; }
+        body.hacker-mode #log-mode { color: #ff003c; text-shadow: 0 0 8px #ff003c; }
+
+        /* 游戏与特效 */
+        #snake-canvas {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            border: 2px solid var(--primary); background: rgba(0, 0, 0, 0.9);
+            z-index: 2000; box-shadow: 0 0 50px var(--primary); display: none;
+        }
+        #danmaku-container { position: fixed; inset: 0; pointer-events: none; z-index: 5; overflow: hidden; }
+        .danmaku-item { position: absolute; white-space: nowrap; font-family: monospace; font-weight: bold; color: rgba(255, 255, 255, 0.2); animation: move-left linear forwards; }
+        @keyframes move-left { from { transform: translateX(100vw); } to { transform: translateX(-100%); } }
+
+        /* 震动指令动画 */
+        @keyframes shake {
+            0% { transform: translate(1px, 1px) rotate(0deg); }
+            10% { transform: translate(-1px, -2px) rotate(-1deg); }
+            30% { transform: translate(3px, 2px) rotate(0deg); }
+            50% { transform: translate(-1px, 2px) rotate(1deg); }
+            70% { transform: translate(3px, 1px) rotate(-1deg); }
+            100% { transform: translate(1px, -2px) rotate(-1deg); }
+        }
+
+        /* 导航与按键 */
+        #main-nav.scrolled { background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(20px); border-bottom: 1px solid var(--primary); padding: 1rem 0; }
+        .lang-switch { display: flex; gap: 8px; align-items: center; padding: 4px 12px; background: rgba(255,255,255,0.05); border-radius: 4px; border: 1px solid rgba(255,255,255,0.1); }
+        
+        .lang-btn { 
+            color: rgba(255,255,255,0.3); 
+            cursor: pointer; 
+            font-size: 10px; 
+            font-weight: bold; 
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+        }
+        .lang-btn.active { 
+            color: var(--secondary); 
+            text-shadow: 0 0 12px var(--secondary); 
+            transform: scale(1.1);
+        }
+        .lang-btn:hover:not(.active) { color: rgba(255,255,255,0.8); }
+
+        /* 其他组件 */
+        .glass-card { background: rgba(255, 255, 255, 0.02); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.05); transition: text-shadow 0.3s ease, border-color 0.3s ease; }
+        .reveal { opacity: 0; transform: translateY(30px); transition: 1s cubic-bezier(0.22, 1, 0.36, 1); }
+        .reveal.active { opacity: 1; transform: translateY(0); }
+        .cursor-blink::after { content: ''; display: inline-block; width: 8px; height: 1.2em; background: var(--secondary); margin-left: 4px; vertical-align: middle; animation: blink 0.8s infinite; }
+        @keyframes blink { 50% { opacity: 0; } }
+        .screen-flash { animation: flash-trigger 0.25s ease-out; }
+        @keyframes flash-trigger { 0% { filter: invert(1); } 100% { filter: invert(0); } }
+        #matrix-canvas { position: fixed; inset: 0; z-index: -1; display: none; opacity: 0.4; pointer-events: none; transition: opacity 1s ease, background 1s ease; }
+        body.hacker-mode #matrix-canvas { display: block; }
+        .social-link { transition: all 0.3s ease; color: rgba(255,255,255,0.4); }
+        .social-link:hover { transform: translateY(-3px); filter: drop-shadow(0 0 8px currentColor); }
+        .gravity-applied { transition: transform 2s cubic-bezier(0.22, 1, 0.36, 1); }
+
+        .audio-player { position: fixed; bottom: 40px; left: 40px; z-index: 100; display: flex; align-items: center; gap: 15px; padding: 12px 20px; background: rgba(0,0,0,0.6); backdrop-filter: blur(15px); border: 1px solid var(--primary); border-radius: 50px; }
+        .disc-anim { width: 35px; height: 35px; border-radius: 50%; border: 2px solid var(--secondary); animation: rotate 4s linear infinite; animation-play-state: paused; }
+        .playing .disc-anim { animation-play-state: running; }
+        @keyframes rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .spectrum { display: flex; align-items: flex-end; gap: 3px; height: 15px; }
+        .bar { width: 3px; background: var(--primary); border-radius: 2px; height: 4px; }
+        .playing .bar { animation: bar-jump 0.6s ease-in-out infinite alternate; }
+        @keyframes bar-jump { 0% { height: 4px; } 100% { height: 15px; } }
+
+        /* Type Lab Specific Styles */
+        .type-scroll::-webkit-scrollbar { display: none; }
+        .type-scroll { scrollbar-width: none; }
+    </style>
+</head>
+<body>
+    <div class="grid-container"><div class="grid-plane"></div></div>
+    <canvas id="matrix-canvas"></canvas>
+    <div id="danmaku-container"></div>
+    
+    <div id="copy-toast" class="fixed bottom-10 left-1/2 transform -translate-x-1/2 bg-[var(--primary)] text-black px-6 py-2 rounded font-black tracking-widest text-xs shadow-[0_0_20px_var(--primary)] z-[9999] hidden uppercase" data-en="COPIED_TO_CLIPBOARD" data-zh="已复制到剪贴板">COPIED_TO_CLIPBOARD</div>
+
+    <div id="log-window">
+        <div style="font-size: 8px; margin-bottom: 8px; letter-spacing: 2px; opacity: 0.5; display: flex; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 4px;">
+            <span>KERNEL_V4.4_OS</span>
+            <span id="log-mode">STABLE</span>
+        </div>
+        <div id="log-content"></div>
+    </div>
+
+    <nav class="fixed w-full z-50 py-8 px-6 md:px-12 transition-all" id="main-nav">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <div class="text-2xl font-black italic text-white tracking-tighter uppercase">
+                <span id="logo-main" style="color:var(--primary)">LOOPEL</span>ZETA
+            </div>
+            <div class="hidden md:flex items-center space-x-8 text-[10px] font-bold uppercase tracking-widest">
+                <a href="#home" data-en="Home" data-zh="主页">Home</a>
+                <a href="#about" data-en="About" data-zh="关于">About</a>
+                <a href="#skills" data-en="Matrix" data-zh="矩阵">Matrix</a>
+                <a href="#projects" data-en="Projects" data-zh="项目">Projects</a>
+                <a href="#typelab" data-en="Type Lab" data-zh="字体实验">Type Lab</a>
+                <div class="lang-switch font-mono">
+                    <span class="lang-btn active" id="btn-en" onclick="setLang('en')">EN</span>
+                    <span class="text-gray-700">/</span>
+                    <span class="lang-btn" id="btn-zh" onclick="setLang('zh')">ZH</span>
+                </div>
+                <a href="mailto:yq6751@outlook.com" class="px-6 py-2 rounded-full border border-white/20 hover:bg-white hover:text-black transition-all" data-en="Contact" data-zh="联系">Contact</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="audio-player" id="audio-container">
+        <audio id="bg-audio" loop><source src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" type="audio/mpeg"></audio>
+        <button id="play-btn"><div class="disc-anim flex items-center justify-center bg-black"><i class="fas fa-play text-[10px] text-white" id="play-icon"></i></div></button>
+        <div class="flex flex-col ml-1"><span class="text-[8px] font-bold text-gray-500 uppercase">SIGNAL_STMT</span>
+            <div class="spectrum"><div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div></div>
+        </div>
+    </div>
+
+    <section id="home" class="w-full h-screen flex flex-col items-center justify-center text-center relative px-6">
+        <div class="absolute top-36 w-full max-w-7xl px-6 md:px-12 flex justify-between items-start opacity-30 reveal">
+            <div class="text-[10px] font-mono uppercase tracking-[0.3em]" style="color:var(--primary)" data-en="Neural Link: Stable" data-zh="神经连接：稳定">Neural Link: Stable</div>
+            <div class="text-right font-mono">
+                <div id="live-clock" class="text-2xl font-bold text-white tracking-tighter">00:00:00</div>
+                <div id="live-date" class="text-[10px] text-gray-500 mt-1 uppercase tracking-widest">2026.02.15 SUN</div>
+            </div>
+        </div>
+        
+        <div class="z-10">
+            <img src="https://avatars.githubusercontent.com/u/49837965?v=4" class="w-28 h-28 rounded-full border border-white/10 p-1 mb-6 mx-auto reveal">
+            <h1 class="text-5xl md:text-8xl font-black mb-6 text-white tracking-tighter uppercase reveal">Loopel Zeta</h1>
+            
+            <div class="flex gap-8 mb-8 justify-center reveal">
+                <a href="https://github.com/zero123t" target="_blank" class="social-link hover:text-white text-2xl" title="GitHub"><i class="fab fa-github"></i></a>
+                <a href="https://youtube.com/@loopelzeta?si=bzGWMIR7JFG1kxIH" target="_blank" class="social-link hover:text-[#ff0000] text-2xl" title="YouTube"><i class="fab fa-youtube"></i></a>
+                <a href="https://space.bilibili.com/3546616348806078" target="_blank" class="social-link hover:text-[#00aeec] text-2xl" title="Bilibili"><i class="fa-brands fa-bilibili"></i></a>
+                <a href="https://qm.qq.com/q/shpXHNfIpa" target="_blank" class="social-link hover:text-[#12b7f5] text-2xl" title="QQ Group"><i class="fab fa-qq"></i></a>
+            </div>
+            <p class="text-lg md:text-xl font-mono text-gray-400 h-8 reveal uppercase"><span id="typing-text" class="cursor-blink"></span></p>
+        </div>
+    </section>
+
+    <section id="about" class="py-32 px-6 md:px-12 max-w-7xl mx-auto">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-20 items-center">
+            <div class="lg:col-span-7 space-y-10 reveal">
+                <h2 class="text-5xl md:text-7xl font-black italic text-white uppercase leading-tight" data-en="Life is a Chase." data-zh="生活是一场追逐。">Life is a Chase.</h2>
+                <div class="glass-card p-10 rounded-2xl border-l-4" style="border-color:var(--primary)">
+                    <p class="text-xl md:text-2xl text-gray-200 font-light italic leading-relaxed" id="about-quote">"In the forest of code, I am the algorithm finding the path."</p>
+                </div>
+            </div>
+            <div class="lg:col-span-5 reveal">
+                <div class="aspect-[4/5] rounded-[3rem] border border-white/10 relative overflow-hidden bg-white/5">
+                    <div class="absolute inset-0 bg-gradient-to-br from-black/60 to-transparent"></div>
+                    <div class="absolute bottom-10 right-10 glass-card p-8 rounded-[2rem]">
+                        <div class="text-5xl font-black" style="color:var(--secondary)">01</div>
+                        <div class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Pure Flow</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="skills" class="py-32 px-6 max-w-7xl mx-auto">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+            <div class="reveal">
+                <h2 class="text-5xl font-black text-white mb-2 uppercase italic" data-en="Skill Matrix" data-zh="技能矩阵">Skill Matrix</h2>
+                <div class="w-20 h-1.5 mb-8" style="background-color:var(--primary)"></div>
+                <div class="space-y-6 font-mono text-xs text-gray-400">
+                    <p data-en="Neural sync active." data-zh="神经连接已激活。">Neural sync active.</p>
+                    <div class="space-y-4" id="skill-list"></div>
+                </div>
+            </div>
+            <div class="flex justify-center items-center reveal min-h-[400px]">
+                <svg id="radar-svg" width="400" height="400" viewBox="0 0 400 400">
+                    <g id="radar-grids"></g><g id="radar-axes"></g>
+                    <polygon id="radar-value-area" points="200,200 200,200 200,200 200,200 200,200 200,200" fill="rgba(138,43,226,0.2)" stroke="var(--secondary)" stroke-width="2" class="transition-all duration-[1.5s] ease-out" />
+                    <g id="radar-labels" class="text-[10px] fill-gray-500 font-mono font-bold uppercase"></g>
+                </svg>
+            </div>
+        </div>
+    </section>
+
+    <section id="projects" class="py-32 px-6 max-w-7xl mx-auto">
+        <div class="flex flex-col md:flex-row justify-between items-end mb-16 reveal">
+            <div>
+                <h2 class="text-5xl font-black text-white mb-2 uppercase italic" data-en="Projects" data-zh="精选项目">Projects</h2>
+                <div class="w-20 h-1.5" style="background-color:var(--primary)"></div>
+            </div>
+            <div class="mt-8 flex gap-8 text-[10px] font-bold uppercase tracking-widest">
+                <button class="filter-btn active" data-filter="all" data-en="All" data-zh="全部">All</button>
+                <button class="filter-btn text-gray-600 hover:text-white" data-filter="dev" data-en="Dev" data-zh="开发">Dev</button>
+                <button class="filter-btn text-gray-600 hover:text-white" data-filter="parkour" data-en="Parkour" data-zh="跑酷">Parkour</button>
+            </div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8" id="project-grid"></div>
+    </section>
+
+    <section id="typelab" class="py-32 px-6 max-w-7xl mx-auto reveal">
+        <h2 class="text-5xl font-black text-white mb-2 uppercase italic" data-en="Typeface Lab" data-zh="字体实验">Typeface Lab</h2>
+        <div class="w-20 h-1.5 mb-12" style="background-color:var(--secondary)"></div>
+        
+        <div class="glass-card p-6 md:p-8 rounded-3xl mb-8 sticky top-24 z-40 backdrop-blur-2xl">
+            <div class="relative flex items-center bg-black/50 border border-white/20 rounded-2xl p-4 focus-within:border-[var(--secondary)] transition-all">
+                <textarea id="mainInput" class="w-full bg-transparent text-white text-xl outline-none resize-none h-8 placeholder-gray-600 font-mono" placeholder="TYPE SOMETHING..."></textarea>
+                <button id="clearBtn" class="absolute right-4 w-8 h-8 flex items-center justify-center bg-white/10 hover:bg-[var(--secondary)] text-white hover:text-black rounded-full transition-all text-xs font-bold">✕</button>
+            </div>
+        </div>
+        
+        <div id="type-results" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+    </section>
+
+    <section id="transmission" class="py-32 px-6 max-w-7xl mx-auto reveal">
+        <h2 class="text-5xl font-black text-white mb-2 uppercase italic" data-en="Transmission" data-zh="实时信号">Transmission</h2>
+        <div class="w-20 h-1.5 mb-12" style="background-color:var(--primary)"></div>
+        <div class="glass-card p-8 rounded-3xl flex flex-col md:flex-row gap-6 items-center">
+            <input type="text" id="danmaku-input" maxlength="30" placeholder="Type /help for command list..." class="bg-transparent border-b border-white/20 w-full outline-none px-4 py-2 text-sm font-mono text-white focus:border-white transition-all">
+            <button onclick="sendDanmaku()" class="px-10 py-3 text-white text-[10px] font-bold uppercase rounded-full transition-all" style="background-color:var(--primary)" data-en="Broadcast" data-zh="广播发送">Broadcast</button>
+        </div>
+    </section>
+
+    <footer class="py-20 text-center opacity-30 text-[10px] tracking-[1em] uppercase">© 2026 Loopel Zeta</footer>
+
+    <script>
+        /* 核心配置 */
+        const config = {
+            zh: {
+                quote: "“在代码的逻辑森林里，我是寻找路径的算法；在城市的钢筋废墟中，我是重力规律的叛徒。”",
+                words: ["前端开发者", "跑酷运动员", "UI/UX 设计师"],
+                skills: [ {n:"开发工程", v:0.95}, {n:"视觉设计", v:0.82}, {n:"运动敏捷", v:0.90} ]
+            },
+            en: {
+                quote: "“In the forest of code, I am the algorithm finding the path; in the concrete ruins of the city, I am the traitor of gravity.”",
+                words: ["Frontend Developer", "Parkour Athlete", "UI/UX Architect"],
+                skills: [ {n:"Development", v:0.95}, {n:"Design", v:0.82}, {n:"Movement", v:0.90} ]
+            }
+        };
+
+        const radarData = [
+            { en: "Code", zh: "编程", val: 0.95 }, { en: "Design", zh: "设计", val: 0.82 },
+            { en: "Motion", zh: "动效", val: 0.75 }, { en: "Flow", zh: "流动", val: 0.90 },
+            { en: "Visual", zh: "视觉", val: 0.85 }, { en: "Logic", zh: "逻辑", val: 0.88 }
+        ];
+
+        const projectList = [
+            { cat: 'dev', title: 'Cyber Terminal', en: 'CLI Portfolio', zh: '终端作品集' },
+            { cat: 'parkour', title: 'Flow Archive', en: 'Urban Movement', zh: '城市影像' },
+            { cat: 'dev', title: 'Neural Matrix', en: 'SVG Data Viz', zh: '数据可视化' }
+        ];
+
+        /* Type Lab 字典映射 */
+        const MAPS = {
+            "SANS_BOLD": {
+                a:'𝐚',b:'𝐛',c:'𝐜',d:'𝐝',e:'𝐞',f:'𝐟',g:'𝐠',h:'𝐡',i:'𝐢',j:'𝐣',k:'𝐤',l:'𝐥',m:'𝐦',n:'𝐧',o:'𝐨',p:'𝐩',q:'𝐪',r:'𝐫',s:'𝐬',t:'𝐭',u:'𝐮',v:'𝐯',w:'𝐰',x:'𝐱',y:'𝐲',z:'𝐳',
+                A:'𝐀',B:'𝐁',C:'𝐂',D:'𝐃',E:'𝐄',F:'𝐅',G:'𝐆',H:'𝐇',I:'𝐈',J:'𝐉',K:'𝐊',L:'𝐋',M:'𝐌',N:'𝐍',O:'𝐎',P:'𝐏',Q:'𝐐',R:'𝐑',S:'𝐒',T:'𝐓',U:'𝐔',V:'𝐕',W:'𝐖',X:'𝐗',Y:'𝐘',Z:'𝐙',
+                0:'𝟎',1:'𝟏',2:'𝟐',3:'𝟑',4:'𝟒',5:'𝟓',6:'𝟔',7:'𝟕',8:'𝟖',9:'𝟗'
+            },
+            "OUTLINE": {
+                a:'𝕒',b:'𝕓',c:'𝕔',d:'𝕕',e:'𝕖',f:'𝕗',g:'𝕘',h:'𝕙',i:'𝕚',j:'𝕛',k:'𝕜',l:'𝕝',m:'𝕞',n:'𝕟',o:'𝕠',p:'𝕡',q:'𝕢',r:'𝕣',s:'𝕤',t:'𝕥',u:'𝕦',v:'𝕧',w:'𝕨',x:'𝕩',y:'𝕪',z:'𝕫',
+                A:'𝔸',B:'𝔹',C:'ℂ',D:'𝔻',E:'𝔼',F:'𝔽',G:'𝔾',H:'ℍ',I:'𝕀',J:'𝕁',K:'𝕂',L:'𝕃',M:'𝕄',N:'ℕ',O:'𝕆',P:'ℙ',Q:'ℚ',R:'ℝ',S:'𝕊',T:'𝕋',U:'𝕌',V:'𝕍',W:'𝕎',X:'𝕏',Y:'𝕐',Z:'ℤ',
+                0:'𝟘',1:'𝟙',2:'𝟚',3:'𝟛',4:'𝟜',5:'𝟝',6:'𝟞',7:'𝟟',8:'𝟠',9:'𝟡'
+            },
+            "MONOSPACE": {
+                a:'𝚊',b:'𝚋',c:'𝚌',d:'𝚍',e:'𝚎',f:'𝚏',g:'𝚐',h:'𝚑',i:'𝚒',j:'𝚓',k:'𝚔',l:'𝚕',m:'𝚖',n:'𝚗',o:'𝚘',p:'𝚙',q:'𝚚',r:'𝚛',s:'𝚜',t:'𝚝',u:'𝚞',v:'𝚟',w:'𝚠',x:'𝚡',y:'𝚢',z:'𝚣',
+                A:'𝙰',B:'𝙱',C:'𝙲',D:'𝙳',E:'𝙴',F:'𝙵',G:'𝙶',H:'𝙷',I:'𝙸',J:'𝙹',K:'𝙺',L:'𝙻',M:'𝙼',N:'𝙽',O:'𝙾',P:'𝙿',Q:'𝚀',R:'𝚁',S:'𝚂',T:'𝚃',U:'𝚄',V:'𝚅',W:'𝚆',X:'𝚇',Y:'𝚈',Z:'𝙉'
+            },
+            "SCRIPT": {
+                a:'𝓪',b:'𝓫',c:'𝓬',d:'𝓭',e:'𝓮',f:'𝓯',g:'𝓰',h:'𝓱',i:'𝓲',j:'𝓳',k:'𝓴',l:'𝓵',m:'𝓶',n:'𝓷',o:'𝓸',p:'𝓹',q:'𝓺',r:'𝓻',s:'𝓼',t:'𝓽',u:'𝓾',v:'𝓿',w:'𝔀',x:'𝔁',y:'𝔂',z:'𝔃',
+                A:'𝓐',B:'𝓑',C:'𝓒',D:'𝓓',E:'𝓔',F:'𝓕',G:'𝓖',H:'𝓗',I:'𝓘',J:'𝓙',K:'𝓚',L:'𝓛',M:'𝓜',N:'𝓝',O:'𝓞',P:'𝓟',Q:'𝓠',R:'𝓡',S:'𝓢',T:'𝓣',U:'',V:'𝓥',W:'𝓦',X:'𝓧',Y:'𝓨',Z:'𝓩'
+            }
+        };
+
+        let currentLang = 'en';
+        let matrixRunning = false;
+
+        /* 日志系统 */
+        function addLog(msg) {
+            const container = document.getElementById('log-content');
+            const time = new Date().toLocaleTimeString('en-GB', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            let color = "rgba(255,255,255,0.6)";
+            if(msg.includes("Critical") || msg.includes("FAILURE") || msg.includes("Game Over") || msg.includes("WARNING")) color = "var(--secondary)";
+            if(msg.includes("Execute") || msg.includes("SUCCESS") || msg.includes("Active") || msg.includes("Copied")) color = "var(--primary)";
+            entry.innerHTML = `<span class="log-time">[${time}]</span> <span style="color:${color}">${msg.toUpperCase()}</span>`;
+            container.appendChild(entry);
+            if (container.children.length > 100) container.removeChild(container.firstChild);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        /* 语言切换逻辑 */
+        function setLang(lang) {
+            currentLang = lang;
+            document.querySelectorAll('.lang-btn').forEach(btn => {
+                if(btn.id === `btn-${lang}`) { btn.classList.add('active'); } 
+                else { btn.classList.remove('active'); }
+            });
+            document.querySelectorAll('[data-en]').forEach(el => { el.textContent = el.getAttribute(`data-${lang}`); });
+            document.getElementById('about-quote').textContent = config[lang].quote;
+            typingWords = config[lang].words; wI = 0; cI = 0;
+            const sList = document.getElementById('skill-list');
+            sList.innerHTML = config[lang].skills.map(s => `
+                <div class="flex justify-between border-b border-white/5 pb-2">
+                    <span>${s.n}</span>
+                    <span style="color:var(--secondary)">${(s.v*100)}%</span>
+                </div>`).join('');
+            updateRadarLabels();
+            addLog(`System: Switched to ${lang.toUpperCase()}`);
+        }
+
+        /* Type Lab 逻辑 */
+        const typeInput = document.getElementById('mainInput');
+        const typeResults = document.getElementById('type-results');
+        const clearBtn = document.getElementById('clearBtn');
+        const toast = document.getElementById('copy-toast');
+
+        function copyText(text) {
+            const el = document.createElement('textarea');
+            el.value = text;
+            document.body.appendChild(el);
+            el.select();
+            document.execCommand('copy');
+            document.body.removeChild(el);
+            
+            toast.style.display = 'block';
+            addLog(`System: Text copied to clipboard`);
+            setTimeout(() => toast.style.display = 'none', 1200);
+        }
+
+        function renderType() {
+            const val = typeInput.value;
+            typeResults.innerHTML = '';
+            if (!val) return;
+
+            Object.keys(MAPS).forEach(name => {
+                const converted = val.split('').map(c => MAPS[name][c] || c).join('');
+                createTypeCard(name, converted);
+            });
+            createTypeCard("WIDE_SPACING", val.split('').join('  '));
+            createTypeCard("BRACKETS", val.split('').map(c => c === ' ' ? ' ' : `【${c}】`).join(''));
+        }
+
+        function createTypeCard(label, text) {
+            const div = document.createElement('div');
+            div.className = 'glass-card p-5 rounded-xl flex justify-between items-center cursor-pointer hover:border-[var(--secondary)] transition-all group active:scale-95';
+            div.onclick = () => copyText(text);
+            div.innerHTML = `
+                <div class="flex-1 overflow-hidden pr-4">
+                    <div class="text-[9px] text-gray-500 uppercase mb-2 tracking-[0.2em] font-bold">${label}</div>
+                    <div class="text-xl text-white whitespace-nowrap overflow-x-auto type-scroll">${text}</div>
+                </div>
+                <div class="text-[9px] text-[var(--secondary)] border border-[var(--secondary)] px-3 py-1.5 rounded font-black tracking-widest group-hover:bg-[var(--secondary)] group-hover:text-black transition-all">COPY</div>
+            `;
+            typeResults.appendChild(div);
+        }
+
+        typeInput.addEventListener('input', renderType);
+        clearBtn.onclick = () => { typeInput.value = ''; renderType(); typeInput.focus(); };
+
+        /* 指令逻辑 */
+        async function sendDanmaku() {
+            const inputEl = document.getElementById('danmaku-input');
+            const val = inputEl.value.trim().toLowerCase();
+            const mCanvas = document.getElementById('matrix-canvas');
+            if (!val) return;
+            document.body.classList.add('screen-flash');
+            setTimeout(() => document.body.classList.remove('screen-flash'), 250);
+
+            if (val.startsWith('/')) {
+                const cmd = val.split(' ')[0];
+                addLog(`Execute: ${cmd}`);
+                switch (cmd) {
+                    case '/root':
+                        document.body.classList.add('hacker-mode');
+                        document.getElementById('log-mode').textContent = 'EXPLOIT';
+                        matrixRunning = true; initMatrix(); drawMatrix();
+                        addLog("Critical: Admin access granted");
+                        break;
+                    case '/matrix':
+                        addLog("System: Overriding UI with Matrix Stream...");
+                        document.body.classList.add('hacker-mode');
+                        matrixRunning = true; initMatrix(); drawMatrix();
+                        mCanvas.style.opacity = "1";
+                        mCanvas.style.background = "black";
+                        break;
+                    case '/echo':
+                        addLog("Effect: Visual Echo Synchronized");
+                        document.querySelectorAll('h1, h2, .glass-card').forEach(el => {
+                            el.style.textShadow = `5px 5px 0px var(--primary), -5px -5px 0px var(--secondary)`;
+                        });
+                        break;
+                    case '/vibrate':
+                        addLog("Critical: Structural Integrity Compromised");
+                        document.body.style.animation = "shake 0.2s infinite";
+                        setTimeout(() => { document.body.style.animation = "none"; addLog("System: Stability restored"); }, 3000);
+                        break;
+                    case '/snake':
+                        addLog("System: Initializing Snake Protocol...");
+                        initSnakeGame();
+                        break;
+                    case '/disco':
+                        addLog("System: Neural Rave Active");
+                        if(window.discoTimer) clearInterval(window.discoTimer);
+                        window.discoTimer = setInterval(() => {
+                            const h = Math.floor(Math.random() * 360);
+                            document.documentElement.style.setProperty('--primary', `hsl(${h}, 100%, 50%)`);
+                            document.documentElement.style.setProperty('--secondary', `hsl(${h+150}, 100%, 50%)`);
+                        }, 150);
+                        break;
+                    case '/gravity':
+                        addLog("WARNING: GRAVITY_ENGINE_FAILURE");
+                        document.querySelectorAll('.reveal, img, .glass-card, .project-item, h1, p, nav').forEach(el => {
+                            el.classList.add('gravity-applied');
+                            const x = (Math.random() - 0.5) * 400, y = Math.random() * 400, r = (Math.random() - 0.5) * 180;
+                            el.style.transform = `translate(${x}px, ${y}px) rotate(${r}deg)`;
+                        });
+                        break;
+                    case '/glitch':
+                        addLog("CRITICAL: DATA CORRUPTION");
+                        document.body.style.filter = "contrast(1.5) saturate(2) hue-rotate(45deg)";
+                        document.body.style.animation = "v-flicker 0.05s infinite";
+                        break;
+                    case '/binary':
+                        addLog("Deconstructing Language...");
+                        document.querySelectorAll('h1, h2, p, a, span:not(.log-time)').forEach(node => {
+                            if (!node.dataset.original) node.dataset.original = node.textContent;
+                            node.textContent = node.textContent.replace(/[^\s]/g, () => Math.round(Math.random()));
+                        });
+                        break;
+                    case '/exit':
+                        document.body.classList.remove('hacker-mode');
+                        document.getElementById('log-mode').textContent = 'STABLE';
+                        matrixRunning = false;
+                        document.body.style.filter = 'none'; 
+                        document.body.style.animation = "none";
+                        mCanvas.style.opacity = "0.4";
+                        mCanvas.style.background = "transparent";
+                        if(window.discoTimer) clearInterval(window.discoTimer);
+                        if(window.snakeInterval) { clearInterval(window.snakeInterval); document.getElementById('snake-canvas')?.remove(); }
+                        document.querySelectorAll('[data-original]').forEach(node => { node.textContent = node.dataset.original; delete node.dataset.original; });
+                        document.querySelectorAll('h1, h2, .glass-card').forEach(el => el.style.textShadow = "none");
+                        document.querySelectorAll('*').forEach(el => { el.style.transform = ''; el.classList.remove('gravity-applied'); });
+                        document.documentElement.style.setProperty('--primary', '#8a2be2');
+                        document.documentElement.style.setProperty('--secondary', '#ff69b4');
+                        addLog("Session reset");
+                        break;
+                    case '/help':
+                        const cmds = ["/root", "/matrix", "/echo", "/vibrate", "/snake", "/disco", "/gravity", "/glitch", "/binary", "/exit"];
+                        for(let c of cmds) { await new Promise(r => setTimeout(r, 150)); addLog(`Cmd: ${c}`); }
+                        break;
+                    default:
+                        addLog(`Error: Unknown '${cmd}'`);
+                }
+            } else {
+                createD(inputEl.value, true);
+                addLog(`Broadcast: "${val.substring(0,10)}..."`);
+            }
+            inputEl.value = '';
+        }
+
+        /* 游戏及其他逻辑 */
+        function initSnakeGame() {
+            let existing = document.getElementById('snake-canvas');
+            if(existing) existing.remove();
+            const canvas = document.createElement('canvas');
+            canvas.id = 'snake-canvas'; canvas.width = 400; canvas.height = 400;
+            document.body.appendChild(canvas);
+            canvas.style.display = 'block';
+            const ctx = canvas.getContext('2d');
+            let snake = [{x: 10, y: 10}], food = {x: 15, y: 15}, dx = 1, dy = 0, score = 0;
+            function draw() {
+                const head = {x: snake[0].x + dx, y: snake[0].y + dy};
+                if (head.x < 0 || head.x >= 20 || head.y < 0 || head.y >= 20 || snake.some(s => s.x === head.x && s.y === head.y)) {
+                    addLog(`Game Over! Score: ${score}`);
+                    clearInterval(window.snakeInterval); setTimeout(() => canvas.remove(), 2000); return;
+                }
+                snake.unshift(head);
+                if (head.x === food.x && head.y === food.y) {
+                    score += 10; food = {x: Math.floor(Math.random()*20), y: Math.floor(Math.random()*20)};
+                } else { snake.pop(); }
+                ctx.fillStyle = 'black'; ctx.fillRect(0,0,400,400);
+                ctx.fillStyle = '#00ff41'; snake.forEach(s => ctx.fillRect(s.x*20, s.y*20, 18, 18));
+                ctx.fillStyle = '#ff69b4'; ctx.fillRect(food.x*20, food.y*20, 18, 18);
+            }
+            window.onkeydown = (e) => {
+                if (e.key === 'ArrowUp' && dy === 0) { dx = 0; dy = -1; }
+                if (e.key === 'ArrowDown' && dy === 0) { dx = 0; dy = 1; }
+                if (e.key === 'ArrowLeft' && dx === 0) { dx = -1; dy = 0; }
+                if (e.key === 'ArrowRight' && dx === 0) { dx = 1; dy = 0; }
+            };
+            window.snakeInterval = setInterval(draw, 100);
+        }
+
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('live-clock').textContent = now.toTimeString().split(' ')[0];
+            const weeks = { en: ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"], zh: ["周日", "周一", "周二", "周三", "周四", "周五", "周六"] };
+            document.getElementById('live-date').textContent = `${now.getFullYear()}.${String(now.getMonth()+1).padStart(2,'0')}.${String(now.getDate()).padStart(2,'0')} ${weeks[currentLang][now.getDay()]}`;
+        }
+
+        const typingEl = document.getElementById('typing-text');
+        let typingWords = config.en.words, wI = 0, cI = 0, isDeleting = false;
+        function type() {
+            const currentWord = typingWords[wI];
+            typingEl.textContent = isDeleting ? currentWord.substring(0, cI-1) : currentWord.substring(0, cI+1);
+            cI = isDeleting ? cI-1 : cI+1;
+            let speed = isDeleting ? 50 : 120;
+            if(!isDeleting && cI === currentWord.length) { speed = 2000; isDeleting = true; }
+            else if(isDeleting && cI === 0) { isDeleting = false; wI = (wI+1)%typingWords.length; speed = 500; }
+            setTimeout(type, speed);
+        }
+
+        function initRadar() {
+            const cx = 200, cy = 200, r = 140, total = radarData.length;
+            const grids = document.getElementById('radar-grids'), axes = document.getElementById('radar-axes'), labels = document.getElementById('radar-labels');
+            for(let i=1; i<=5; i++) {
+                const poly = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
+                const pts = radarData.map((_, j) => `${cx + (r/5*i) * Math.cos(j*Math.PI*2/total - Math.PI/2)},${cy + (r/5*i) * Math.sin(j*Math.PI*2/total - Math.PI/2)}`).join(" ");
+                poly.setAttribute("points", pts); poly.setAttribute("fill", "none"); poly.setAttribute("stroke", "rgba(255,255,255,0.05)");
+                grids.appendChild(poly);
+            }
+            radarData.forEach((d, i) => {
+                const x = cx + r * Math.cos(i*Math.PI*2/total - Math.PI/2), y = cy + r * Math.sin(i*Math.PI*2/total - Math.PI/2);
+                const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                line.setAttribute("x1", cx); line.setAttribute("y1", cy); line.setAttribute("x2", x); line.setAttribute("y2", y);
+                line.setAttribute("stroke", "rgba(255,255,255,0.05)"); axes.appendChild(line);
+                const txt = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                txt.setAttribute("x", cx + (r+35) * Math.cos(i*Math.PI*2/total - Math.PI/2));
+                txt.setAttribute("y", cy + (r+25) * Math.sin(i*Math.PI*2/total - Math.PI/2));
+                txt.setAttribute("text-anchor", "middle"); txt.setAttribute("class", "radar-label"); txt.setAttribute("data-id", i);
+                labels.appendChild(txt);
+            });
+            updateRadarLabels();
+            setTimeout(() => {
+                const pts = radarData.map((d, i) => `${cx + (r*d.val) * Math.cos(i*Math.PI*2/total - Math.PI/2)},${cy + (r*d.val) * Math.sin(i*Math.PI*2/total - Math.PI/2)}`).join(" ");
+                document.getElementById('radar-value-area').setAttribute("points", pts);
+            }, 1000);
+        }
+        function updateRadarLabels() { document.querySelectorAll('.radar-label').forEach(el => { const d = radarData[el.getAttribute('data-id')]; el.textContent = currentLang === 'en' ? d.en : d.zh; }); }
+
+        const dCont = document.getElementById('danmaku-container'), mCanvas = document.getElementById('matrix-canvas'), mCtx = mCanvas.getContext('2d');
+        function createD(text, isSelf = false) {
+            const el = document.createElement('div'); el.className = 'danmaku-item'; el.textContent = text;
+            const top = Math.random() * 80 + 5, dur = Math.random() * 5 + 10;
+            el.style.top = `${top}%`; el.style.animationDuration = `${dur}s`;
+            if(isSelf) { el.style.color = 'var(--secondary)'; el.style.fontSize = '18px'; }
+            dCont.appendChild(el); setTimeout(() => el.remove(), dur * 1000);
+        }
+        function initMatrix() { mCanvas.width = window.innerWidth; mCanvas.height = window.innerHeight; const cols = Math.floor(mCanvas.width / 18); window.mDrops = Array(cols).fill(1); }
+        function drawMatrix() {
+            if(!matrixRunning) return;
+            mCtx.fillStyle = 'rgba(0,0,0,0.05)'; mCtx.fillRect(0,0,mCanvas.width, mCanvas.height);
+            mCtx.fillStyle = '#0f0'; mCtx.font = '18px monospace';
+            window.mDrops.forEach((y, i) => {
+                mCtx.fillText(String.fromCharCode(Math.random()*128), i*18, y*18);
+                if(y*18 > mCanvas.height && Math.random() > 0.975) window.mDrops[i] = 0;
+                window.mDrops[i]++;
+            });
+            requestAnimationFrame(drawMatrix);
+        }
+
+        function initProjects() {
+            document.getElementById('project-grid').innerHTML = projectList.map((p, i) => `
+                <div class="project-item reveal glass-card rounded-[2.5rem] overflow-hidden group" data-category="${p.cat}">
+                    <div class="h-60 bg-gray-900 relative"><img src="https://picsum.photos/600/400?random=${i}" class="w-full h-full object-cover opacity-20 group-hover:scale-110 transition duration-700"></div>
+                    <div class="p-8"><h3 class="text-xl font-bold text-white mb-2 uppercase">${p.title}</h3><p class="text-gray-500 text-sm font-light mb-4" data-en="${p.en}" data-zh="${p.zh}">${p.en}</p></div>
+                </div>`).join('');
+        }
+
+        window.addEventListener('scroll', () => document.getElementById('main-nav').classList.toggle('scrolled', window.scrollY > 50));
+        document.getElementById('danmaku-input').addEventListener('keypress', (e) => e.key === 'Enter' && sendDanmaku());
+        const audio = document.getElementById('bg-audio');
+        document.getElementById('play-btn').addEventListener('click', () => {
+            const icon = document.getElementById('play-icon'), cont = document.getElementById('audio-container');
+            if (audio.paused) { audio.play(); icon.className = 'fas fa-pause text-white'; cont.classList.add('playing'); addLog("Audio: Stream active"); }
+            else { audio.pause(); icon.className = 'fas fa-play text-white'; cont.classList.remove('playing'); addLog("Audio: Stream paused"); }
+        });
+
+        const observer = new IntersectionObserver(es => es.forEach(e => e.isIntersecting && e.target.classList.add('active')), { threshold: 0.1 });
+        window.onload = () => {
+            initProjects(); initRadar(); setLang('en'); type(); setInterval(updateClock, 1000);
+            document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+            
+            typeInput.value = "text"; renderType();
+
+            addLog("Kernel: OS Initialization successful");
+            setInterval(() => addLog(`Monitor: ${["Sync OK", "Buffer stable", "Link active"][Math.floor(Math.random()*3)]}`), 6000);
+        };
+    </script>
+</body>
+</html>
