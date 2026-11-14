@@ -803,6 +803,23 @@
                 });
                 addLog('System: Language deconstructed');
             },
+            '/warp': (arg) => {
+                const target = String(arg || '').trim().toLowerCase();
+                if (target === 'osu!' || target === 'osu') {
+                    addLog('Warp: Target locked → 4K MANIA');
+                    document.body.style.transition = 'filter .5s ease, opacity .5s ease';
+                    document.body.style.filter = 'brightness(0) saturate(0)';
+                    document.body.style.opacity = '0';
+                    // 使用 encodeURI 保证带空格的文件名在部署后也能正确跳转
+                    setTimeout(() => {
+                        window.location.href = encodeURI('./4k mania.html');
+                    }, 500);
+                } else if (!target) {
+                    addLog('Error: /warp requires a target (try: /warp osu!)');
+                } else {
+                    addLog('Error: Unknown warp target "' + target + '"');
+                }
+            },
             '/exit': () => {
                 resetAll();
                 addLog('Session reset');
@@ -811,7 +828,7 @@
                 addLog('Available commands:');
                 for (const key of Object.keys(commands)) {
                     await new Promise(r => setTimeout(r, 120));
-                    addLog('Cmd: ' + key);
+                    addLog('Cmd: ' + (key === '/warp' ? '/warp osu!' : key));
                 }
             }
         };
@@ -822,9 +839,13 @@
             const raw = inputEl.value.trim();
             if (!raw) return;
             if (raw.startsWith('/')) {
-                const cmd = raw.split(/\s+/)[0].toLowerCase(), fn = commands[cmd];
-                addLog('Execute: ' + cmd);
-                if (fn) fn(); else addLog('Error: Unknown command "' + cmd + '"');
+                // 拆分命令与参数：/warp osu! → cmd="/warp", arg="osu!"
+                const parts = raw.split(/\s+/);
+                const cmd = parts[0].toLowerCase();
+                const arg = parts.slice(1).join(' ');
+                const fn = commands[cmd];
+                addLog('Execute: ' + cmd + (arg ? ' ' + arg : ''));
+                if (fn) fn(arg); else addLog('Error: Unknown command "' + cmd + '"');
             } else {
                 createD(raw, true);
                 addLog('Broadcast: "' + raw.substring(0, 12) + '..."');
