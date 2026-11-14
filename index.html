@@ -959,9 +959,9 @@
             '/warp': (arg) => {
                 const target = String(arg || '').trim().toLowerCase();
                 if (target === 'osu!' || target === 'osu') {
-                    // 注意：4k mania.html 需与 index.html 同目录，否则会 404
-                    const url = encodeURI('./4k mania.html');
-                    addLog('Warp: Target locked → 4K MANIA (new tab)');
+                    // 注意：mania.html 需与 index.html 同目录，否则会 404
+                    const url = encodeURI('./mania.html');
+                    addLog('Warp: Target locked → Osu! MANIA (new tab)');
                     // 必须在用户手势（回车/点击）的同步栈内调用，否则会被浏览器拦截
                     let win = null;
                     try { win = window.open(url, '_blank'); } catch (e) { win = null; }
