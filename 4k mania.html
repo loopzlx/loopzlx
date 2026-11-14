@@ -9,6 +9,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<!-- 引入 JSZip 用于解压 osz 文件 -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <style>
   :root {
     --primary: #8a2be2;
@@ -49,9 +51,26 @@
     aspect-ratio: 440 / 680; flex-shrink: 0; max-width: 100%;
     box-shadow: 0 0 50px rgba(138,43,226,0.2), inset 0 0 0 1px rgba(138,43,226,0.3);
     border-radius: 6px; background: #000;
+    overflow: hidden;
   }
 
-  canvas { display: block; width: 100%; height: 100%; border-radius: 6px; touch-action: none; }
+  /* 模糊背景层 (提升亮度并去掉多余暗角) */
+  #bg-layer {
+    position: absolute; inset: -20px; 
+    background-size: cover; background-position: center;
+    filter: blur(12px) brightness(0.6);
+    z-index: 0; opacity: 0; transition: opacity 0.5s ease;
+    pointer-events: none;
+  }
+  #bg-layer.show { opacity: 1; }
+
+  /* 暗紫渐变遮罩，保证音符清晰 */
+  #bg-overlay {
+    position: absolute; inset: 0; z-index: 1; pointer-events: none;
+    background: linear-gradient(rgba(10,5,20,0.3), rgba(0,0,0,0.7));
+  }
+
+  canvas { position: relative; z-index: 2; display: block; width: 100%; height: 100%; touch-action: none; }
 
   /* ============ 底部超大触控按键 ============ */
   .pad-container {
@@ -119,7 +138,7 @@
     margin: 15px 0; cursor: pointer; transition: all 0.3s;
   }
   #upload-zone.hover { background: rgba(138,43,226,0.2); border-color: var(--secondary); }
-  #upload-zone .file-status { font-size: 12px; margin-top: 10px; color: #00ff41; }
+  #upload-zone .file-status { font-size: 13px; margin-top: 10px; color: #00ff41; word-break: break-all; }
 
   /* 覆盖层 */
   #start, #calib, #pause-overlay {
@@ -155,6 +174,8 @@
 
 <div id="wrap">
   <div id="board">
+    <div id="bg-layer"></div>
+    <div id="bg-overlay"></div>
     <canvas id="cv"></canvas>
   </div>
 </div>
@@ -170,7 +191,6 @@
 
 <button id="pause-btn" aria-label="Pause">❚❚</button>
 
-<!-- 隐藏的音频标签，用于播放上传的歌曲 -->
 <audio id="bg-audio" preload="auto"></audio>
 
 <!-- 开始界面 -->
@@ -179,19 +199,17 @@
     <h1>4K MANIA / CYBER</h1>
     <p>选择游玩模式</p>
     
-    <!-- 模式 1：内置演示 -->
     <div class="btn primary" id="demo-btn" style="margin-top: 20px; width: 100%;">▶ 体验内置演示曲目</div>
     
-    <!-- 模式 2：导入真实谱面 -->
-    <div class="calib-link" id="toggle-upload" style="margin-top: 24px;">或者，导入真实 osu! 谱面</div>
+    <div class="calib-link" id="toggle-upload" style="margin-top: 24px;">或者，导入 osu! 谱面</div>
     
     <div id="upload-panel" style="display: none;">
       <div id="upload-zone">
         <p style="font-size: 14px; color: #fff;"><b>点击选择或拖拽文件</b></p>
-        <p style="font-size: 12px;">同时提供 .osu 和 .mp3 文件</p>
+        <p style="font-size: 12px;">支持直接拖入 <b>.osz</b> 压缩包<br>或同时提供 <b>.osu</b> + <b>.mp3</b> 文件</p>
         <div id="file-status" class="file-status"></div>
       </div>
-      <input type="file" id="file-input" multiple accept=".osu,audio/*" style="display: none;">
+      <input type="file" id="file-input" multiple accept=".osz,.osu,audio/*" style="display: none;">
       <div class="btn" id="start-btn" style="opacity: 0.5; pointer-events: none;">等待文件载入...</div>
     </div>
     
@@ -234,7 +252,7 @@ const H = 680;
 const JUDGE_Y = Math.round(H * 0.85);
 const APPROACH = 1.15;
 const PX_PER_SEC = JUDGE_Y / APPROACH;
-const LEAD_IN = 2.0; // 音乐开始前的准备时间（秒）
+const LEAD_IN = 2.0; 
 
 const WINDOWS = [
   {name:'PERFECT', ms:16,  score:320, color:'#ff69b4'},
@@ -250,7 +268,6 @@ const HP_GAIN = { PERFECT: 1.0, GREAT: 0.7, GOOD: 0.3, OK: 0.1, MEH: -1.0, MISS:
 const KEY_LABELS = ['D','F','J','K'];
 const KEY_CODES  = {KeyD:0, KeyF:1, KeyJ:2, KeyK:3};
 
-/* 内置演示曲目数据 */
 const DEMO_BPM = 140;
 const DEMO_BEAT = 60 / DEMO_BPM;
 const DEMO_BAR = DEMO_BEAT * 4;
@@ -264,8 +281,9 @@ const DEMO_LANE_SEQ = [0,2,1,3,2,0,3,1,1,3,0,2,3,1,2,0];
 const PENTA = [261.63, 293.66, 329.63, 392.00, 440.00, 523.25];
 
 const PAL = {
-  bgTop: '#0a0510', bgBot: '#000000', grid: 'rgba(138,43,226,0.08)',
-  laneOdd: 'rgba(138,43,226,0.08)', laneEven: 'rgba(20,5,40,0.3)',
+  bgTop: 'rgba(10,5,16,0.5)', bgBot: 'rgba(0,0,0,0.8)',
+  grid: 'rgba(138,43,226,0.08)',
+  laneOdd: 'rgba(138,43,226,0.08)', laneEven: 'rgba(20,5,40,0.2)',
   laneDivider: 'rgba(138,43,226,0.15)', note: '#ff69b4', noteGlow: '#ff69b4',
   noteCore: 'rgba(255,255,255,0.95)', noteCoreMid: 'rgba(255,255,255,0.15)',
   holdBody: 'rgba(138,43,226,0.4)', holdBodyHi: 'rgba(255,105,180,0.8)', holdBodyLo: 'rgba(138,43,226,0.8)',
@@ -289,14 +307,15 @@ ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
 /* ==================== 状态 ==================== */
 let audioCtx, masterGain, noiseBuf; 
 const bgAudio = document.getElementById('bg-audio');
+const bgLayer = document.getElementById('bg-layer');
 let songTime = 0;
 let notes = [];
 let running = false;
 let paused = false;
 let loopId = 0; 
 
-let gameMode = 'demo'; // 'demo' 或 'osu'
-let chartObjects = []; // osu 模式解析出来的音符
+let gameMode = 'demo'; 
+let chartObjects = []; 
 
 const kbHeld = [false, false, false, false];
 const touchHeld = [false, false, false, false];
@@ -333,7 +352,7 @@ function getRank(acc) {
 function colorOfRank(r) { return { SS: '#ffd700', S: '#ff69b4', A: '#8a2be2', B: '#00f0ff', C: '#a78bcc', D: '#666666', F: '#ff3355' }[r] || '#a78bcc'; }
 function vibrate(ms) { if (canVibrate) try { navigator.vibrate(ms); } catch (_) {} }
 
-/* ==================== 音频生成 (内置模式) ==================== */
+/* ==================== 音频生成 ==================== */
 function initAudio() {
   if (audioCtx) return;
   audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -381,24 +400,17 @@ function playHitSound(res) {
   const g = audioCtx.createGain(); g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.03);
   src.connect(hp).connect(g).connect(masterGain); src.start(t); src.stop(t + 0.04);
 }
-
-// 修复校准专用的：支持未来预定时间的节拍器音效
 function playCalibSound(t) {
   if (!audioCtx) return;
-  const o = audioCtx.createOscillator();
-  const g = audioCtx.createGain();
-  o.type = 'sine';
-  o.frequency.setValueAtTime(1000, t);
-  g.gain.setValueAtTime(0.5, t);
-  g.gain.exponentialRampToValueAtTime(0.001, t + 0.05);
-  o.connect(g).connect(masterGain);
-  o.start(t); o.stop(t + 0.06);
+  const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+  o.type = 'sine'; o.frequency.setValueAtTime(1000, t);
+  g.gain.setValueAtTime(0.5, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.05);
+  o.connect(g).connect(masterGain); o.start(t); o.stop(t + 0.06);
 }
 
 function scheduleSynthAhead() {
   if (!audioCtx || !running || gameMode !== 'demo') return;
   const horizon = audioCtx.currentTime + 0.6;
-  
   while (beatCursor < DEMO_CHART.length * 8) {
     const t = songStartTime + beatCursor * (DEMO_BEAT / 2);
     if (t > horizon) break;
@@ -416,7 +428,7 @@ function scheduleSynthAhead() {
   }
 }
 
-/* ==================== osu! 解析器 (导入模式) ==================== */
+/* ==================== osu! 解析器 ==================== */
 function getLaneFromX(x) {
   if (x < 128) return 0; if (x < 256) return 1; if (x < 384) return 2; return 3;
 }
@@ -512,7 +524,6 @@ function spawnSpark(lane, color) {
     sparks.push({ x: lane * LANE_W + LANE_W / 2, y: JUDGE_Y, vx: (Math.random() - .5) * 320, vy: -Math.random() * 220 - 80, life: 1, color });
   }
 }
-
 function updateSparks(dt) {
   for (let i = sparks.length - 1; i >= 0; i--) {
     const p = sparks[i];
@@ -520,7 +531,6 @@ function updateSparks(dt) {
     if (p.life <= 0) sparks.splice(i, 1);
   }
 }
-
 function drawSparks() {
   for (const p of sparks) {
     ctx.globalAlpha = Math.max(0, p.life);
@@ -534,7 +544,6 @@ function addMiss() {
   combo = 0; judgedCount++; counts['MISS'] = (counts['MISS'] || 0) + 1;
   addPopup('MISS', MISS_COLOR, 0); adjustHealth(HP_GAIN.MISS);
 }
-
 function pressHold(n, res, diffMs) {
   n.headJudged = true; n.holding = true;
   combo++; if (combo > maxCombo) maxCombo = combo;
@@ -542,7 +551,6 @@ function pressHold(n, res, diffMs) {
   addPopup(res, colorOf(res), diffMs); adjustHealth(HP_GAIN[res]);
   playHitSound(res); spawnSpark(n.lane, colorOf(res)); vibrate(8);
 }
-
 function finishHoldTail(n, res) {
   n.holding = false; n.judged = true;
   if (res === 'MISS') {
@@ -554,7 +562,6 @@ function finishHoldTail(n, res) {
   addPopup(res, colorOf(res), 0); adjustHealth(HP_GAIN[res]);
   playHitSound(res); spawnSpark(n.lane, colorOf(res));
 }
-
 function breakHold(n) {
   n.holding = false; n.judged = true; n.broken = true; n.brokenTime = songTime;
   combo = 0; counts.BREAK = (counts.BREAK || 0) + 1;
@@ -637,12 +644,10 @@ cv.addEventListener('pointerup', (e) => {
   const lane = pointerLane.get(e.pointerId); if (lane === undefined) return;
   e.preventDefault(); pointerLane.delete(e.pointerId); releaseLane(lane, 'touch');
 });
-
 cv.addEventListener('pointercancel', (e) => {
   const lane = pointerLane.get(e.pointerId); if (lane === undefined) return;
   pointerLane.delete(e.pointerId); releaseLane(lane, 'touch');
 });
-
 cv.addEventListener('lostpointercapture', (e) => {
   const lane = pointerLane.get(e.pointerId); if (lane === undefined) return;
   pointerLane.delete(e.pointerId); releaseLane(lane, 'touch');
@@ -919,11 +924,6 @@ function draw() {
   }
 
   drawSparks();
-
-  const vg = ctx.createLinearGradient(0, 0, 0, H);
-  vg.addColorStop(0, 'rgba(0,0,0,0.6)'); vg.addColorStop(0.25, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,0)');
-  ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
-
   drawHUD();
 }
 
@@ -973,9 +973,11 @@ function resetGame() {
     songStartTime = audioCtx.currentTime + 1.0;
     songEndTime = LEAD_IN + DEMO_CHART.length * DEMO_BAR + 2;
     beatCursor = 0; scheduleCursor = 0;
+    bgLayer.classList.remove('show');
   } else {
     bgAudio.pause(); bgAudio.currentTime = 0; bgAudio.play();
     songEndTime = 9999;
+    if (bgLayer.style.backgroundImage && bgLayer.style.backgroundImage !== 'none') bgLayer.classList.add('show');
   }
 
   combo = 0; maxCombo = 0; totalScore = 0; judgedCount = 0;
@@ -1000,7 +1002,7 @@ document.getElementById('resume-btn').addEventListener('click', (e) => { e.stopP
 document.getElementById('retry-btn').addEventListener('click', (e) => { e.stopPropagation(); resetGame(); });
 document.getElementById('pause-btn').addEventListener('click', (e) => { e.stopPropagation(); if (running) togglePause(); });
 
-/* ==================== 文件读取与上传 ==================== */
+/* ==================== 文件读取与解压 ==================== */
 const uploadZone = document.getElementById('upload-zone');
 const fileInput = document.getElementById('file-input');
 const fileStatus = document.getElementById('file-status');
@@ -1024,8 +1026,13 @@ toggleUpload.addEventListener('click', (e) => {
 
 function handleFiles(files) {
   if (files.length === 0) return;
-  let osuFile = null, audioFile = null;
+  
+  if (files.length === 1 && files[0].name.endsWith('.osz')) {
+    handleOszFile(files[0]);
+    return;
+  }
 
+  let osuFile = null, audioFile = null;
   for (const f of files) {
     if (f.name.endsWith('.osu')) osuFile = f;
     else if (f.type.startsWith('audio/') || f.name.endsWith('.mp3') || f.name.endsWith('.ogg')) audioFile = f;
@@ -1054,17 +1061,89 @@ function handleFiles(files) {
   }
 }
 
+// 精确解析 osu 文件中的 [Events] 字段提取背景名
+function getBackgroundName(osuText) {
+  const match = osuText.match(/0,0,"([^"]+)"/);
+  return match ? match[1] : null;
+}
+
+async function handleOszFile(file) {
+  fileStatus.innerHTML = "正在解压 osz 文件...";
+  hasMap = false; hasAudio = false;
+  
+  try {
+    const zip = await JSZip.loadAsync(file);
+    const fileNames = Object.keys(zip.files);
+    
+    const osuNames = fileNames.filter(n => n.endsWith('.osu'));
+    if (osuNames.length === 0) throw new Error("压缩包内没有找到 .osu 文件");
+    
+    const audioNames = fileNames.filter(n => n.endsWith('.mp3') || n.endsWith('.ogg'));
+    if (audioNames.length === 0) throw new Error("压缩包内没有找到音频文件");
+
+    let targetOsu = osuNames[0];
+    for (const name of osuNames) {
+      const text = await zip.file(name).async('text');
+      if (text.includes('Mode: 3') || text.includes('Mode:3')) {
+        targetOsu = name;
+        break;
+      }
+    }
+
+    const osuText = await zip.file(targetOsu).async('text');
+    const result = parseOsuFile(osuText);
+    if (result.objects.length === 0) throw new Error("谱面内没有音符数据");
+
+    chartObjects = result.objects;
+    hasMap = true;
+
+    const audioBlob = await zip.file(audioNames[0]).async('blob');
+    bgAudio.src = URL.createObjectURL(audioBlob);
+    hasAudio = true;
+
+    // 提取背景图
+    let targetImg = null;
+    const bgName = getBackgroundName(osuText);
+    if (bgName) {
+      targetImg = fileNames.find(n => n.toLowerCase().endsWith(bgName.toLowerCase()));
+    }
+    // 如果没找到，尝试选一张图片
+    if (!targetImg) {
+      const imgNames = fileNames.filter(n => /\.(jpg|jpeg|png)$/i.test(n));
+      if (imgNames.length > 0) {
+        targetImg = imgNames.find(n => n.toLowerCase().includes('bg') || n.toLowerCase().includes('background')) || imgNames[0];
+      }
+    }
+
+    if (targetImg) {
+      const imgBlob = await zip.file(targetImg).async('blob');
+      const imgUrl = URL.createObjectURL(imgBlob);
+      bgLayer.style.backgroundImage = `url("${imgUrl}")`;
+    } else {
+      bgLayer.style.backgroundImage = 'none';
+    }
+
+    updateUploadUI();
+    fileStatus.innerHTML = `✔ 已载入: ${targetOsu}` + (targetImg ? `<br><span style="font-size:11px;color:#a78bcc">已提取背景: ${targetImg}</span>` : '');
+  } catch (err) {
+    console.error(err);
+    fileStatus.innerHTML = `<span style="color:#ff3355">OSZ 解析失败: ${err.message}</span>`;
+  }
+}
+
 function updateUploadUI() {
   let statusArr = [];
   if (hasMap) statusArr.push("✔ 谱面已载入");
   if (hasAudio) statusArr.push("✔ 音频已载入");
-  fileStatus.innerHTML = statusArr.join(' | ');
-
+  
   if (hasMap && hasAudio) {
+    if (!fileStatus.innerHTML.includes('已载入')) fileStatus.innerHTML = statusArr.join(' | ');
     startBtn.style.opacity = '1';
     startBtn.style.pointerEvents = 'auto';
     startBtn.textContent = '开始游玩';
     startBtn.onclick = () => { gameMode = 'osu'; resetGame(); };
+  } else if (!fileStatus.innerHTML.includes('失败') && !fileStatus.innerHTML.includes('解压')) {
+    fileStatus.innerHTML = statusArr.join(' | ');
   }
 }
 
@@ -1107,11 +1186,25 @@ function finish(isFailed) {
         <span style="color:#ff3355">MISS ${counts.MISS||0}</span><br>
         <span style="color:#ff3355">BREAK ${counts.BREAK||0}</span>
       </p>
-      <div class="btn" onclick="location.reload()">重新开始</div>
+      <div style="display:flex; gap:16px; justify-content:center; margin-top:24px;">
+        <div class="btn primary" id="retry-finish-btn">再来一次</div>
+        <div class="btn" id="menu-finish-btn">切换曲目</div>
+      </div>
     </div>
   `;
   el.style.display = 'flex';
-  el.onclick = () => location.reload();
+  el.onclick = null; 
+
+  document.getElementById('retry-finish-btn').onclick = (e) => {
+    e.stopPropagation();
+    el.style.display = 'none';
+    resetGame();
+  };
+
+  document.getElementById('menu-finish-btn').onclick = (e) => {
+    e.stopPropagation();
+    location.reload(); 
+  };
 }
 
 /* ==================== 校准系统 ==================== */
@@ -1138,7 +1231,7 @@ function startCalibration(e) {
 
   for (let i = 0; i < totalBeats; i++) {
     const t = calibStartTime + i * calibBeatSec;
-    playCalibSound(t); // 使用支持未来预定时间的专属音效
+    playCalibSound(t); 
     const delay = Math.max(0, (t - audioCtx.currentTime) * 1000);
     setTimeout(() => {
       if (!calibActive) return;
