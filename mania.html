@@ -18,6 +18,8 @@
     --card-bg: rgba(15, 5, 25, 0.85);
     --text: #e2e8f0;
     --text-dim: #a78bcc;
+    --gold: #ffd700;
+    --silver: #c0c0c0;
   }
   * { box-sizing: border-box; }
   html, body {
@@ -31,7 +33,6 @@
     -webkit-touch-callout: none;
     touch-action: none; overscroll-behavior: none;
   }
-  
   body::before {
     content: ''; position: fixed; inset: 0; z-index: -2;
     background-image: linear-gradient(rgba(138,43,226,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(138,43,226,0.06) 1px, transparent 1px);
@@ -72,6 +73,17 @@
 
   canvas { position: relative; z-index: 2; display: block; width: 100%; height: 100%; touch-action: none; }
 
+  #settings-btn {
+    position: fixed; 
+    top: calc(env(safe-area-inset-top, 0px) + 16px); 
+    left: calc(env(safe-area-inset-left, 0px) + 16px);
+    width: 44px; height: 44px; border-radius: 8px; z-index: 100;
+    background: rgba(0,0,0,0.8); border: 1px solid var(--primary); color: var(--primary);
+    font-size: 20px; display: flex; cursor: pointer; align-items: center; justify-content: center; 
+    backdrop-filter: blur(8px); transition: all 0.2s;
+  }
+  #settings-btn:hover { background: var(--primary); color: #000; box-shadow: 0 0 15px var(--primary); }
+
   #bottom-pads {
     position: fixed; bottom: max(16px, env(safe-area-inset-bottom)); 
     left: 50%; transform: translateX(-50%);
@@ -97,10 +109,14 @@
   .glass-card {
     position: relative; background: var(--card-bg); backdrop-filter: blur(12px);
     border: 1px solid rgba(138,43,226,0.3); border-radius: 12px;
-    padding: clamp(28px, 6vw, 40px) clamp(20px, 5vw, 30px);
+    padding: clamp(20px, 4vw, 30px) clamp(20px, 5vw, 30px);
     text-align: center; max-width: 480px; width: 90vw;
+    max-height: 88dvh; overflow-y: auto;
     box-shadow: 0 20px 50px rgba(0,0,0,0.8);
   }
+  .glass-card::-webkit-scrollbar { display: none; }
+  .glass-card { scrollbar-width: none; }
+
   .glass-card::before, .glass-card::after {
     content: ''; position: absolute; width: 16px; height: 16px; border: 2px solid var(--primary); pointer-events: none;
   }
@@ -108,7 +124,7 @@
   .glass-card::after { bottom: -1px; right: -1px; border-left: none; border-top: none; }
 
   h1, h2, .font-black { font-family: 'Orbitron', sans-serif; letter-spacing: 0.05em; }
-  h1 { font-size: 28px; margin: 0 0 16px; font-weight: 900; text-transform: uppercase; color: #fff; text-shadow: 0 0 10px rgba(138,43,226,0.8); }
+  h1 { font-size: 28px; margin: 0 0 12px; font-weight: 900; text-transform: uppercase; color: #fff; text-shadow: 0 0 10px rgba(138,43,226,0.8); }
   p { color: var(--text-dim); margin: 8px 0; font-size: 14px; line-height: 1.5; }
   
   .btn {
@@ -127,22 +143,29 @@
   .btn.retry { border-color: var(--secondary); color: var(--secondary); }
   .btn.retry:hover { background: var(--secondary); color: #000; box-shadow: 0 0 15px var(--secondary); }
 
-  .calib-link { margin-top: 20px; font-size: 12px; color: var(--text-dim); border-bottom: 1px dashed var(--primary); padding-bottom: 2px; cursor: pointer; display: inline-block; transition: color 0.3s; }
+  .calib-link { margin-top: 16px; font-size: 12px; color: var(--text-dim); border-bottom: 1px dashed var(--primary); padding-bottom: 2px; cursor: pointer; display: inline-block; transition: color 0.3s; }
   .calib-link:hover { color: var(--secondary); border-color: var(--secondary); }
 
   #upload-zone {
-    border: 2px dashed rgba(138,43,226,0.5); border-radius: 8px; padding: 20px;
-    margin: 15px 0; cursor: pointer; transition: all 0.3s;
+    border: 2px dashed rgba(138,43,226,0.5); border-radius: 8px; padding: 15px;
+    margin: 12px 0; cursor: pointer; transition: all 0.3s;
   }
   #upload-zone.hover { background: rgba(138,43,226,0.2); border-color: var(--secondary); }
   #upload-zone .file-status { font-size: 13px; margin-top: 10px; color: #00ff41; word-break: break-all; }
 
-  #song-list-wrap { margin-top: 20px; text-align: left; }
+  #song-list-wrap { margin-top: 16px; text-align: left; }
   #song-list-wrap .list-title {
     font-size: 12px; color: var(--text-dim); letter-spacing: 1px;
     margin-bottom: 8px; text-transform: uppercase;
+    display: flex; justify-content: space-between; align-items: center;
   }
-  #song-list { max-height: 260px; overflow-y: auto; -webkit-overflow-scrolling: touch; padding-right: 4px; }
+  #clear-songs-btn {
+    color: var(--secondary); cursor: pointer; text-decoration: underline; font-size: 11px;
+    transition: color 0.2s;
+  }
+  #clear-songs-btn:hover { color: #ff3355; }
+  
+  #song-list { max-height: 300px; overflow-y: auto; -webkit-overflow-scrolling: touch; padding-right: 4px; }
   #song-list::-webkit-scrollbar { width: 6px; }
   #song-list::-webkit-scrollbar-thumb { background: rgba(138,43,226,0.5); border-radius: 3px; }
   .song-item {
@@ -166,30 +189,36 @@
     overflow: hidden; text-overflow: ellipsis;
   }
   .song-item .song-sub {
-    font-size: 11px; color: var(--text-dim); margin-top: 3px;
+    font-size: 11px; color: var(--text-dim); margin-top: 4px;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    display: flex; align-items: center; gap: 4px;
   }
   .song-item .song-meta {
     font-size: 10px; color: var(--secondary); text-align: right;
     flex-shrink: 0; margin-left: 10px; line-height: 1.4;
   }
-  .mode-tag {
-    display: inline-block; padding: 1px 5px; font-size: 10px;
-    border-radius: 3px; background: rgba(138,43,226,0.3);
-    color: #fff; margin-left: 4px; vertical-align: 1px;
+  
+  .mode-tag, .key-tag, .od-tag {
+    display: inline-flex; align-items: center; justify-content: center;
+    padding: 1px 5px; font-size: 10px; border-radius: 3px;
+    color: #fff; font-weight: bold;
   }
-  .mode-tag.warn { background: rgba(255,51,85,0.45); }
+  .mode-tag { background: rgba(138,43,226,0.4); }
+  .mode-tag.warn { background: rgba(255,51,85,0.5); }
+  .key-tag { background: #00f0ff; color: #000; }
+  .od-tag { background: rgba(255,105,180,0.3); border: 1px solid rgba(255,105,180,0.5); }
 
-  #start, #calib, #pause-overlay, #result {
+  #start, #calib, #pause-overlay, #result, #settings-panel {
     position: fixed; inset: 0; display: flex; flex-direction: column;
     align-items: center; justify-content: center; z-index: 20;
     background: rgba(0,0,0,0.85); backdrop-filter: blur(4px);
+    padding: 20px;
   }
-  #start { display: flex; cursor: default; }
-  #calib, #pause-overlay, #result { display: none; z-index: 30; }
-  #calib.show, #pause-overlay.show, #result.show { display: flex; }
-  #start { z-index: 20; }
+  #start { display: flex; cursor: default; z-index: 20; }
+  #calib, #pause-overlay, #result, #settings-panel { display: none; z-index: 30; }
+  #calib.show, #pause-overlay.show, #result.show, #settings-panel.show { display: flex; }
   #result { z-index: 25; }
+  
   #loading {
     position: fixed; inset: 0; z-index: 50; display: none;
     flex-direction: column; align-items: center; justify-content: center;
@@ -204,13 +233,57 @@
   .pulse.beat { transform: scale(1.3); border-color: var(--secondary); box-shadow: 0 0 40px var(--secondary), inset 0 0 20px var(--secondary); }
 
   #pause-btn {
-    position: fixed; top: calc(env(safe-area-inset-top, 0px) + 70px); right: calc(env(safe-area-inset-right, 0px) + 16px);
-    width: 40px; height: 40px; border-radius: 8px; z-index: 15;
+    position: fixed; top: calc(env(safe-area-inset-top, 0px) + 16px); right: calc(env(safe-area-inset-right, 0px) + 16px);
+    width: 44px; height: 44px; border-radius: 8px; z-index: 100;
     background: rgba(0,0,0,0.8); border: 1px solid var(--primary); color: var(--primary);
     font-size: 16px; display: none; cursor: pointer; align-items: center; justify-content: center; backdrop-filter: blur(8px);
   }
   #pause-btn.show { display: flex; }
   #pause-btn:hover { background: var(--primary); color: #000; }
+
+  /* ======= 设置面板与文件夹样式 ======= */
+  .settings-section { text-align: left; margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid rgba(138,43,226,0.2); }
+  .settings-section:last-child { border-bottom: none; margin-bottom: 0; }
+  .settings-section h3 { font-size: 14px; color: var(--secondary); margin: 0 0 10px; text-transform: uppercase; letter-spacing: 1px; }
+  
+  /* 文件夹折叠效果 */
+  .mod-folder { margin-bottom: 8px; border: 1px solid rgba(138,43,226,0.3); border-radius: 6px; background: rgba(0,0,0,0.2); overflow: hidden; }
+  .mod-folder summary {
+    padding: 10px 12px; cursor: pointer; background: rgba(138,43,226,0.15);
+    font-size: 13px; color: #fff; font-weight: bold; user-select: none;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .mod-folder summary:hover { background: rgba(138,43,226,0.3); }
+  .mod-folder[open] summary { border-bottom: 1px solid rgba(138,43,226,0.3); background: rgba(138,43,226,0.25); }
+  .mod-folder summary::-webkit-details-marker { display: none; }
+  .mod-folder summary::after { content: '▼'; font-size: 10px; color: var(--text-dim); transition: transform 0.2s; }
+  .mod-folder[open] summary::after { transform: rotate(180deg); }
+  .mod-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 8px; padding: 10px; }
+  
+  .mod-item {
+    padding: 8px 4px; border: 1px solid rgba(138,43,226,0.4); border-radius: 6px;
+    background: rgba(138,43,226,0.06); cursor: pointer; transition: all 0.15s;
+    text-align: center; user-select: none;
+  }
+  .mod-item:hover { border-color: var(--secondary); background: rgba(138,43,226,0.2); }
+  .mod-item.active { border-color: var(--secondary); background: rgba(138,43,226,0.35); box-shadow: 0 0 12px rgba(255,105,180,0.4); }
+  .mod-item .mod-abbr { font-size: 15px; font-weight: bold; color: #fff; }
+  .mod-item .mod-name { font-size: 10px; color: var(--text-dim); margin-top: 2px; }
+  .mod-item .mod-mult { font-size: 10px; color: var(--gold); margin-top: 2px; }
+
+  .keybind-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .keybind-item {
+    display: flex; align-items: center; gap: 6px;
+    background: rgba(0,0,0,0.3); padding: 6px 8px; border-radius: 4px;
+    border: 1px solid rgba(138,43,226,0.2);
+  }
+  .keybind-item label { font-size: 12px; color: var(--text-dim); min-width: 24px; }
+  .keybind-item input {
+    width: 100%; background: transparent; border: none; border-bottom: 1px dashed rgba(138,43,226,0.5);
+    color: #fff; font-family: 'Share Tech Mono', monospace; font-size: 14px;
+    text-align: center; outline: none; text-transform: uppercase;
+  }
+  .keybind-item input:focus { border-bottom-color: var(--secondary); }
 
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
@@ -218,6 +291,8 @@
 </style>
 </head>
 <body>
+
+<button id="settings-btn" aria-label="Settings">⚙</button>
 
 <div id="wrap">
   <div id="board">
@@ -228,18 +303,17 @@
 </div>
 
 <div id="bottom-pads" style="display: none;"></div>
-
 <button id="pause-btn" aria-label="Pause">❚❚</button>
 
 <!-- 开始界面 -->
 <div id="start">
   <div class="glass-card" style="max-width: 560px;">
-    <h1>MANIA / CYBER</h1>
-    <p>全键位支持：1K ~ 9K</p>
+    <h1>MANIA</h1>
+    <p>1K ~ 9K · ScoreV1 · Mods</p>
     
-    <div class="btn primary" id="demo-btn" style="margin-top: 20px; width: 100%;">▶ 体验内置演示曲目</div>
+    <div class="btn primary" id="demo-btn" style="margin-top: 15px; width: 100%;">▶ 体验内置演示曲目</div>
     
-    <div class="calib-link" id="toggle-upload" style="margin-top: 24px;">📁 导入 osu! 谱面 / .osz</div>
+    <div class="calib-link" id="toggle-upload" style="margin-top: 20px;">📁 导入 osu! 谱面 / .osz</div>
     
     <div id="upload-panel" style="display: none;">
       <div id="upload-zone">
@@ -251,11 +325,34 @@
     </div>
     
     <div id="song-list-wrap" style="display: none;">
-      <div class="list-title">曲目列表</div>
+      <div class="list-title">
+        <span>曲目列表</span>
+        <span id="clear-songs-btn">清空</span>
+      </div>
       <div id="song-list"></div>
     </div>
+  </div>
+</div>
+
+<!-- 设置面板 -->
+<div id="settings-panel">
+  <div class="glass-card" style="max-width: 520px;">
+    <h1>SETTINGS</h1>
     
-    <div class="calib-link" id="calib-link" style="margin-top: 24px;">⚠ 延迟校准（建议先校准）</div>
+    <div class="settings-section">
+      <h3>Mods (倍率: <span id="settings-mod-mult" style="color:var(--gold);">1.00x</span>)</h3>
+      <div id="mod-folders-container"></div>
+    </div>
+
+    <div class="settings-section">
+      <h3>自定义按键 (输入字母/数字/符号，留空为默认)</h3>
+      <div class="keybind-grid" id="keybind-grid"></div>
+    </div>
+
+    <div class="settings-section" style="display:flex; gap:12px; justify-content:center;">
+      <div class="btn" id="calib-link">⚠ 延迟校准</div>
+      <div class="btn primary" id="settings-close">返回主菜单</div>
+    </div>
   </div>
 </div>
 
@@ -282,10 +379,14 @@
   <div class="glass-card">
     <h1>PAUSED</h1>
     <p style="margin-bottom: 24px;">点击继续 / ESC 恢复</p>
-    <div style="display: flex; gap: 16px; justify-content: center;">
+    
+    <div style="display: flex; gap: 16px; justify-content: center; margin-bottom: 12px;">
       <div class="btn" id="resume-btn">继续</div>
       <div class="btn retry" id="retry-btn">重试</div>
     </div>
+    <!-- 返回主菜单按钮 -->
+    <div class="btn" id="pause-menu-btn" style="width: 100%;">返回主菜单</div>
+    
   </div>
 </div>
 
@@ -295,8 +396,9 @@
     <h1 id="result-title">RESULT</h1>
     <div id="result-rank" style="font-size:84px; font-family:'Orbitron', sans-serif; font-weight:900; line-height:1; margin:14px 0; letter-spacing:4px;">S</div>
     <div id="result-stats"></div>
-    <div style="display:flex; gap:16px; justify-content:center; margin-top:24px;">
+    <div style="display:flex; gap:12px; justify-content:center; margin-top:24px; flex-wrap:wrap;">
       <div class="btn primary" id="result-retry">再来一次</div>
+      <div class="btn" id="result-replay" style="border-color:var(--gold); color:var(--gold); display:none;">▶ 观看回放</div>
       <div class="btn" id="result-menu">返回选单</div>
     </div>
   </div>
@@ -320,18 +422,41 @@ let KEY_CODES = {};
 let KEY_LABELS = [];
 
 const WINDOWS = [
-  {name:'PERFECT', ms:16,  score:320, color:'#ff69b4'},
-  {name:'GREAT',   ms:40,  score:300, color:'#8a2be2'},
-  {name:'GOOD',    ms:73,  score:200, color:'#00ff41'},
-  {name:'OK',      ms:103, score:100, color:'#a78bcc'},
-  {name:'MEH',     ms:127, score:50,  color:'#666666'},
+  {name:'PERFECT', ms:16,  color:'#ff69b4'},
+  {name:'GREAT',   ms:40,  color:'#8a2be2'},
+  {name:'GOOD',    ms:73,  color:'#00ff41'},
+  {name:'OK',      ms:103, color:'#a78bcc'},
+  {name:'MEH',     ms:127, color:'#666666'},
 ];
-const MISS_MS = WINDOWS[WINDOWS.length - 1].ms;
-const TAIL_TOLERANCE_MS = WINDOWS[WINDOWS.length - 1].ms;
 const MISS_COLOR = '#ff3355';
 const JUDGE_ICON = { PERFECT: '★', GREAT: '◆', GOOD: '●', OK: '▲', MEH: '●', MISS: '×', BREAK: '⨯' };
 const HP_GAIN = { PERFECT: 1.0, GREAT: 0.7, GOOD: 0.3, OK: 0.1, MEH: -1.0, MISS: -3.5, BREAK: -4.5 };
 const MODE_NAMES = ['std', 'taiko', 'ctb', 'mania'];
+
+/* ========== osu!mania ScoreV1 ========== */
+const TOTAL_SCORE = 1000000;
+let SCORE_MULTIPLIER = 1.00;
+const HIT_VALUE        = { PERFECT: 320, GREAT: 300, GOOD: 200, OK: 100, MEH: 50, MISS: 0, BREAK: 0 };
+const HIT_BONUS_VALUE  = { PERFECT: 32,  GREAT: 32,  GOOD: 16,  OK: 8,   MEH: 4,  MISS: 0, BREAK: 0 };
+const BONUS_CHANGE     = { PERFECT: 2,   GREAT: 1,   GOOD: -8,  OK: -24, MEH: -44, MISS: -100, BREAK: -100 };
+
+/* ========== Mod 定义（官方 mania 倍率） ========== */
+const MOD_DEFS = [
+  { id:'EZ', name:'Easy', mult:0.50, cat:'reduce', desc:'更大判定/少扣血' },
+  { id:'NF', name:'No Fail', mult:0.50, cat:'reduce', desc:'永不失败' },
+  { id:'HT', name:'Half Time', mult:0.50, cat:'reduce', desc:'0.75x 速度' },
+  { id:'DC', name:'Daycore', mult:0.30, cat:'reduce', desc:'0.75x 低音调' },
+  { id:'HR', name:'Hard Rock', mult:1.00, cat:'increase', desc:'OD×1.4 (上限10)' },
+  { id:'HD', name:'Hidden', mult:1.00, cat:'increase', desc:'音符提前淡出' },
+  { id:'FL', name:'Flashlight', mult:1.00, cat:'increase', desc:'视野受限' },
+  { id:'DT', name:'Double Time', mult:1.00, cat:'increase', desc:'1.5x 速度' },
+  { id:'NC', name:'Nightcore', mult:1.00, cat:'increase', desc:'1.5x 高音调' },
+  { id:'SD', name:'Sudden Death', mult:1.00, cat:'increase', desc:'Miss 即死' },
+  { id:'PF', name:'Perfect', mult:1.00, cat:'increase', desc:'非 SS 即死' },
+  { id:'AT', name:'Auto', mult:1.00, cat:'auto', desc:'自动全连' },
+  { id:'RX', name:'Relax', mult:0.00, cat:'auto', desc:'仅按下，不计分' },
+  { id:'AP', name:'Autopilot', mult:0.00, cat:'auto', desc:'自动判定，需按键' },
+];
 
 const DEMO_BPM = 140;
 const DEMO_BEAT = 60 / DEMO_BPM;
@@ -384,6 +509,7 @@ let currentSong = null;
 let songLibrary = [];         
 let chartObjects = []; 
 let activeHolds = [];
+let hpMultiplier = 1; 
 
 const kbHeld = new Array(9).fill(false);
 const touchHeld = new Array(9).fill(false);
@@ -395,11 +521,39 @@ let combo = 0, maxCombo = 0, totalScore = 0, judgedCount = 0;
 let counts = {}, popups = [], sparks = [];
 let health = 60, displayHealth = 60, failed = false;
 
+let bonus = 100;
+let totalNoteCount = 0;
+let baseScorePerNote = 0;
+let hitValueSum = 0;
+
 let songStartTime = 0;
 let songEndTime = 0;
 let beatCursor = 0;
 let scheduleCursor = 0;
 let lastFrameTime = 0;
+
+// Mod 与 回放状态
+let activeMods = new Set();
+let effectiveOD = 5;
+let effectiveSpeed = 1.0;
+let useHidden = false;
+let useFlashlight = false;
+let isReplaying = false;
+let currentReplay = [];
+let replayCursor = 0;
+let hitErrors = [];
+
+// 自定义按键 (持久化到 localStorage)
+let customKeybinds = (() => {
+  try {
+    const s = localStorage.getItem('mania_keybinds');
+    const obj = s ? JSON.parse(s) : {};
+    for (const k in obj) {
+      if (!Array.isArray(obj[k])) delete obj[k];
+    }
+    return obj;
+  } catch(e) { return {}; }
+})();
 
 let audioOffset = (() => {
   try { 
@@ -411,32 +565,122 @@ let audioOffset = (() => {
 })();
 
 /* ==================== 工具 ==================== */
-function scoreOf(res) { const w = WINDOWS.find(x => x.name === res); return w ? w.score : 0; }
 function colorOf(res) { const w = WINDOWS.find(x => x.name === res); return w ? w.color : MISS_COLOR; }
 function addPopup(name, color, diffMs) { popups.push({ name, t: performance.now(), color, diffMs }); }
-function adjustHealth(delta) { health = Math.max(0, Math.min(100, health + delta)); if (health <= 0) failed = true; }
-function getAcc() { return judgedCount ? (totalScore / (judgedCount * 320) * 100) : 100; }
-function getRank(acc) {
-  if (acc >= 99.5) return 'SS'; if (acc >= 95) return 'S'; if (acc >= 90) return 'A';
-  if (acc >= 80) return 'B'; if (acc >= 70) return 'C'; return 'D';
+
+function adjustHealth(delta) { 
+  if (activeMods.has('NF')) return;
+  const actualDelta = delta < 0 ? delta * hpMultiplier : delta;
+  health = Math.max(0, Math.min(100, health + actualDelta)); 
+  if (health <= 0) failed = true; 
 }
-function colorOfRank(r) { return { SS: '#ffd700', S: '#ff69b4', A: '#8a2be2', B: '#00f0ff', C: '#a78bcc', D: '#666666', F: '#ff3355' }[r] || '#a78bcc'; }
+
+function getAcc() { 
+  return judgedCount ? (hitValueSum / (judgedCount * 320) * 100) : 100; 
+}
+
+function getRank(acc) {
+  if (acc >= 100) return 'SS'; 
+  if (acc > 95) return 'S'; 
+  if (acc > 90) return 'A';
+  if (acc > 80) return 'B'; 
+  if (acc > 70) return 'C'; 
+  return 'D';
+}
+function colorOfRank(r) { 
+  return { SS: '#ffd700', S: '#ff69b4', A: '#8a2be2', B: '#00f0ff', C: '#a78bcc', D: '#666666', F: '#ff3355' }[r] || '#a78bcc'; 
+}
+function isSilverSS(acc) { return acc >= 100 && (useHidden || useFlashlight); }
+
 function vibrate(ms) { if (canVibrate) try { navigator.vibrate(ms); } catch (_) {} }
 function escapeHtml(s) {
   return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 function newSongId() { return 's_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8); }
 
-function realTimeOf(songT) {
-  return songStartTime + audioOffset + songT;
+function realTimeOf(songT) { return songStartTime + audioOffset + songT / effectiveSpeed; }
+function getSongTime() { return audioCtx ? (audioCtx.currentTime - songStartTime - audioOffset) * effectiveSpeed : 0; }
+function formatTime(sec) { sec = Math.max(0, sec); return `${Math.floor(sec / 60)}:${Math.floor(sec % 60).toString().padStart(2, '0')}`; }
+
+/* ==================== ScoreV1 & 判定窗口 ==================== */
+function calculateScore(judgment) {
+  const hv = HIT_VALUE[judgment] || 0;
+  const hbv = HIT_BONUS_VALUE[judgment] || 0;
+  let score = 0;
+  if (baseScorePerNote > 0) {
+    const baseScore  = baseScorePerNote * (hv / 320);
+    const bonusScore = baseScorePerNote * (hbv * Math.sqrt(Math.max(0, bonus)) / 320);
+    score = (baseScore + bonusScore) * SCORE_MULTIPLIER;
+  }
+  bonus = Math.max(0, Math.min(100, bonus + (BONUS_CHANGE[judgment] || 0)));
+  hitValueSum += hv;
+  return score;
 }
 
-/* ==================== 动态布局 ==================== */
+function getEffectiveWindow(baseMs) {
+  if (baseMs === 16) return 16;
+  const n = { 40: 64, 73: 97, 103: 127, 127: 151 }[baseMs] || 151;
+  let w = n - 3 * effectiveOD;
+  if (activeMods.has('HR')) w /= 1.4;
+  if (activeMods.has('EZ')) w *= 1.5;
+  return Math.max(1, Math.round(w));
+}
+
+function judgeDiff(diffMs) {
+  const a = Math.abs(diffMs);
+  if (a <= getEffectiveWindow(16)) return 'PERFECT';
+  if (a <= getEffectiveWindow(40)) return 'GREAT';
+  if (a <= getEffectiveWindow(73)) return 'GOOD';
+  if (a <= getEffectiveWindow(103)) return 'OK';
+  if (a <= getEffectiveWindow(127)) return 'MEH';
+  return 'MISS';
+}
+
+function applyModsToOD(od) {
+  let newOD = od;
+  if (activeMods.has('HR')) newOD = Math.min(10, newOD * 1.4);
+  if (activeMods.has('EZ')) newOD = newOD * 0.5;
+  return newOD;
+}
+
+function recalcModState() {
+  SCORE_MULTIPLIER = 1.0;
+  activeMods.forEach(id => {
+    const m = MOD_DEFS.find(d => d.id === id);
+    if (m) SCORE_MULTIPLIER *= m.mult;
+  });
+  effectiveSpeed = 1.0;
+  if (activeMods.has('DT') || activeMods.has('NC')) effectiveSpeed = 1.5;
+  if (activeMods.has('HT') || activeMods.has('DC')) effectiveSpeed = 0.75;
+  useHidden = activeMods.has('HD');
+  useFlashlight = activeMods.has('FL');
+}
+
+/* ==================== 动态布局 (支持自定义按键) ==================== */
+function charToCode(c) {
+  const u = c.toUpperCase();
+  if (u === ' ') return 'Space';
+  if (u === ';') return 'Semicolon';
+  if (u === ',') return 'Comma';
+  if (u === '.') return 'Period';
+  if (u === '/') return 'Slash';
+  if (u === '\\') return 'Backslash';
+  if (u === "'") return 'Quote';
+  if (u === '[') return 'BracketLeft';
+  if (u === ']') return 'BracketRight';
+  if (u === '-') return 'Minus';
+  if (u === '=') return 'Equal';
+  if (u === '`') return 'Backquote';
+  if (/^[A-Z]$/.test(u)) return 'Key' + u;
+  if (/^[0-9]$/.test(u)) return 'Digit' + u;
+  return 'Key' + u;
+}
+
 function setupGameLayout(count) {
   laneCount = Math.max(1, Math.min(9, count));
   LANE_W = W / laneCount;
   
-  const layouts = {
+  const defaultLayouts = {
     1: { keys: ['KeyD'], labels: ['D'] },
     2: { keys: ['KeyF', 'KeyJ'], labels: ['F', 'J'] },
     3: { keys: ['KeyD', 'KeyF', 'KeyJ'], labels: ['D', 'F', 'J'] },
@@ -448,7 +692,13 @@ function setupGameLayout(count) {
     9: { keys: ['KeyA', 'KeyS', 'KeyD', 'KeyF', 'Space', 'KeyJ', 'KeyK', 'KeyL', 'Semicolon'], labels: ['A','S','D','F','⌴','J','K','L',';'] }
   };
   
-  const layout = layouts[laneCount] || layouts[4];
+  let layout = defaultLayouts[laneCount] || defaultLayouts[4];
+  
+  const custom = customKeybinds[laneCount];
+  if (custom && custom.length === laneCount) {
+    const newKeys = custom.map(k => charToCode(k));
+    layout = { keys: newKeys, labels: custom.map(k => k.toUpperCase() === ' ' ? '⌴' : k.toUpperCase()) };
+  }
   
   KEY_CODES = {};
   layout.keys.forEach((k, i) => { KEY_CODES[k] = i; });
@@ -471,17 +721,13 @@ function setupGameLayout(count) {
 /* ==================== 音频处理 ==================== */
 function initAudio() {
   if (audioCtx) {
-    if (audioCtx.state === 'suspended') {
-      audioCtx.resume().catch(() => {});
-    }
+    if (audioCtx.state === 'suspended') audioCtx.resume().catch(() => {});
     return;
   }
   try {
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  } catch (e) {
-    console.error('AudioContext 初始化失败:', e);
-    return;
-  }
+  } catch (e) { console.error('Audio init fail', e); return; }
+  
   masterGain = audioCtx.createGain();
   masterGain.gain.value = 0.85;
   masterGain.connect(audioCtx.destination);
@@ -495,73 +741,24 @@ function initAudio() {
 function decodeAudioBlob(blob) {
   return new Promise((resolve, reject) => {
     if (!audioCtx) initAudio();
-    if (!audioCtx) { reject(new Error('AudioContext unavailable')); return; }
+    if (!audioCtx) { reject(new Error('no audio')); return; }
     const reader = new FileReader();
-    reader.onload = (e) => {
-      const arrayBuffer = e.target.result;
-      audioCtx.decodeAudioData(
-        arrayBuffer,
-        (buffer) => resolve(buffer),
-        (err) => reject(err)
-      );
-    };
+    reader.onload = (e) => audioCtx.decodeAudioData(e.target.result, resolve, reject);
     reader.onerror = reject;
     reader.readAsArrayBuffer(blob);
   });
 }
 
-function playKick(t) {
-  if (!audioCtx) return;
-  const o = audioCtx.createOscillator(), g = audioCtx.createGain();
-  o.frequency.setValueAtTime(140, t); o.frequency.exponentialRampToValueAtTime(45, t + 0.09);
-  g.gain.setValueAtTime(0.9, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
-  o.connect(g).connect(masterGain); o.start(t); o.stop(t + 0.2);
-}
-function playSnare(t) {
-  if (!audioCtx || !noiseBuf) return;
-  const src = audioCtx.createBufferSource(); src.buffer = noiseBuf;
-  const bp = audioCtx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 1800; bp.Q.value = 0.8;
-  const g = audioCtx.createGain(); g.gain.setValueAtTime(0.32, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.13);
-  src.connect(bp).connect(g).connect(masterGain); src.start(t); src.stop(t + 0.16);
-}
-function playHat(t, vol) {
-  if (!audioCtx || !noiseBuf) return;
-  const src = audioCtx.createBufferSource(); src.buffer = noiseBuf;
-  const hp = audioCtx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 7500;
-  const g = audioCtx.createGain(); g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.04);
-  src.connect(hp).connect(g).connect(masterGain); src.start(t); src.stop(t + 0.05);
-}
-function playPitch(t, freq) {
-  if (!audioCtx) return;
-  const o = audioCtx.createOscillator(), g = audioCtx.createGain();
-  o.type = 'triangle'; o.frequency.value = freq;
-  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.10, t + 0.006); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.13);
-  o.connect(g).connect(masterGain); o.start(t); o.stop(t + 0.16);
-}
-function playHitSound(res) {
-  if (!audioCtx) return;
-  if (gameMode === 'custom') return; 
-  
-  const vol = { PERFECT: .35, GREAT: .28, GOOD: .2, OK: .14, MEH: .08 }[res];
-  if (!vol) return;
-  const t = audioCtx.currentTime;
-  const src = audioCtx.createBufferSource(); src.buffer = noiseBuf;
-  const hp = audioCtx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 3000;
-  const g = audioCtx.createGain(); g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.03);
-  src.connect(hp).connect(g).connect(masterGain); src.start(t); src.stop(t + 0.04);
-}
-function playCalibSound(t) {
-  if (!audioCtx) return;
-  const o = audioCtx.createOscillator(), g = audioCtx.createGain();
-  o.type = 'sine'; o.frequency.setValueAtTime(1000, t);
-  g.gain.setValueAtTime(0.5, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.05);
-  o.connect(g).connect(masterGain); o.start(t); o.stop(t + 0.06);
-}
+function playKick(t) { if (!audioCtx) return; const o = audioCtx.createOscillator(), g = audioCtx.createGain(); o.frequency.setValueAtTime(140, t); o.frequency.exponentialRampToValueAtTime(45, t + 0.09); g.gain.setValueAtTime(0.9, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.18); o.connect(g).connect(masterGain); o.start(t); o.stop(t + 0.2); }
+function playSnare(t) { if (!audioCtx || !noiseBuf) return; const s = audioCtx.createBufferSource(); s.buffer = noiseBuf; const f = audioCtx.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 1800; f.Q.value = 0.8; const g = audioCtx.createGain(); g.gain.setValueAtTime(0.32, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.13); s.connect(f).connect(g).connect(masterGain); s.start(t); s.stop(t + 0.16); }
+function playHat(t, v) { if (!audioCtx || !noiseBuf) return; const s = audioCtx.createBufferSource(); s.buffer = noiseBuf; const f = audioCtx.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = 7500; const g = audioCtx.createGain(); g.gain.setValueAtTime(v, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.04); s.connect(f).connect(g).connect(masterGain); s.start(t); s.stop(t + 0.05); }
+function playPitch(t, freq) { if (!audioCtx) return; const o = audioCtx.createOscillator(), g = audioCtx.createGain(); o.type = 'triangle'; o.frequency.value = freq; g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.10, t + 0.006); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.13); o.connect(g).connect(masterGain); o.start(t); o.stop(t + 0.16); }
+function playHitSound(res) { if (!audioCtx || gameMode === 'custom') return; const vol = { PERFECT: .35, GREAT: .28, GOOD: .2, OK: .14, MEH: .08 }[res]; if (!vol) return; const t = audioCtx.currentTime; const s = audioCtx.createBufferSource(); s.buffer = noiseBuf; const f = audioCtx.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = 3000; const g = audioCtx.createGain(); g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.03); s.connect(f).connect(g).connect(masterGain); s.start(t); s.stop(t + 0.04); }
+function playCalibSound(t) { if (!audioCtx) return; const o = audioCtx.createOscillator(), g = audioCtx.createGain(); o.type = 'sine'; o.frequency.setValueAtTime(1000, t); g.gain.setValueAtTime(0.5, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.05); o.connect(g).connect(masterGain); o.start(t); o.stop(t + 0.06); }
 
 function scheduleSynthAhead() {
   if (!audioCtx || !running || gameMode !== 'demo') return;
   const horizon = audioCtx.currentTime + 0.6;
-  
   while (beatCursor < DEMO_CHART.length * 8) {
     const t = realTimeOf(LEAD_IN + beatCursor * (DEMO_BEAT / 2));
     if (t > horizon) break;
@@ -579,17 +776,15 @@ function scheduleSynthAhead() {
   }
 }
 
-/* ==================== osu! 解析器（修复 3K/5K~9K lane 计算 bug） ==================== */
-// 关键修复：用谱面自身的 circleSize 计算 lane，而不是全局 laneCount
+/* ==================== osu! 解析 ==================== */
 function getLaneFromX(x, cols) {
   const c = Math.max(1, Math.min(9, cols || laneCount));
   const laneW = 512 / c;
   return Math.max(0, Math.min(c - 1, Math.floor(x / laneW)));
 }
-
-function getBackgroundName(osuText) {
-  const match = osuText.match(/^\s*0\s*,\s*0\s*,\s*"([^"]+)"/m);
-  return match ? match[1] : null;
+function getBackgroundName(text) {
+  const m = text.match(/^\s*0\s*,\s*0\s*,\s*"([^"]+)"/m);
+  return m ? m[1] : null;
 }
 
 function parseOsuFile(text) {
@@ -602,74 +797,59 @@ function parseOsuFile(text) {
   const csMatch = text.match(/^\s*CircleSize\s*:\s*([\d.]+)/m);
   let circleSize = csMatch ? Math.round(parseFloat(csMatch[1])) : 4;
   if (!isFinite(circleSize) || circleSize < 1) circleSize = 4;
-  // 与 setupGameLayout 的上限保持一致，避免 10K+ 谱面 lane 越界
   circleSize = Math.max(1, Math.min(9, circleSize));
-  const audioFilename = getMeta('AudioFilename');
+  
+  const odMatch = text.match(/^\s*OverallDifficulty\s*:\s*([\d.]+)/m);
+  const od = odMatch ? parseFloat(odMatch[1]) : 5;
+  const hpMatch = text.match(/^\s*HPDrainRate\s*:\s*([\d.]+)/m);
+  const hp = hpMatch ? parseFloat(hpMatch[1]) : 5;
 
   const lines = text.split('\n');
-  let isHitObjects = false;
-  let objects = [];
-  let maxTime = 0;
-
+  let isHitObjects = false, objects = [], maxTime = 0;
   for (let line of lines) {
     line = line.trim();
     if (line === '[HitObjects]') { isHitObjects = true; continue; }
     if (line.startsWith('[')) { isHitObjects = false; continue; }
-
     if (isHitObjects && line) {
-      const parts = line.split(',');
-      if (parts.length < 5) continue;
-      const x = parseInt(parts[0]);
-      const time = parseInt(parts[2]);
-      const type = parseInt(parts[3]);
+      const p = line.split(',');
+      if (p.length < 5) continue;
+      const x = parseInt(p[0]), time = parseInt(p[2]), type = parseInt(p[3]);
       if (!isFinite(x) || !isFinite(time)) continue;
       const isHold = (type & 128) !== 0;
-      // ★ 修复核心：用 circleSize 而非全局 laneCount
       const lane = getLaneFromX(x, circleSize);
       const timeSec = time / 1000;
-      
-      if (isHold && parts.length > 5) {
-        const endTimeSec = parseInt(parts[5].split(':')[0]) / 1000;
-        if (!isFinite(endTimeSec) || endTimeSec <= timeSec) {
-          objects.push({ lane, time: timeSec, type: 'tap' });
-          maxTime = Math.max(maxTime, timeSec);
-        } else {
-          maxTime = Math.max(maxTime, endTimeSec);
-          objects.push({ lane, time: timeSec, type: 'hold', endTime: endTimeSec });
-        }
+      if (isHold && p.length > 5) {
+        const endT = parseInt(p[5].split(':')[0]) / 1000;
+        if (!isFinite(endT) || endT <= timeSec) { objects.push({lane, time: timeSec, type: 'tap'}); maxTime = Math.max(maxTime, timeSec); }
+        else { maxTime = Math.max(maxTime, endT); objects.push({lane, time: timeSec, type: 'hold', endTime: endT}); }
       } else {
         maxTime = Math.max(maxTime, timeSec);
-        objects.push({ lane, time: timeSec, type: 'tap' });
+        objects.push({lane, time: timeSec, type: 'tap'});
       }
     }
   }
   objects.sort((a, b) => a.time - b.time);
-
   return {
-    objects, maxTime, mode, circleSize, audioFilename,
-    title: getMeta('Title'),
-    artist: getMeta('Artist'),
-    version: getMeta('Version'),
-    creator: getMeta('Creator'),
+    objects, maxTime, mode, circleSize, od, hp,
+    title: getMeta('Title'), artist: getMeta('Artist'),
+    version: getMeta('Version'), creator: getMeta('Creator'),
     bgName: getBackgroundName(text),
   };
 }
 
 function dedupeChart(arr) {
   const seen = new Set();
-  const out = [];
-  for (const n of arr) {
-    const key = `${n.lane}|${n.time.toFixed(4)}|${n.type}`;
-    if (seen.has(key)) continue;
-    seen.add(key);
-    out.push(n);
-  }
-  return out;
+  return arr.filter(n => {
+    const k = `${n.lane}|${n.time.toFixed(4)}|${n.type}`;
+    if (seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  });
 }
 
 function buildChart() {
   if (gameMode === 'demo') {
-    const rawNotes = [];
+    const raw = [];
     let idx = 0;
     DEMO_CHART.forEach((pat, bar) => {
       for (let s = 0; s < 8; s++) {
@@ -677,12 +857,12 @@ function buildChart() {
         const t = LEAD_IN + bar * DEMO_BAR + s * (DEMO_BEAT / 2);
         const lane = DEMO_LANE_SEQ[idx % DEMO_LANE_SEQ.length];
         idx++;
-        if (pat[s] === 'L') rawNotes.push({ lane, time: t, type: 'hold', endTime: t + DEMO_BEAT * 2 });
-        else rawNotes.push({ lane, time: t, type: 'tap' });
+        if (pat[s] === 'L') raw.push({lane, time: t, type: 'hold', endTime: t + DEMO_BEAT * 2});
+        else raw.push({lane, time: t, type: 'tap'});
       }
     });
-    rawNotes.sort((a, b) => a.time - b.time);
-    chartObjects = dedupeChart(rawNotes);
+    raw.sort((a, b) => a.time - b.time);
+    chartObjects = dedupeChart(raw);
   } else {
     chartObjects = dedupeChart(chartObjects);
   }
@@ -706,28 +886,19 @@ function buildChart() {
   }
   
   songEndTime = chartEnd + 2.0;
-  if (gameMode === 'custom' && currentSong && currentSong.audioBuffer) {
+  if (gameMode === 'custom' && currentSong?.audioBuffer) {
     songEndTime = Math.max(songEndTime, currentSong.audioBuffer.duration + 1.0);
   }
+
+  totalNoteCount = 0;
+  for (const n of notes) totalNoteCount += (n.type === 'hold') ? 2 : 1;
+  baseScorePerNote = totalNoteCount > 0 ? (TOTAL_SCORE * 0.5) / totalNoteCount : 0;
 }
 
 /* ==================== 游戏逻辑 ==================== */
-function judgeDiff(ms) {
-  ms = Math.abs(ms);
-  for (const w of WINDOWS) if (ms <= w.ms) return w.name;
-  return 'MISS';
-}
-
-function getSongTime() {
-  if (!audioCtx) return 0;
-  return audioCtx.currentTime - songStartTime - audioOffset;
-}
-
 function spawnSpark(lane, color) {
   if (reducedMotion) return;
-  for (let i = 0; i < 8; i++) {
-    sparks.push({ x: lane * LANE_W + LANE_W / 2, y: JUDGE_Y, vx: (Math.random() - .5) * 320, vy: -Math.random() * 220 - 80, life: 1, color });
-  }
+  for (let i = 0; i < 8; i++) sparks.push({ x: lane * LANE_W + LANE_W / 2, y: JUDGE_Y, vx: (Math.random() - .5) * 320, vy: -Math.random() * 220 - 80, life: 1, color });
 }
 function updateSparks(dt) {
   for (let i = sparks.length - 1; i >= 0; i--) {
@@ -746,16 +917,19 @@ function drawSparks() {
 }
 
 function addMiss() {
-  combo = 0; judgedCount++; counts['MISS'] = (counts['MISS'] || 0) + 1;
+  combo = 0; judgedCount++; counts.MISS = (counts.MISS || 0) + 1;
+  totalScore += calculateScore('MISS');
   addPopup('MISS', MISS_COLOR, 0); adjustHealth(HP_GAIN.MISS);
+  if (activeMods.has('SD') || activeMods.has('PF')) failed = true;
 }
 function pressHold(n, res, diffMs) {
   n.headJudged = true; n.holding = true;
-  activeHolds[n.lane] && activeHolds[n.lane].push(n);
+  activeHolds[n.lane]?.push(n);
   combo++; if (combo > maxCombo) maxCombo = combo;
-  totalScore += scoreOf(res); judgedCount++; counts[res] = (counts[res] || 0) + 1;
+  totalScore += calculateScore(res); judgedCount++; counts[res] = (counts[res] || 0) + 1;
   addPopup(res, colorOf(res), diffMs); adjustHealth(HP_GAIN[res]);
   playHitSound(res); spawnSpark(n.lane, colorOf(res)); vibrate(8);
+  if (diffMs) hitErrors.push(diffMs);
 }
 function removeActiveHold(n) {
   const arr = activeHolds[n.lane];
@@ -768,18 +942,21 @@ function finishHoldTail(n, res) {
   removeActiveHold(n);
   if (res === 'MISS') {
     combo = 0; judgedCount++; counts.MISS = (counts.MISS || 0) + 1;
+    totalScore += calculateScore('MISS');
     addPopup('MISS', MISS_COLOR, 0); adjustHealth(HP_GAIN.MISS); return;
   }
   combo++; if (combo > maxCombo) maxCombo = combo;
-  totalScore += scoreOf(res); judgedCount++; counts[res] = (counts[res] || 0) + 1;
+  totalScore += calculateScore(res); judgedCount++; counts[res] = (counts[res] || 0) + 1;
   addPopup(res, colorOf(res), 0); adjustHealth(HP_GAIN[res]);
   playHitSound(res); spawnSpark(n.lane, colorOf(res));
 }
 function breakHold(n) {
   n.holding = false; n.judged = true; n.broken = true; n.brokenTime = songTime;
   removeActiveHold(n);
-  combo = 0; counts.BREAK = (counts.BREAK || 0) + 1;
+  combo = 0; counts.BREAK = (counts.BREAK || 0) + 1; judgedCount++;
+  totalScore += calculateScore('BREAK');
   addPopup('BREAK', MISS_COLOR, 0); adjustHealth(HP_GAIN.BREAK);
+  if (activeMods.has('SD') || activeMods.has('PF')) failed = true;
 }
 
 function findNoteStartIndex(tMin) {
@@ -795,13 +972,12 @@ function findNoteStartIndex(tMin) {
 function doKeyDown(lane) {
   if (!running || paused || failed) return;
   const t = getSongTime();
-  const windowSec = MISS_MS / 1000;
-  const tMin = t - windowSec;
-  const tMax = t + windowSec;
+  const ws = getEffectiveWindow(127) / 1000;
+  const tMin = t - ws, tMax = t + ws;
 
   let best = null, bestDiff = Infinity;
-  const startIdx = findNoteStartIndex(tMin);
-  for (let i = startIdx; i < notes.length; i++) {
+  const start = findNoteStartIndex(tMin);
+  for (let i = start; i < notes.length; i++) {
     const n = notes[i];
     if (n.time > tMax) break;
     if (n.judged || n.lane !== lane) continue;
@@ -809,7 +985,7 @@ function doKeyDown(lane) {
     const d = Math.abs(t - n.time) * 1000;
     if (d < bestDiff) { bestDiff = d; best = n; }
   }
-  if (!best || bestDiff > MISS_MS) return;
+  if (!best || bestDiff > getEffectiveWindow(127)) return;
   const diffMs = (t - best.time) * 1000;
   const res = judgeDiff(diffMs);
   if (res === 'MISS') return;
@@ -817,9 +993,10 @@ function doKeyDown(lane) {
   if (best.type === 'tap') {
     best.judged = true;
     combo++; if (combo > maxCombo) maxCombo = combo;
-    totalScore += scoreOf(res); judgedCount++; counts[res] = (counts[res] || 0) + 1;
+    totalScore += calculateScore(res); judgedCount++; counts[res] = (counts[res] || 0) + 1;
     addPopup(res, colorOf(res), diffMs); adjustHealth(HP_GAIN[res]);
     playHitSound(res); spawnSpark(best.lane, colorOf(res)); vibrate(8);
+    if (diffMs) hitErrors.push(diffMs);
   } else {
     pressHold(best, res, diffMs);
   }
@@ -833,7 +1010,7 @@ function doKeyUp(lane) {
   const snapshot = arr.slice();
   for (const n of snapshot) {
     if (n.judged || !n.holding) continue;
-    if (t < n.endTime - TAIL_TOLERANCE_MS / 1000) {
+    if (t < n.endTime - getEffectiveWindow(127) / 1000) {
       breakHold(n);
     } else {
       const tailRes = judgeDiff((t - n.endTime) * 1000);
@@ -845,6 +1022,7 @@ function doKeyUp(lane) {
 
 function pressLane(lane, source) {
   if (!running || failed || paused) return;
+  if (activeMods.has('AT')) return;
   if (source === 'kb') kbHeld[lane] = true; else touchHeld[lane] = true;
   if (laneHeld[lane]) return;
   laneHeld[lane] = true;
@@ -861,111 +1039,60 @@ function releaseLane(lane, source) {
 
 function releaseAllLanes() {
   for (let i = 0; i < 9; i++) {
-    kbHeld[i] = false;
-    touchHeld[i] = false;
-    laneHeld[i] = false;
+    kbHeld[i] = false; touchHeld[i] = false; laneHeld[i] = false;
   }
-  pointerLane.clear();
-  padPointerLane.clear();
-  clearAllPadActive();
+  pointerLane.clear(); padPointerLane.clear(); clearAllPadActive();
 }
 
-/* ==================== Pointer 事件 (画布) ==================== */
-cv.addEventListener('pointerdown', (e) => {
-  if (e.pointerType === 'mouse' && e.button !== 0) return;
-  e.preventDefault(); if (!running || paused) return;
-  const r = cv.getBoundingClientRect();
-  const x = (e.clientX - r.left) / r.width * W;
-  if (x < 0 || x >= W) return;
-  const lane = Math.floor(x / LANE_W);
-  if (lane < 0 || lane >= laneCount) return;
-  
-  for (const l of pointerLane.values()) if (l === lane) return;
-  
-  pointerLane.set(e.pointerId, lane);
-  try { cv.setPointerCapture(e.pointerId); } catch (_) {}
-  pressLane(lane, 'touch');
-});
-
-cv.addEventListener('pointerup', (e) => {
-  const lane = pointerLane.get(e.pointerId); if (lane === undefined) return;
-  e.preventDefault(); pointerLane.delete(e.pointerId); releaseLane(lane, 'touch');
-});
-cv.addEventListener('pointercancel', (e) => {
-  const lane = pointerLane.get(e.pointerId); if (lane === undefined) return;
-  pointerLane.delete(e.pointerId); releaseLane(lane, 'touch');
-});
-cv.addEventListener('lostpointercapture', (e) => {
-  const lane = pointerLane.get(e.pointerId); if (lane === undefined) return;
-  pointerLane.delete(e.pointerId); releaseLane(lane, 'touch');
-});
-
-/* ==================== 底部按键事件 ==================== */
-function initPads() {
-  const keys = document.querySelectorAll('.pad-key');
-  keys.forEach(el => {
-    const lane = Number(el.dataset.lane);
-    const onDown = (e) => {
-      e.preventDefault(); e.stopPropagation(); 
-      if (padPointerLane.has(e.pointerId)) return;
-      for (const l of padPointerLane.values()) if (l === lane) return;
-      
-      padPointerLane.set(e.pointerId, lane); 
-      el.classList.add('active');
-      try { el.setPointerCapture(e.pointerId); } catch (_) {}
-      pressLane(lane, 'touch');
-    };
-    const onUp = (e) => {
-      const l = padPointerLane.get(e.pointerId); if (l === undefined) return;
-      e.preventDefault(); padPointerLane.delete(e.pointerId);
-      el.classList.remove('active'); releaseLane(l, 'touch');
-    };
-    el.addEventListener('pointerdown', onDown);
-    el.addEventListener('pointerup', onUp);
-    el.addEventListener('pointercancel', onUp);
-    el.addEventListener('lostpointercapture', onUp);
-    el.addEventListener('contextmenu', (e) => e.preventDefault());
-  });
-}
-function clearAllPadActive() { document.querySelectorAll('.pad-key.active').forEach(el => el.classList.remove('active')); }
-
-/* ==================== 键盘 ==================== */
-window.addEventListener('keydown', (e) => {
-  if (calibActive) {
-    if (e.code === 'Escape') { closeCalibration(); return; }
-    if (e.code === 'Space' || e.code === 'Enter' || KEY_CODES[e.code] !== undefined) {
-      e.preventDefault(); if (!e.repeat) handleCalibInput(); 
-    }
-    return;
-  }
-  if (e.code === 'Escape' && running) { e.preventDefault(); togglePause(); return; }
-  const lane = KEY_CODES[e.code];
-  if (lane === undefined) return;
-  e.preventDefault(); if (e.repeat) return;
-  pressLane(lane, 'kb');
-});
-window.addEventListener('keyup', (e) => {
-  if (calibActive) return;
-  const lane = KEY_CODES[e.code];
-  if (lane === undefined) return;
-  e.preventDefault(); releaseLane(lane, 'kb');
-});
-window.addEventListener('blur', () => {
-  releaseAllLanes();
-});
-document.addEventListener('visibilitychange', () => {
-  if (document.hidden && running && !paused && !failed) togglePause();
-});
-
-/* ==================== 帧更新 ==================== */
-function updateNotes() {
+/* ==================== 自动化与 Replay ==================== */
+function autoPlayTick() {
+  if (!activeMods.has('AT') || !running || paused || failed) return;
+  const t = getSongTime();
   for (const n of notes) {
     if (n.judged) continue;
     if (n.type === 'tap') {
-      if (songTime > n.time + MISS_MS / 1000) { n.judged = true; addMiss(); }
+      if (t >= n.time) {
+        n.judged = true;
+        combo++; if (combo > maxCombo) maxCombo = combo;
+        totalScore += calculateScore('PERFECT'); judgedCount++; counts.PERFECT = (counts.PERFECT || 0) + 1;
+        addPopup('PERFECT', colorOf('PERFECT'), 0); adjustHealth(HP_GAIN.PERFECT);
+        playHitSound('PERFECT'); spawnSpark(n.lane, colorOf('PERFECT'));
+      }
+    } else if (n.type === 'hold') {
+      if (!n.headJudged && t >= n.time) {
+        n.headJudged = true; n.holding = true;
+        activeHolds[n.lane]?.push(n);
+        combo++; if (combo > maxCombo) maxCombo = combo;
+        totalScore += calculateScore('PERFECT'); judgedCount++; counts.PERFECT = (counts.PERFECT || 0) + 1;
+        addPopup('PERFECT', colorOf('PERFECT'), 0); adjustHealth(HP_GAIN.PERFECT);
+        playHitSound('PERFECT'); spawnSpark(n.lane, colorOf('PERFECT'));
+      }
+      if (n.holding && t >= n.endTime) finishHoldTail(n, 'PERFECT');
+    }
+  }
+}
+
+function processReplay() {
+  if (!isReplaying || replayCursor >= currentReplay.length) return;
+  const t = getSongTime();
+  while (replayCursor < currentReplay.length && currentReplay[replayCursor].time <= t) {
+    const f = currentReplay[replayCursor];
+    if (f.type === 'press') pressLane(f.lane, 'replay');
+    else if (f.type === 'release') releaseLane(f.lane, 'replay');
+    replayCursor++;
+  }
+}
+
+/* ==================== 帧更新 ==================== */
+function updateNotes() {
+  const missWindow = getEffectiveWindow(127) / 1000;
+  for (const n of notes) {
+    if (n.judged) continue;
+    if (n.type === 'tap') {
+      if (songTime > n.time + missWindow) { n.judged = true; addMiss(); }
     } else {
       if (!n.headJudged) {
-        if (songTime > n.time + MISS_MS / 1000) {
+        if (songTime > n.time + missWindow) {
           n.headJudged = true; n.judged = true; n.broken = true; n.brokenTime = songTime; addMiss();
         }
       } else if (n.holding) {
@@ -1008,12 +1135,17 @@ function drawNote(n) {
     if (y < -40 || y > H + 40) return;
     const nx = x + (LANE_W - w) / 2;
     const ny = y - h / 2;
+
+    if (useHidden && y < JUDGE_Y * 0.65) {
+      ctx.globalAlpha = Math.max(0, (y - JUDGE_Y * 0.2) / (JUDGE_Y * 0.45));
+    }
     
     ctx.shadowColor = PAL.noteGlow; ctx.shadowBlur = 22; ctx.fillStyle = PAL.note;
     roundRect(nx, ny, w, h, h / 2); ctx.fill(); ctx.shadowBlur = 0;
     const lg = ctx.createLinearGradient(0, ny, 0, ny + h);
     lg.addColorStop(0, PAL.noteCore); lg.addColorStop(0.55, PAL.noteCoreMid); lg.addColorStop(1, 'rgba(255,255,255,0)');
     ctx.fillStyle = lg; roundRect(nx + 2, ny + 3, w - 4, h - 6, (h - 6) / 2); ctx.fill();
+    ctx.globalAlpha = 1;
     return;
   }
 
@@ -1023,7 +1155,6 @@ function drawNote(n) {
   
   const bodyW = Math.min(40, LANE_W * 0.4);
   const bodyX = x + (LANE_W - bodyW) / 2;
-  
   const bodyTop = Math.max(yTail, -10), bodyBot = Math.min(yHead, JUDGE_Y);
   
   if (bodyBot > bodyTop) {
@@ -1090,17 +1221,29 @@ function drawHUD() {
   ctx.strokeStyle = PAL.hudBorder; ctx.beginPath(); ctx.moveTo(0, 62); ctx.lineTo(W, 62); ctx.stroke();
   ctx.textBaseline = 'middle';
 
+  const displayScore = Math.min(TOTAL_SCORE, Math.round(totalScore));
   ctx.textAlign = 'left'; ctx.fillStyle = PAL.text;
   ctx.font = 'bold 22px "Share Tech Mono", monospace';
-  ctx.fillText(String(totalScore).padStart(7, '0'), 14, 26);
+  ctx.fillText(String(displayScore).padStart(7, '0'), 14, 26);
 
   const acc = getAcc(); const rank = getRank(acc);
+  const rc = isSilverSS(acc) ? '#c0c0c0' : colorOfRank(rank);
   ctx.textAlign = 'center'; ctx.font = '900 30px "Orbitron", sans-serif';
-  ctx.fillStyle = colorOfRank(rank); ctx.shadowColor = colorOfRank(rank); ctx.shadowBlur = 14;
+  ctx.fillStyle = rc; ctx.shadowColor = rc; ctx.shadowBlur = 14;
   ctx.fillText(rank, W / 2, 26); ctx.shadowBlur = 0;
 
   ctx.textAlign = 'right'; ctx.font = '13px "Share Tech Mono", monospace'; ctx.fillStyle = PAL.textDim;
   ctx.fillText(acc.toFixed(2) + '%', W - 14, 18); ctx.fillText(maxCombo + 'x', W - 14, 36);
+
+  if (activeMods.size > 0) {
+    ctx.textAlign = 'left'; ctx.font = 'bold 10px "Share Tech Mono", monospace';
+    let mx = 14, my = 48;
+    activeMods.forEach(id => {
+      ctx.fillStyle = '#ffd700';
+      ctx.fillText(id, mx, my); mx += 20;
+      if (mx > W - 40) { mx = 14; my += 12; }
+    });
+  }
 
   drawHealthBar();
 
@@ -1123,7 +1266,7 @@ function drawHUD() {
     if (p.diffMs && Math.abs(p.diffMs) > 8 && p.name !== 'MISS' && p.name !== 'BREAK') {
       ctx.font = 'bold 13px "Share Tech Mono", monospace';
       ctx.fillStyle = p.diffMs < 0 ? '#ff69b4' : '#8a2be2'; ctx.shadowBlur = 8;
-      const earlyLate = p.diffMs < 0 ? '◀ EARLY' : 'LATE ▶'; ctx.fillText(earlyLate, W / 2, baseY + 20);
+      ctx.fillText(p.diffMs < 0 ? '◀ EARLY' : 'LATE ▶', W / 2, baseY + 20);
     }
     ctx.shadowBlur = 0; ctx.globalAlpha = 1;
   }
@@ -1135,6 +1278,28 @@ function drawHUD() {
     ctx.shadowColor = laneHeld[i] ? PAL.keyOn : 'transparent'; ctx.shadowBlur = laneHeld[i] ? 12 : 0;
     ctx.fillText(KEY_LABELS[i], cx, JUDGE_Y + 34); ctx.shadowBlur = 0;
   }
+}
+
+function drawProgress() {
+  if (songEndTime <= 0) return;
+  const progress = Math.min(1, Math.max(0, songTime / songEndTime));
+  const remainT = Math.max(0, songEndTime - songTime);
+  const barH = 6, y = H - barH;
+  
+  ctx.fillStyle = 'rgba(0,0,0,0.8)'; ctx.fillRect(0, y, W, barH);
+  
+  if (progress > 0) {
+    const g = ctx.createLinearGradient(0, 0, W, 0);
+    g.addColorStop(0, '#8a2be2'); g.addColorStop(1, '#ff69b4');
+    ctx.fillStyle = g; ctx.shadowColor = '#ff69b4'; ctx.shadowBlur = 8;
+    ctx.fillRect(0, y, W * progress, barH); ctx.shadowBlur = 0;
+  }
+  
+  ctx.font = 'bold 12px "Share Tech Mono", monospace';
+  ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+  ctx.shadowColor = '#000'; ctx.shadowBlur = 4;
+  ctx.fillText(`-${formatTime(remainT)}`, W / 2, y - 4);
+  ctx.shadowBlur = 0;
 }
 
 function draw() {
@@ -1172,6 +1337,7 @@ function draw() {
 
   drawSparks();
   drawHUD();
+  drawProgress();
 }
 
 /* ==================== 主循环 ==================== */
@@ -1187,6 +1353,8 @@ function loop() {
   songTime = getSongTime();
   
   if (gameMode === 'demo') scheduleSynthAhead();
+  autoPlayTick();
+  processReplay();
   updateNotes(); updateSparks(dt);
   
   if (failed) { finish(true); return; }
@@ -1194,9 +1362,7 @@ function loop() {
   
   draw();
   
-  if (songTime > songEndTime) {
-    finish(false);
-  }
+  if (songTime > songEndTime) finish(false);
 }
 
 /* ==================== 暂停与重置 ==================== */
@@ -1218,7 +1384,6 @@ function togglePause() {
 
 function resetGame() {
   loopId++;
-  
   initAudio();
   if (!audioCtx) return;
   if (audioCtx.state === 'suspended') audioCtx.resume();
@@ -1229,21 +1394,26 @@ function resetGame() {
     bgSource = null;
   }
 
-  songStartTime = audioCtx.currentTime + 1.0;
-  beatCursor = 0;
-  scheduleCursor = 0;
+  recalcModState();
+  effectiveOD = currentSong ? applyModsToOD(currentSong.od || 5) : 5;
+  hpMultiplier = currentSong ? Math.max(0.2, Math.min(2.5, (currentSong.hp || 5) / 5)) : 1;
+  if (activeMods.has('EZ')) hpMultiplier *= 0.5;
+
+  songStartTime = audioCtx.currentTime + 1.0 / effectiveSpeed;
+  beatCursor = 0; scheduleCursor = 0;
+  hitErrors = [];
   
   if (gameMode === 'demo') {
     bgLayer.classList.remove('show');
   } else {
-    if (currentSong && currentSong.audioBuffer) {
+    if (currentSong?.audioBuffer) {
       bgSource = audioCtx.createBufferSource();
       bgSource.buffer = currentSong.audioBuffer;
+      bgSource.playbackRate.value = effectiveSpeed;
       bgSource.connect(masterGain);
       try { bgSource.start(realTimeOf(0)); } catch (e) { bgSource.start(songStartTime); }
     }
-    if (currentSong && currentSong.bgUrl) bgLayer.classList.add('show');
-    else bgLayer.classList.remove('show');
+    bgLayer.classList.toggle('show', !!(currentSong?.bgUrl));
   }
 
   combo = 0; maxCombo = 0; totalScore = 0; judgedCount = 0;
@@ -1252,14 +1422,22 @@ function resetGame() {
   health = 60; displayHealth = 60; failed = false; paused = false;
 
   buildChart();
-  lastFrameTime = performance.now();
+  bonus = 100; hitValueSum = 0;
 
+  if (isReplaying) {
+    replayCursor = 0;
+  } else {
+    currentReplay = [];
+  }
+
+  lastFrameTime = performance.now();
   running = true;
+  
   document.getElementById('start').style.display = 'none';
   document.getElementById('result').classList.remove('show');
   document.getElementById('pause-overlay').classList.remove('show');
   document.getElementById('pause-btn').classList.add('show');
-  
+  document.getElementById('settings-btn').style.display = 'none';
   document.getElementById('bottom-pads').style.display = 'flex';
   document.body.classList.add('pads-active');
   
@@ -1269,6 +1447,13 @@ function resetGame() {
 document.getElementById('resume-btn').addEventListener('click', (e) => { e.stopPropagation(); togglePause(); });
 document.getElementById('retry-btn').addEventListener('click', (e) => { e.stopPropagation(); resetGame(); });
 document.getElementById('pause-btn').addEventListener('click', (e) => { e.stopPropagation(); if (running) togglePause(); });
+
+// 暂停菜单返回主菜单逻辑
+document.getElementById('pause-menu-btn').addEventListener('click', (e) => {
+  e.stopPropagation();
+  document.getElementById('pause-overlay').classList.remove('show');
+  showStartMenu();
+});
 
 /* ==================== 曲目库管理 ==================== */
 function addSongToLibrary(song) {
@@ -1287,7 +1472,24 @@ function addSongToLibrary(song) {
   return song;
 }
 
-/* ==================== 选关 / 曲目库 ==================== */
+// 新增：清空曲目库逻辑
+function clearSongLibrary() {
+  if (songLibrary.length === 0) return;
+  if (!confirm("确认清空所有已导入的曲目吗？")) return;
+
+  // 释放 Blob URL 内存
+  songLibrary.forEach(song => {
+    if (song.bgUrl && song.bgUrl.startsWith('blob:')) {
+      try { URL.revokeObjectURL(song.bgUrl); } catch (_) {}
+    }
+  });
+
+  songLibrary = [];
+  renderSongList();
+  fileStatus.innerHTML = ''; // 清空状态提示
+}
+
+/* ==================== 选关 / UI ==================== */
 const uploadZone = document.getElementById('upload-zone');
 const fileInput = document.getElementById('file-input');
 const fileStatus = document.getElementById('file-status');
@@ -1297,6 +1499,8 @@ const demoBtn = document.getElementById('demo-btn');
 const songListEl = document.getElementById('song-list');
 const songListWrap = document.getElementById('song-list-wrap');
 const loadingEl = document.getElementById('loading');
+const settingsBtn = document.getElementById('settings-btn');
+const clearSongsBtn = document.getElementById('clear-songs-btn'); // 新增清空按钮
 
 demoBtn.addEventListener('click', () => {
   setupGameLayout(4);
@@ -1311,11 +1515,14 @@ toggleUpload.addEventListener('click', (e) => {
   uploadPanel.style.display = shown ? 'none' : 'block';
 });
 
+clearSongsBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  clearSongLibrary();
+});
+
 function renderSongList() {
   if (songLibrary.length === 0) {
-    songListWrap.style.display = 'none';
-    songListEl.innerHTML = '';
-    return;
+    songListWrap.style.display = 'none'; songListEl.innerHTML = ''; return;
   }
   songListWrap.style.display = 'block';
   songListEl.innerHTML = songLibrary.map(song => {
@@ -1326,15 +1533,16 @@ function renderSongList() {
         <div class="song-info">
           <div class="song-title">${escapeHtml(song.title)}</div>
           <div class="song-sub">
-            ${escapeHtml(song.artist || 'Unknown')} · [${escapeHtml(song.version)}] ${song.circleSize}K
+            <span style="max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(song.artist || 'Unknown')}</span> · ${escapeHtml(song.version)}
+          </div>
+          <div class="song-sub" style="margin-top: 6px; gap: 6px;">
+            <span class="key-tag">${song.circleSize}K</span>
+            <span class="od-tag">OD${song.od || 5}</span>
             <span class="mode-tag${modeWarn ? ' warn' : ''}">${modeName}</span>
           </div>
         </div>
-        <div class="song-meta">
-          ${song.noteCount}<br>notes
-        </div>
-      </div>
-    `;
+        <div class="song-meta">${song.noteCount}<br>notes</div>
+      </div>`;
   }).join('');
   songListEl.querySelectorAll('.song-item').forEach(el => {
     el.addEventListener('click', () => {
@@ -1347,13 +1555,8 @@ function renderSongList() {
 async function startSong(song) {
   currentSong = song;
   gameMode = 'custom';
-  
-  if (song.bgUrl) bgLayer.style.backgroundImage = `url("${song.bgUrl}")`;
-  else bgLayer.style.backgroundImage = 'none';
-  
+  bgLayer.style.backgroundImage = song.bgUrl ? `url("${song.bgUrl}")` : 'none';
   chartObjects = song.objects.map(o => ({ ...o }));
-  
-  // 用谱面自身的 circleSize，与 parse 阶段保持一致
   setupGameLayout(song.circleSize || 4);
   
   loadingEl.classList.add('show');
@@ -1363,16 +1566,12 @@ async function startSong(song) {
     initAudio();
     if (!audioCtx) throw new Error('无法初始化音频环境');
     if (audioCtx.state === 'suspended') await audioCtx.resume();
-    
-    if (!song.audioBuffer && song.audioBlob) {
-      song.audioBuffer = await decodeAudioBlob(song.audioBlob);
-    }
+    if (!song.audioBuffer && song.audioBlob) song.audioBuffer = await decodeAudioBlob(song.audioBlob);
     
     loadingEl.classList.remove('show');
     resetGame();
   } catch (err) {
     console.error(err);
-    try { if (audioCtx && audioCtx.state === 'running') audioCtx.suspend(); } catch (_) {}
     loadingEl.classList.remove('show');
     alert('音频解码失败，可能是格式不被浏览器支持。');
     showStartMenu();
@@ -1380,11 +1579,12 @@ async function startSong(song) {
 }
 
 function showStartMenu() {
-  running = false; paused = false;
+  running = false; paused = false; isReplaying = false;
   document.getElementById('start').style.display = 'flex';
   document.getElementById('result').classList.remove('show');
   document.getElementById('pause-overlay').classList.remove('show');
   document.getElementById('pause-btn').classList.remove('show');
+  document.getElementById('settings-btn').style.display = 'flex';
   loadingEl.classList.remove('show');
   bgLayer.classList.remove('show');
   bgLayer.style.backgroundImage = 'none';
@@ -1404,7 +1604,124 @@ function showStartMenu() {
   renderSongList();
 }
 
-/* ==================== 文件读取与解压 ==================== */
+/* ==================== 设置面板（文件夹式 Mod） ==================== */
+function openSettings() {
+  const folderContainer = document.getElementById('mod-folders-container');
+  folderContainer.innerHTML = '';
+
+  // 分组
+  const groups = {
+    reduce: { name: 'Difficulty Reduction (降低难度)', items: [] },
+    increase: { name: 'Difficulty Increase (增加难度)', items: [] },
+    auto: { name: 'Automation (自动化)', items: [] }
+  };
+  
+  MOD_DEFS.forEach(m => {
+    if (groups[m.cat]) groups[m.cat].items.push(m);
+  });
+
+  // 渲染文件夹
+  for (const cat in groups) {
+    const g = groups[cat];
+    if (g.items.length === 0) continue;
+
+    const details = document.createElement('details');
+    details.className = 'mod-folder';
+    // 如果有选中的 Mod 在这个文件夹里，默认展开
+    const hasActive = g.items.some(m => activeMods.has(m.id));
+    if (hasActive) details.setAttribute('open', '');
+
+    const summary = document.createElement('summary');
+    summary.textContent = g.name;
+    details.appendChild(summary);
+
+    const grid = document.createElement('div');
+    grid.className = 'mod-grid';
+    
+    g.items.forEach(m => {
+      const div = document.createElement('div');
+      div.className = `mod-item ${activeMods.has(m.id) ? 'active' : ''}`;
+      div.dataset.id = m.id;
+      div.innerHTML = `
+        <div class="mod-abbr">${m.id}</div>
+        <div class="mod-name">${m.name}</div>
+        <div class="mod-mult">${m.mult.toFixed(2)}x</div>
+      `;
+      div.addEventListener('click', () => {
+        if (activeMods.has(m.id)) activeMods.delete(m.id);
+        else activeMods.add(m.id);
+        div.classList.toggle('active');
+        updateSettingsModMult();
+      });
+      grid.appendChild(div);
+    });
+
+    details.appendChild(grid);
+    folderContainer.appendChild(details);
+  }
+  
+  // 渲染自定义按键
+  const kbGrid = document.getElementById('keybind-grid');
+  kbGrid.innerHTML = '';
+  for (let k = 1; k <= 9; k++) {
+    const item = document.createElement('div');
+    item.className = 'keybind-item';
+    
+    const label = document.createElement('label');
+    label.textContent = `${k}K`;
+    
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.maxLength = k;
+    
+    if (customKeybinds[k] && Array.isArray(customKeybinds[k])) {
+      input.value = customKeybinds[k].join('');
+    }
+    
+    input.addEventListener('input', (e) => {
+      let val = e.target.value.toUpperCase().replace(/[^A-Z0-9;'\[\],.\/\\\-=` ]/g, '');
+      if (val.length > k) val = val.slice(0, k);
+      e.target.value = val;
+      
+      if (val.length > 0) {
+        customKeybinds[k] = val.split('');
+      } else {
+        delete customKeybinds[k];
+      }
+      
+      try { localStorage.setItem('mania_keybinds', JSON.stringify(customKeybinds)); } catch(_) {}
+    });
+    
+    item.appendChild(label);
+    item.appendChild(input);
+    kbGrid.appendChild(item);
+  }
+  
+  updateSettingsModMult();
+  document.getElementById('settings-panel').classList.add('show');
+  document.getElementById('start').style.display = 'none';
+  settingsBtn.style.display = 'none';
+}
+
+function updateSettingsModMult() {
+  let mult = 1.0;
+  activeMods.forEach(id => {
+    const m = MOD_DEFS.find(d => d.id === id);
+    if (m) mult *= m.mult;
+  });
+  document.getElementById('settings-mod-mult').textContent = mult.toFixed(2) + 'x';
+}
+
+settingsBtn.addEventListener('click', (e) => { e.stopPropagation(); openSettings(); });
+
+document.getElementById('settings-close').addEventListener('click', (e) => {
+  e.stopPropagation();
+  document.getElementById('settings-panel').classList.remove('show');
+  document.getElementById('start').style.display = 'flex';
+  settingsBtn.style.display = 'flex';
+});
+
+/* ==================== 文件读取 ==================== */
 function handleFiles(files) {
   if (files.length === 0) return;
   
@@ -1420,7 +1737,7 @@ function handleFiles(files) {
   }
 
   if (!osuFile || !audioBlob) {
-    fileStatus.innerHTML = `<span style="color:#ff3355">需要同时提供 .osu 谱面 + 音频文件（或单个 .osz）</span>`;
+    fileStatus.innerHTML = `<span style="color:#ff3355">需要同时提供 .osu 谱面 + 音频文件</span>`;
     return;
   }
 
@@ -1432,16 +1749,10 @@ function handleFiles(files) {
       const song = {
         id: newSongId(),
         title: result.title || osuFile.name.replace(/\.osu$/i, ''),
-        artist: result.artist || '',
-        version: result.version || 'Normal',
-        creator: result.creator || '',
-        mode: result.mode,
-        circleSize: result.circleSize,
-        noteCount: result.objects.length,
-        objects: result.objects,
-        audioBlob,
-        audioBuffer: null, 
-        bgUrl: null,
+        artist: result.artist || '', version: result.version || 'Normal', creator: result.creator || '',
+        mode: result.mode, circleSize: result.circleSize, od: result.od, hp: result.hp,
+        noteCount: result.objects.length, objects: result.objects,
+        audioBlob, audioBuffer: null, bgUrl: null,
       };
       addSongToLibrary(song);
       renderSongList();
@@ -1459,9 +1770,8 @@ async function handleOszFile(file) {
   try {
     const zip = await JSZip.loadAsync(file);
     const fileNames = Object.keys(zip.files);
-    
     const osuNames = fileNames.filter(n => n.toLowerCase().endsWith('.osu'));
-    if (osuNames.length === 0) throw new Error("压缩包内没有找到 .osu 文件");
+    if (osuNames.length === 0) throw new Error("未找到 .osu 文件");
     
     let targetAudioName = null;
     for (const name of osuNames) {
@@ -1474,17 +1784,10 @@ async function handleOszFile(file) {
       }
     }
     
-    if (!targetAudioName) {
-      targetAudioName = fileNames.find(n => /\.(mp3|ogg)$/i.test(n));
-    }
-    if (!targetAudioName) {
-      targetAudioName = fileNames.find(n => /\.wav$/i.test(n));
-    }
-
-    if (!targetAudioName) throw new Error("未找到有效的音频文件");
+    if (!targetAudioName) targetAudioName = fileNames.find(n => /\.(mp3|ogg)$/i.test(n)) || fileNames.find(n => /\.wav$/i.test(n));
+    if (!targetAudioName) throw new Error("未找到有效音频文件");
 
     const audioBlob = await zip.file(targetAudioName).async('blob');
-
     const bgUrlCache = new Map();
     const newSongs = [];
     const imgNames = fileNames.filter(n => /\.(jpg|jpeg|png)$/i.test(n));
@@ -1496,12 +1799,9 @@ async function handleOszFile(file) {
         if (result.objects.length === 0) continue;
 
         let bgFound = null;
-        if (result.bgName) {
-          bgFound = fileNames.find(n => n.toLowerCase().endsWith(result.bgName.toLowerCase()));
-        }
-        if (!bgFound && imgNames.length > 0) {
-          bgFound = imgNames.find(n => /bg|background/i.test(n)) || imgNames[0];
-        }
+        if (result.bgName) bgFound = fileNames.find(n => n.toLowerCase().endsWith(result.bgName.toLowerCase()));
+        if (!bgFound && imgNames.length > 0) bgFound = imgNames.find(n => /bg|background/i.test(n)) || imgNames[0];
+        
         let bgUrl = null;
         if (bgFound) {
           if (!bgUrlCache.has(bgFound)) {
@@ -1514,40 +1814,27 @@ async function handleOszFile(file) {
         const song = {
           id: newSongId(),
           title: result.title || file.name.replace(/\.osz$/i, ''),
-          artist: result.artist || '',
-          version: result.version || osuName.replace(/\.osu$/i, ''),
-          creator: result.creator || '',
-          mode: result.mode,
-          circleSize: result.circleSize,
-          noteCount: result.objects.length,
-          objects: result.objects,
-          audioBlob,
-          audioBuffer: null,
-          bgUrl,
+          artist: result.artist || '', version: result.version || osuName.replace(/\.osu$/i, ''), creator: result.creator || '',
+          mode: result.mode, circleSize: result.circleSize, od: result.od, hp: result.hp,
+          noteCount: result.objects.length, objects: result.objects,
+          audioBlob, audioBuffer: null, bgUrl,
         };
         newSongs.push(song);
         addSongToLibrary(song);
-      } catch (e) {
-        console.warn('跳过谱面', osuName, e);
-      }
+      } catch (e) { console.warn('跳过', osuName, e); }
     }
 
-    if (newSongs.length === 0) throw new Error("未找到有效谱面");
-    
+    if (newSongs.length === 0) throw new Error("无有效谱面");
     renderSongList();
     fileStatus.innerHTML = `✔ 已导入 ${newSongs.length} 个难度`;
   } catch (err) {
-    console.error(err);
-    fileStatus.innerHTML = `<span style="color:#ff3355">OSZ 解析失败: ${escapeHtml(err.message)}</span>`;
+    fileStatus.innerHTML = `<span style="color:#ff3355">失败: ${escapeHtml(err.message)}</span>`;
   }
 }
 
 uploadZone.addEventListener('dragover', (e) => { e.preventDefault(); uploadZone.classList.add('hover'); });
 uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('hover'));
-uploadZone.addEventListener('drop', (e) => {
-  e.preventDefault(); uploadZone.classList.remove('hover');
-  handleFiles(e.dataTransfer.files);
-});
+uploadZone.addEventListener('drop', (e) => { e.preventDefault(); uploadZone.classList.remove('hover'); handleFiles(e.dataTransfer.files); });
 uploadZone.addEventListener('click', () => fileInput.click());
 fileInput.addEventListener('change', (e) => handleFiles(e.target.files));
 
@@ -1556,29 +1843,35 @@ function finish(isFailed) {
   if (!isFailed && judgedCount === 0 && notes.length > 0) return;
   if (!running && !paused) return;
 
-  running = false; paused = false;
+  running = false; paused = false; isReplaying = false;
   if (audioCtx) audioCtx.suspend(); 
   document.getElementById('pause-btn').classList.remove('show');
   document.getElementById('pause-overlay').classList.remove('show');
   releaseAllLanes();
-
   document.getElementById('bottom-pads').style.display = 'none';
   document.body.classList.remove('pads-active');
 
   const acc = getAcc();
   const rank = isFailed ? 'F' : getRank(acc);
+  const silver = isSilverSS(acc);
+  
   const titleEl = document.getElementById('result-title');
   titleEl.textContent = isFailed ? 'FAILED' : 'RESULT';
   titleEl.style.color = isFailed ? '#ff3355' : '#ffffff';
   
   const rankEl = document.getElementById('result-rank');
   rankEl.textContent = rank;
-  rankEl.style.color = colorOfRank(rank);
-  rankEl.style.textShadow = `0 0 30px ${colorOfRank(rank)}88`;
+  rankEl.style.color = silver ? '#c0c0c0' : colorOfRank(rank);
+  rankEl.style.textShadow = `0 0 30px ${silver ? '#c0c0c0' : colorOfRank(rank)}88`;
+
+  const finalScore = Math.min(TOTAL_SCORE, Math.round(totalScore));
+  const ur = hitErrors.length > 1 ? (Math.sqrt(hitErrors.reduce((s,e) => s + e*e, 0) / hitErrors.length) * 10).toFixed(2) : '---';
+  const modList = activeMods.size ? [...activeMods].join('') : 'NM';
   
   document.getElementById('result-stats').innerHTML = `
-    <p style="font-size:24px; color:#fff; margin:8px 0; letter-spacing:2px;">${totalScore}</p>
-    <p>准确率 <b style="color:#ff69b4">${acc.toFixed(2)}%</b></p>
+    <p style="font-size:24px; color:#fff; margin:8px 0; letter-spacing:2px;">${finalScore.toLocaleString()}</p>
+    <p style="font-size:11px; color:#666; margin:-4px 0 8px;">/ 1,000,000 · ${modList}</p>
+    <p>准确率 <b style="color:#ff69b4">${acc.toFixed(2)}%</b> · UR <b style="color:#ffd700">${ur}</b></p>
     <p>最大连击 <b style="color:#8a2be2">${maxCombo}</b></p>
     <p style="margin-top:10px; line-height:1.8; font-size:12px; color:#a78bcc;">
       <span style="color:#ff69b4">PERFECT ${counts.PERFECT||0}</span> ·
@@ -1588,29 +1881,29 @@ function finish(isFailed) {
       <span style="color:#666">MEH ${counts.MEH||0}</span> ·
       <span style="color:#ff3355">MISS ${counts.MISS||0}</span><br>
       <span style="color:#ff3355">BREAK ${counts.BREAK||0}</span>
-    </p>
-  `;
+    </p>`;
+  
+  const replayBtn = document.getElementById('result-replay');
+  if (currentReplay.length > 0 && !activeMods.has('AT')) {
+    replayBtn.style.display = 'inline-block';
+  } else {
+    replayBtn.style.display = 'none';
+  }
+
   document.getElementById('result').classList.add('show');
 }
 
-document.getElementById('result-retry').addEventListener('click', (e) => {
+document.getElementById('result-retry').addEventListener('click', (e) => { e.stopPropagation(); document.getElementById('result').classList.remove('show'); resetGame(); });
+document.getElementById('result-menu').addEventListener('click', (e) => { e.stopPropagation(); showStartMenu(); });
+document.getElementById('result-replay').addEventListener('click', (e) => {
   e.stopPropagation();
   document.getElementById('result').classList.remove('show');
+  isReplaying = true;
   resetGame();
-});
-document.getElementById('result-menu').addEventListener('click', (e) => {
-  e.stopPropagation();
-  showStartMenu();
 });
 
 /* ==================== 校准系统 ==================== */
-let calibActive = false;
-let calibSamples = [];
-let calibStartTime = 0;
-let calibBeatSec = 0.5;
-let calibWindowStart = 0;
-let calibWindowEnd = 0;
-let calibRAF = 0;
+let calibActive = false, calibSamples = [], calibStartTime = 0, calibBeatSec = 0.5, calibWindowStart = 0, calibWindowEnd = 0, calibRAF = 0;
 
 function formatOffset() { return String(Math.round(audioOffset * 1000)); }
 
@@ -1621,43 +1914,34 @@ function startCalibration(e) {
   if (audioCtx.state === 'suspended') audioCtx.resume().catch(() => {});
   
   calibActive = true; calibSamples = [];
-  const overlay = document.getElementById('calib');
-  overlay.classList.add('show');
+  document.getElementById('calib').classList.add('show');
+  document.getElementById('settings-panel').classList.remove('show'); 
   document.getElementById('calib-cur').textContent = formatOffset();
   document.getElementById('calib-status').textContent = '聆听节拍... 4 拍后开始采样';
 
   calibBeatSec = 0.5;
   calibStartTime = audioCtx.currentTime + 0.6;
-  const totalBeats = 8;
-  const sampleStart = 4;
+  const totalBeats = 8, sampleStart = 4;
 
-  for (let i = 0; i < totalBeats; i++) {
-    playCalibSound(calibStartTime + i * calibBeatSec);
-  }
+  for (let i = 0; i < totalBeats; i++) playCalibSound(calibStartTime + i * calibBeatSec);
 
   calibWindowStart = calibStartTime + sampleStart * calibBeatSec;
   calibWindowEnd = calibStartTime + totalBeats * calibBeatSec;
 
-  let nextBeat = 0;
-  let statusUpdated = false;
+  let nextBeat = 0, statusUpdated = false;
   function pulseTick() {
     if (!calibActive) return;
     const now = audioCtx.currentTime;
     while (nextBeat < totalBeats && now >= calibStartTime + nextBeat * calibBeatSec) {
       const el = document.getElementById('calib-pulse');
-      el.classList.remove('beat');
-      void el.offsetWidth;
-      el.classList.add('beat');
+      el.classList.remove('beat'); void el.offsetWidth; el.classList.add('beat');
       if (nextBeat === sampleStart - 1 && !statusUpdated) {
         document.getElementById('calib-status').textContent = '开始采样 → 跟着节拍敲 D/F/J/K 或点屏幕';
         statusUpdated = true;
       }
       nextBeat++;
     }
-    if (now >= calibWindowEnd + 0.4) {
-      finishCalibration();
-      return;
-    }
+    if (now >= calibWindowEnd + 0.4) { finishCalibration(); return; }
     calibRAF = requestAnimationFrame(pulseTick);
   }
   calibRAF = requestAnimationFrame(pulseTick);
@@ -1672,7 +1956,7 @@ function finishCalibration() {
     audioOffset = median / 1000;
     try { localStorage.setItem('mania_offset', String(audioOffset)); } catch(_) {}
     document.getElementById('calib-cur').textContent = Math.round(median);
-    document.getElementById('calib-status').textContent = `完成！偏移 ${Math.round(median)} ms（${calibSamples.length} 个样本），点击下方返回`;
+    document.getElementById('calib-status').textContent = `完成！偏移 ${Math.round(median)} ms（${calibSamples.length} 个样本），点击返回`;
   } else {
     document.getElementById('calib-status').textContent = `采样不足（${calibSamples.length} 个），请重新校准`;
   }
@@ -1696,14 +1980,95 @@ function closeCalibration() {
   if (calibRAF) { cancelAnimationFrame(calibRAF); calibRAF = 0; }
   calibSamples = [];
   document.getElementById('calib').classList.remove('show');
+  document.getElementById('settings-panel').classList.add('show');
 }
+
 document.getElementById('calib-close').addEventListener('click', (e) => { e.stopPropagation(); closeCalibration(); });
 document.getElementById('calib').addEventListener('pointerdown', (e) => {
   if (e.target.id === 'calib-close') return;
   e.preventDefault(); e.stopPropagation(); handleCalibInput();
 });
-
 document.getElementById('calib-link').onclick = (e) => { e.stopPropagation(); startCalibration(e); };
+
+/* ==================== 输入控制 ==================== */
+cv.addEventListener('pointerdown', (e) => {
+  if (e.pointerType === 'mouse' && e.button !== 0) return;
+  e.preventDefault(); if (!running || paused) return;
+  const r = cv.getBoundingClientRect();
+  const x = (e.clientX - r.left) / r.width * W;
+  if (x < 0 || x >= W) return;
+  const lane = Math.floor(x / LANE_W);
+  if (lane < 0 || lane >= laneCount) return;
+  
+  for (const l of pointerLane.values()) if (l === lane) return;
+  pointerLane.set(e.pointerId, lane);
+  try { cv.setPointerCapture(e.pointerId); } catch (_) {}
+  pressLane(lane, 'touch');
+});
+cv.addEventListener('pointerup', (e) => {
+  const lane = pointerLane.get(e.pointerId); if (lane === undefined) return;
+  e.preventDefault(); pointerLane.delete(e.pointerId); releaseLane(lane, 'touch');
+});
+cv.addEventListener('pointercancel', (e) => {
+  const lane = pointerLane.get(e.pointerId); if (lane === undefined) return;
+  pointerLane.delete(e.pointerId); releaseLane(lane, 'touch');
+});
+cv.addEventListener('lostpointercapture', (e) => {
+  const lane = pointerLane.get(e.pointerId); if (lane === undefined) return;
+  pointerLane.delete(e.pointerId); releaseLane(lane, 'touch');
+});
+
+function initPads() {
+  const keys = document.querySelectorAll('.pad-key');
+  keys.forEach(el => {
+    const lane = Number(el.dataset.lane);
+    const onDown = (e) => {
+      e.preventDefault(); e.stopPropagation(); 
+      if (padPointerLane.has(e.pointerId)) return;
+      for (const l of padPointerLane.values()) if (l === lane) return;
+      padPointerLane.set(e.pointerId, lane); 
+      el.classList.add('active');
+      try { el.setPointerCapture(e.pointerId); } catch (_) {}
+      pressLane(lane, 'touch');
+    };
+    const onUp = (e) => {
+      const l = padPointerLane.get(e.pointerId); if (l === undefined) return;
+      e.preventDefault(); padPointerLane.delete(e.pointerId);
+      el.classList.remove('active'); releaseLane(l, 'touch');
+    };
+    el.addEventListener('pointerdown', onDown);
+    el.addEventListener('pointerup', onUp);
+    el.addEventListener('pointercancel', onUp);
+    el.addEventListener('lostpointercapture', onUp);
+    el.addEventListener('contextmenu', (e) => e.preventDefault());
+  });
+}
+function clearAllPadActive() { document.querySelectorAll('.pad-key.active').forEach(el => el.classList.remove('active')); }
+
+window.addEventListener('keydown', (e) => {
+  if (calibActive) {
+    if (e.code === 'Escape') { closeCalibration(); return; }
+    if (e.code === 'Space' || e.code === 'Enter' || KEY_CODES[e.code] !== undefined) {
+      e.preventDefault(); if (!e.repeat) handleCalibInput(); 
+    }
+    return;
+  }
+  if (e.code === 'Escape' && running) { e.preventDefault(); togglePause(); return; }
+  const lane = KEY_CODES[e.code];
+  if (lane === undefined) return;
+  e.preventDefault(); if (e.repeat) return;
+  pressLane(lane, 'kb');
+});
+window.addEventListener('keyup', (e) => {
+  if (calibActive) return;
+  const lane = KEY_CODES[e.code];
+  if (lane === undefined) return;
+  e.preventDefault(); releaseLane(lane, 'kb');
+});
+window.addEventListener('blur', () => { releaseAllLanes(); });
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden && running && !paused && !failed) togglePause();
+});
 
 /* ==================== DPR 变化监听 ==================== */
 let resizeTimer = 0;
@@ -1713,8 +2078,7 @@ window.addEventListener('resize', () => {
     const newDPR = Math.min(window.devicePixelRatio || 1, 2);
     if (newDPR !== DPR) {
       DPR = newDPR;
-      cv.width = W * DPR;
-      cv.height = H * DPR;
+      cv.width = W * DPR; cv.height = H * DPR;
       ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
       buildBgCache();
     }
