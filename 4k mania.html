@@ -382,6 +382,19 @@ function playHitSound(res) {
   src.connect(hp).connect(g).connect(masterGain); src.start(t); src.stop(t + 0.04);
 }
 
+// 修复校准专用的：支持未来预定时间的节拍器音效
+function playCalibSound(t) {
+  if (!audioCtx) return;
+  const o = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
+  o.type = 'sine';
+  o.frequency.setValueAtTime(1000, t);
+  g.gain.setValueAtTime(0.5, t);
+  g.gain.exponentialRampToValueAtTime(0.001, t + 0.05);
+  o.connect(g).connect(masterGain);
+  o.start(t); o.stop(t + 0.06);
+}
+
 function scheduleSynthAhead() {
   if (!audioCtx || !running || gameMode !== 'demo') return;
   const horizon = audioCtx.currentTime + 0.6;
@@ -1125,7 +1138,7 @@ function startCalibration(e) {
 
   for (let i = 0; i < totalBeats; i++) {
     const t = calibStartTime + i * calibBeatSec;
-    playHitSound('PERFECT'); 
+    playCalibSound(t); // 使用支持未来预定时间的专属音效
     const delay = Math.max(0, (t - audioCtx.currentTime) * 1000);
     setTimeout(() => {
       if (!calibActive) return;
