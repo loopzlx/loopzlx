@@ -806,14 +806,19 @@
             '/warp': (arg) => {
                 const target = String(arg || '').trim().toLowerCase();
                 if (target === 'osu!' || target === 'osu') {
-                    addLog('Warp: Target locked → 4K MANIA');
-                    document.body.style.transition = 'filter .5s ease, opacity .5s ease';
-                    document.body.style.filter = 'brightness(0) saturate(0)';
-                    document.body.style.opacity = '0';
-                    // 使用 encodeURI 保证带空格的文件名在部署后也能正确跳转
-                    setTimeout(() => {
-                        window.location.href = encodeURI('./4k mania.html');
-                    }, 500);
+                    const url = encodeURI('./4k mania.html');
+                    addLog('Warp: Target locked → 4K MANIA (new tab)');
+                    // 必须在用户手势（回车/点击）的同步栈内调用，否则会被浏览器拦截
+                    let win = null;
+                    try { win = window.open(url, '_blank'); } catch (e) { win = null; }
+                    if (win) {
+                        // 手动断开 opener，保证新页面无法反向操作当前页
+                        try { win.opener = null; } catch (e) {}
+                    } else {
+                        // 弹窗被拦截：回退为当前页跳转
+                        addLog('Warning: Popup blocked, redirecting in current tab');
+                        window.location.href = url;
+                    }
                 } else if (!target) {
                     addLog('Error: /warp requires a target (try: /warp osu!)');
                 } else {
