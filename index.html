@@ -1,17 +1,23 @@
 <!DOCTYPE html>
-<html lang="zh-CN" class="scroll-smooth">
+<html lang="en" class="scroll-smooth">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="description" content="loopzlx — Frontend Developer / Parkour Athlete / UI-UX Architect">
+    <meta name="theme-color" content="#8a2be2">
+    <meta name="color-scheme" content="dark">
     <meta property="og:title" content="loopzlx | Cyber Nexus Terminal">
     <meta property="og:description" content="Frontend Developer · Parkour Athlete · UI/UX Architect">
+    <!-- ⚠️ 部署前必改：og:image 必须是绝对 URL（如 https://your.domain/avatar.png），
+         相对路径在 Twitter / Facebook / 微信等平台抓取时通常失效 -->
     <meta property="og:image" content="avatar.png">
     <link rel="icon" href="avatar.png">
     <title>loopzlx | Cyber Nexus Terminal</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <!-- FIX: Tailwind CDN 为浏览器内 JIT，仅适合开发/单文件预览。生产环境请替换为构建产物：
+         npx tailwindcss -o dist.css --minify  -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
@@ -68,7 +74,7 @@
             to   { transform: translateX(calc(-100vw - 100%)); }
         }
 
-        /* ========= 命令效果关键帧（之前缺失） ========= */
+        /* ========= 命令效果关键帧 ========= */
         @keyframes shake {
             0%, 100% { transform: translate(0, 0); }
             25%      { transform: translate(2px, -2px); }
@@ -82,18 +88,21 @@
 
         #log-window { position:fixed; bottom:24px; right:24px; width:280px; height:160px; background:rgba(0,0,0,.85); border-left:3px solid var(--primary); backdrop-filter:blur(15px); z-index:1000; padding:12px; font-family:'Share Tech Mono', monospace; display:flex; flex-direction:column; pointer-events:auto; transition:all .5s; box-shadow:0 15px 35px rgba(0,0,0,.6); background-image:linear-gradient(rgba(18,16,16,0) 50%,rgba(0,0,0,.1) 50%),linear-gradient(90deg,rgba(255,0,0,.03),rgba(0,255,0,.01),rgba(0,0,255,.03)); background-size:100% 2px,3px 100%; }
         /* 去掉 smooth，避免高频 addLog 时滚动排队卡顿 */
-        #log-content { overflow-y:auto; flex:1; font-size:10px; color:rgba(255,255,255,.5); padding-right:4px; }
+        #log-content { overflow-y:auto; flex:1; font-size:10px; color:rgba(255,255,255,.62); padding-right:4px; }
         .log-entry { margin-bottom:4px; animation:log-in .3s ease-out; line-height:1.2; word-break:break-word; }
         @keyframes log-in { from { opacity:0; transform:translateX(10px); } to { opacity:1; transform:translateX(0); } }
         .log-time { color:var(--primary); margin-right:6px; font-weight:bold; }
         #log-mode { font-weight:bold; transition:color .5s; } body.hacker-mode #log-mode { color:#ff003c; text-shadow:0 0 8px #ff003c; }
 
         .glass-card { position: relative; background: rgba(255,255,255,.02); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,.05); background-image: linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px); background-size: 10px 10px; transition: all .3s ease; }
+        /* FIX: backdrop-filter 无支持时回退到半透明纯色，避免玻璃感丢失后变成几乎透明 */
+        @supports not (backdrop-filter: blur(1px)) {
+            .glass-card { background: rgba(20,10,30,.85); }
+        }
         .glass-card::before, .glass-card::after { content: ''; position: absolute; width: 15px; height: 15px; border: 2px solid var(--primary); pointer-events: none; transition: border-color 0.3s; }
         .glass-card::before { top: -1px; left: -1px; border-right: none; border-bottom: none; }
         .glass-card::after { bottom: -1px; right: -1px; border-left: none; border-top: none; }
         body.hacker-mode .glass-card::before, body.hacker-mode .glass-card::after { border-color: var(--secondary); }
-        /* hover 光晕跟随主题（color-mix 兼容浏览器覆盖，旧版回退到紫） */
         .glass-card:hover {
             border-color: rgba(138,43,226,0.3);
             border-color: color-mix(in srgb, var(--primary) 30%, transparent);
@@ -124,8 +133,10 @@
         .cursor-blink::after { content:''; display:inline-block; width:8px; height:1.2em; background:var(--secondary); margin-left:4px; vertical-align:middle; animation:blink .8s infinite; }
         @keyframes blink { 50% { opacity:0; } }
 
-        .project-item img { filter: grayscale(100%) contrast(1.2) brightness(0.5) sepia(100%) hue-rotate(220deg); transition: all 0.5s ease; }
+        .project-item img { filter: grayscale(100%) contrast(1.1) brightness(0.7) sepia(100%) hue-rotate(220deg); transition: all 0.5s ease; }
         .project-item:hover img { filter: grayscale(0%) contrast(1) brightness(1) sepia(0%); transform: scale(1.05); }
+        /* 兜底占位图不套滤镜，保证任何情况下都能看见 */
+        .project-item img.is-fallback { filter: none !important; transform: none !important; }
 
         .terminal-input-wrapper { position: relative; flex-grow: 1; display: flex; align-items: center; }
         .terminal-prompt { position: absolute; left: 4px; color: var(--primary); font-family: 'Share Tech Mono', monospace; font-size: 16px; opacity: 0.7; animation: blink 1s step-end infinite; }
@@ -143,6 +154,10 @@
         /* ===== 音频播放器补全 ===== */
         .player-label { font-size: 9px; letter-spacing: .2em; color: rgba(255,255,255,.5); }
         #play-btn { display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; flex-shrink: 0; }
+        /* FIX: bgm.mp3 缺失 / 加载失败时播放器降级，避免"点了没反应"的困惑 */
+        .audio-player.no-signal { opacity: .45; border-color: rgba(255,255,255,.15); pointer-events: none; }
+        .audio-player.no-signal .player-label { color: var(--secondary); }
+        .audio-player.no-signal .disc-anim { animation-play-state: paused; }
 
         /* ===== 顶部导航适配补丁 ===== */
         #main-nav {
@@ -163,6 +178,9 @@
             padding-top: calc(.75rem + env(safe-area-inset-top, 0px));
             padding-bottom: .75rem;
         }
+        @supports not (backdrop-filter: blur(1px)) {
+            #main-nav.scrolled { background: rgba(0,0,0,.92); }
+        }
         #main-nav .nav-links > a { position: relative; }
         #main-nav .nav-links > a::after {
             content:''; position:absolute; left:0; bottom:-6px; width:0; height:1px;
@@ -180,7 +198,6 @@
             transition: border-color .3s;
         }
         .lang-switch:hover { border-color: rgba(138,43,226,.5); }
-        /* 使用 button 元素，重置默认外观 */
         .lang-btn {
             background: none;
             border: 0;
@@ -259,7 +276,6 @@
                 <span id="logo-main" style="color:var(--primary)">LOOPZLX</span>
             </a>
 
-            <!-- 调整为 xl:flex，避免在平板/中等宽度屏（如 lg 断点 1024px）下导致内容过多挤压换行 -->
             <div class="nav-links hidden xl:flex items-center gap-6 xl:gap-8 text-[11px] font-bold uppercase tracking-widest whitespace-nowrap">
                 <a href="#home"     data-en="Home"     data-zh="主页" class="text-white/60 hover:text-white hover:drop-shadow-[0_0_8px_var(--primary)] transition-all">Home</a>
                 <a href="#about"    data-en="About"    data-zh="关于" class="text-white/60 hover:text-white hover:drop-shadow-[0_0_8px_var(--primary)] transition-all">About</a>
@@ -273,13 +289,11 @@
                 <a href="mailto:yq6751@outlook.com" class="px-5 py-2 rounded-full border border-white/20 hover:bg-white hover:text-black transition-all" data-en="Contact" data-zh="联系">Contact</a>
             </div>
 
-            <!-- 按钮对应改为 xl:hidden -->
             <button id="menu-toggle" class="xl:hidden text-white text-lg w-10 h-10 shrink-0 flex items-center justify-center border border-white/20 rounded-lg hover:border-[var(--primary)] transition-colors" aria-label="Toggle menu" aria-expanded="false">
                 <i class="fas fa-bars"></i>
             </button>
         </div>
 
-        <!-- 下拉菜单同步改为 xl:hidden -->
         <div id="mobile-menu" class="hidden xl:hidden flex-col gap-4 max-w-7xl mx-auto mt-4 p-5 border border-white/10 rounded-2xl bg-black/95 backdrop-blur-xl text-[11px] font-bold uppercase tracking-widest">
             <a href="#home"     data-en="Home"     data-zh="主页" class="text-white/70 hover:text-white py-1">Home</a>
             <a href="#about"    data-en="About"    data-zh="关于" class="text-white/70 hover:text-white py-1">About</a>
@@ -299,7 +313,7 @@
             <div class="text-[7px] sm:text-[10px] font-mono uppercase tracking-[0.2em] sm:tracking-[0.3em] text-left" style="color:var(--primary)" data-en="Neural Link: Stable" data-zh="神经连接：稳定">Neural Link: Stable</div>
             <div class="text-right font-mono">
                 <div id="live-clock" class="text-sm sm:text-2xl font-bold text-white tracking-tighter">00:00:00</div>
-                <div id="live-date" class="text-[7px] sm:text-[10px] text-gray-500 mt-1 uppercase tracking-wider sm:tracking-widest">2026.02.15 SUN</div>
+                <div id="live-date" class="text-[7px] sm:text-[10px] text-gray-500 mt-1 uppercase tracking-wider sm:tracking-widest">----.--.-- ---</div>
             </div>
         </div>
 
@@ -348,7 +362,7 @@
                 </div>
             </div>
             <div class="flex justify-center items-center reveal min-h-[280px] sm:min-h-[360px] lg:min-h-[400px]">
-                <svg id="radar-svg" viewBox="0 0 400 400" class="w-full max-w-[400px] h-auto drop-shadow-[0_0_15px_rgba(255,105,180,0.2)]">
+                <svg id="radar-svg" viewBox="0 0 400 400" role="img" aria-label="Skill matrix radar chart" class="w-full max-w-[400px] h-auto drop-shadow-[0_0_15px_rgba(255,105,180,0.2)]">
                     <g id="radar-grids"></g>
                     <g id="radar-axes"></g>
                     <polygon id="radar-value-area" points="200,200 200,200 200,200 200,200 200,200 200,200" fill="rgba(138,43,226,0.2)" stroke="var(--secondary)" stroke-width="2"/>
@@ -365,9 +379,9 @@
                 <div class="w-20 h-1.5" style="background-color:var(--primary); box-shadow: 0 0 10px var(--primary);"></div>
             </div>
             <div class="flex flex-wrap gap-4 md:gap-8 text-[10px] font-bold uppercase tracking-widest">
-                <button class="filter-btn active" data-filter="all" data-en="All" data-zh="全部">All</button>
-                <button class="filter-btn text-gray-600 hover:text-white" data-filter="dev" data-en="Dev" data-zh="开发">Dev</button>
-                <button class="filter-btn text-gray-600 hover:text-white" data-filter="parkour" data-en="Parkour" data-zh="跑酷">Parkour</button>
+                <button class="filter-btn active" data-filter="all" data-en="All" data-zh="全部" aria-pressed="true">All</button>
+                <button class="filter-btn text-gray-500 hover:text-white" data-filter="dev" data-en="Dev" data-zh="开发" aria-pressed="false">Dev</button>
+                <button class="filter-btn text-gray-500 hover:text-white" data-filter="parkour" data-en="Parkour" data-zh="跑酷" aria-pressed="false">Parkour</button>
             </div>
         </div>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8" id="project-grid"></div>
@@ -379,7 +393,7 @@
         <div class="glass-card p-5 md:p-8 rounded-2xl md:rounded-3xl flex flex-col md:flex-row gap-4 md:gap-6 items-stretch md:items-center">
             <div class="terminal-input-wrapper">
                 <span class="terminal-prompt">>_</span>
-                <input type="text" id="danmaku-input" maxlength="30"
+                <input type="text" id="danmaku-input" maxlength="30" aria-label="Command input"
                        data-en-ph="Type /help for command list..." data-zh-ph="输入 /help 查看命令列表..."
                        placeholder="Type /help for command list..."
                        class="bg-transparent border-b border-white/20 w-full outline-none px-3 py-2 text-sm font-mono text-white placeholder-gray-600 focus:border-[var(--primary)] transition-all">
@@ -388,10 +402,10 @@
         </div>
     </section>
 
-    <footer class="py-12 md:py-20 text-center opacity-30 text-[10px] tracking-[0.6em] md:tracking-[1em] uppercase">© 2026 loopzlx</footer>
+    <footer class="py-12 md:py-20 text-center opacity-40 text-[10px] tracking-[0.6em] md:tracking-[1em] uppercase">© 2026 loopzlx</footer>
 
-    <!-- ===== 音频播放器（之前只有 CSS/JS，HTML 缺失） ===== -->
-    <!-- 请将你的背景音乐文件命名为 bgm.mp3 并放到同目录 -->
+    <!-- ===== 音频播放器 ===== -->
+    <!-- 请将你的背景音乐文件命名为 bgm.mp3 并放到同目录；缺失时播放器会自动降级为 OFFLINE -->
     <div class="audio-player" id="audio-container">
         <div class="disc-anim"></div>
         <div class="spectrum">
@@ -437,7 +451,7 @@
                 words: ["前端开发者", "跑酷运动员", "UI/UX 设计师"]
             },
             en: {
-                quote: "“In the forest of code, I am the algorithm finding the path; in the concrete ruins of the city, I am the traitor of gravity.”",
+                quote: '"In the forest of code, I am the algorithm finding the path; in the concrete ruins of the city, I am the traitor of gravity."',
                 words: ["Frontend Developer", "Parkour Athlete", "UI/UX Architect"]
             }
         };
@@ -451,18 +465,43 @@
             { en: "Logic",  zh: "逻辑", val: 0.88 }
         ];
 
+        /* FIX: 替换为固定且无人物元素的 Unsplash 高质量科技/城市图片，彻底告别随机图源的“盲盒人像”问题 */
         const projectList = [
-            { cat: 'dev',     title: 'Cyber Terminal', en: 'CLI Portfolio',   zh: '终端作品集' },
-            { cat: 'parkour', title: 'Flow Archive',   en: 'Urban Movement',  zh: '城市影像' },
-            { cat: 'dev',     title: 'Neural Matrix',  en: 'SVG Data Viz',    zh: '数据可视化' }
+            { 
+                cat: 'dev',     
+                title: 'Cyber Terminal', 
+                en: 'CLI Portfolio',   
+                zh: '终端作品集',
+                img: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?q=80&w=600&auto=format&fit=crop' 
+            },
+            { 
+                cat: 'parkour', 
+                title: 'Flow Archive',   
+                en: 'Urban Movement',  
+                zh: '城市影像',
+                img: 'https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?q=80&w=600&auto=format&fit=crop' 
+            },
+            { 
+                cat: 'dev',     
+                title: 'Neural Matrix',  
+                en: 'SVG Data Viz',    
+                zh: '数据可视化',
+                img: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=600&auto=format&fit=crop' 
+            }
         ];
 
         let currentLang = 'en';
         let typingWords = config.en.words;
         let typeTimer = null, wI = 0, cI = 0, isDeleting = false;
         let matrixRunning = false, matrixRaf = null, matrixWasRunning = false;
+        // IMPROVE: Matrix 代码雨颜色跟随 --primary（黑客模式绿、普通模式紫、/disco 期间实时同步）
+        let matrixColor = '#0f0';
         let discoTimer = null, gravityTimer = null;
-        let glitchTimer = null, vibrateTimer = null;
+        let glitchTimer = null, vibrateTimer = null, echoTimer = null;
+        // FIX: /help 加锁，避免快速重复输入时叠加多组定时器
+        let helpRunning = false;
+        // FIX: 不再污染 window.mDrops，改为模块级变量
+        let mDrops = [];
 
         const $ = id => document.getElementById(id);
         const logContent = $('log-content');
@@ -472,6 +511,11 @@
         const mCtx = mCanvas ? mCanvas.getContext('2d') : null;
         const dCont = $('danmaku-container');
         const audio = $('bg-audio');
+
+        // IMPROVE: 统一判断系统是否偏好减少动效（CSS 层已降级，JS 层也需要配合）
+        function prefersReducedMotion() {
+            return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+        }
 
         function addLog(msg) {
             if (!logContent) return;
@@ -498,11 +542,26 @@
             if (!config[lang]) return;
             currentLang = lang;
             document.documentElement.lang = (lang === 'zh') ? 'zh-CN' : 'en';
-            document.querySelectorAll('[data-original]').forEach(n => delete n.dataset.original);
+            // FIX: 先恢复 /binary 造成的文本改写，再删除标记；
+            //      否则无 data-en 的节点（如 h1）会永久停留在数字状态。
+            document.querySelectorAll('[data-original]').forEach(n => {
+                n.textContent = n.dataset.original;
+                delete n.dataset.original;
+            });
             document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.lang === lang));
+            // FIX: 仅替换直接文本子节点，保留子元素（如图标 <i>），防止未来加图标被抹掉
             document.querySelectorAll('[data-en]').forEach(el => {
                 const v = el.getAttribute('data-' + lang);
-                if (v !== null) el.textContent = v;
+                if (v === null) return;
+                let hasElementChild = false;
+                el.childNodes.forEach(n => { if (n.nodeType === 1) hasElementChild = true; });
+                if (hasElementChild) {
+                    el.childNodes.forEach(n => {
+                        if (n.nodeType === 3 && n.textContent.trim()) n.textContent = v;
+                    });
+                } else {
+                    el.textContent = v;
+                }
             });
             document.querySelectorAll('[data-en-ph]').forEach(el => {
                 const v = el.getAttribute('data-' + lang + '-ph');
@@ -586,7 +645,21 @@
                 labels.appendChild(txt);
             });
             updateRadarLabels();
-            animateRadar();
+
+            /* IMPROVE: 入场动画延迟到雷达进入视口时触发一次，
+               避免用户还没滚到这里动画已经播完（首屏就执行的浪费） */
+            const svg = $('radar-svg');
+            if (!svg) { animateRadar(); return; }
+            let animated = false;
+            const run = () => { if (animated) return; animated = true; animateRadar(); };
+            if ('IntersectionObserver' in window) {
+                const io = new IntersectionObserver(entries => {
+                    entries.forEach(e => { if (e.isIntersecting) { run(); io.disconnect(); } });
+                }, { threshold: 0.2 });
+                io.observe(svg);
+            } else {
+                run();
+            }
         }
 
         function updateRadarLabels() {
@@ -599,40 +672,85 @@
         function animateRadar() {
             const area = $('radar-value-area');
             if (!area) return;
-            const start = performance.now(), DURATION = 1200;
-            function frame(now) {
-                const p = Math.min((now - start) / DURATION, 1);
-                const e = 1 - Math.pow(1 - p, 3);
+            const apply = (e) => {
                 area.setAttribute('points', radarData.map((d, i) => {
                     const rr = RADAR_R * d.val * e;
                     return `${RADAR_CX + rr * Math.cos(radarAngle(i))},${RADAR_CY + rr * Math.sin(radarAngle(i))}`;
                 }).join(' '));
+            };
+            // IMPROVE: 减少动效偏好下直接落到终值，不播动画
+            if (prefersReducedMotion()) { apply(1); return; }
+            const start = performance.now(), DURATION = 1200;
+            function frame(now) {
+                const p = Math.min((now - start) / DURATION, 1);
+                const e = 1 - Math.pow(1 - p, 3);
+                apply(e);
                 if (p < 1) requestAnimationFrame(frame);
             }
             requestAnimationFrame(frame);
         }
 
+        /* 生成内联 SVG 占位图（零网络请求，永远能显示，风格与暗紫主题一致） */
+        function makeFallbackSvg(title) {
+            const safeTitle = String(title).replace(/[<>&"]/g, '');
+            const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="600" height="400">
+                <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0" stop-color="#8a2be2"/><stop offset="1" stop-color="#ff69b4"/>
+                </linearGradient></defs>
+                <rect width="600" height="400" fill="#0a0a0a"/>
+                <rect width="600" height="400" fill="url(#g)" opacity="0.18"/>
+                <text x="300" y="200" fill="#ffffff" font-family="monospace" font-size="20"
+                      text-anchor="middle" dominant-baseline="middle" opacity="0.7">${safeTitle}</text>
+            </svg>`;
+            return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
+        }
+
+        /* FIX: 简化的图片渲染逻辑，直接使用固定 src，彻底解决随机 API 抽到人物的问题 */
         function initProjects() {
             const grid = $('project-grid');
             if (!grid) return;
-            grid.innerHTML = projectList.map((p, i) => `
+
+            grid.innerHTML = projectList.map((p) => {
+                return `
                 <div class="project-item reveal glass-card rounded-2xl md:rounded-[2.5rem] overflow-hidden group" data-category="${p.cat}">
                     <div class="h-48 md:h-60 bg-gray-900 relative overflow-hidden">
-                        <img src="https://picsum.photos/600/400?random=${i}" alt="${p.title}" loading="lazy" width="600" height="400" class="w-full h-full object-cover">
+                        <img src="${p.img}"
+                             alt="${p.title}" loading="lazy" width="600" height="400"
+                             class="w-full h-full object-cover">
                     </div>
                     <div class="p-6 md:p-8">
                         <h3 class="text-lg md:text-xl font-bold text-white mb-2 uppercase tracking-wide">${p.title}</h3>
-                        <p class="text-gray-500 text-sm font-light mb-0" data-en="${p.en}" data-zh="${p.zh}">${p.en}</p>
+                        <p class="text-gray-400 text-sm font-light mb-0" data-en="${p.en}" data-zh="${p.zh}">${p.en}</p>
                     </div>
-                </div>`).join('');
+                </div>`;
+            }).join('');
+
+            /* 统一兜底：任意图源失败（被墙/超时/404）自动回退到内联 SVG，
+               并给 img 加 .is-fallback，让 CSS 跳过暗调滤镜，保证占位图清晰可见 */
+            grid.querySelectorAll('img').forEach(img => {
+                img.addEventListener('error', function handler() {
+                    this.removeEventListener('error', handler);
+                    this.classList.add('is-fallback');
+                    this.src = makeFallbackSvg(this.alt);
+                });
+            });
         }
 
         function initFilters() {
             const btns = document.querySelectorAll('.filter-btn');
             btns.forEach(btn => {
                 btn.addEventListener('click', () => {
-                    btns.forEach(b => { b.classList.remove('active'); b.classList.add('text-gray-600'); b.classList.remove('text-white'); });
-                    btn.classList.add('active'); btn.classList.remove('text-gray-600'); btn.classList.add('text-white');
+                    btns.forEach(b => {
+                        b.classList.remove('active');
+                        b.classList.add('text-gray-500');
+                        b.classList.remove('text-white');
+                        // 同步 aria-pressed 状态
+                        b.setAttribute('aria-pressed', 'false');
+                    });
+                    btn.classList.add('active');
+                    btn.classList.remove('text-gray-500');
+                    btn.classList.add('text-white');
+                    btn.setAttribute('aria-pressed', 'true');
                     const filter = btn.dataset.filter;
                     document.querySelectorAll('.project-item').forEach(item => {
                         item.style.display = (filter === 'all' || item.dataset.category === filter) ? '' : 'none';
@@ -647,16 +765,20 @@
             const el = document.createElement('div');
             el.className = 'danmaku-item';
             el.textContent = text;
-            const top = Math.random() * 80 + 5, dur = Math.random() * 5 + 10;
+            /* FIX: 弹幕纵向范围收窄到 5%~65%，避开左下播放器和右下日志窗 */
+            const top = Math.random() * 60 + 5, dur = Math.random() * 5 + 10;
+            // 与 prefers-reduced-motion 的 6s 动画对齐，避免元素在屏幕上卡住
+            const reduceMotion = prefersReducedMotion();
+            const actualDur = reduceMotion ? 6 : dur;
             el.style.top = top + '%';
-            el.style.animationDuration = dur + 's';
+            el.style.animationDuration = actualDur + 's';
             if (isSelf) {
                 el.style.color = 'var(--secondary)';
                 el.style.fontSize = '18px';
                 el.style.textShadow = '0 0 10px var(--secondary)';
             }
             dCont.appendChild(el);
-            setTimeout(() => el.remove(), dur * 1000);
+            setTimeout(() => el.remove(), actualDur * 1000);
         }
 
         /* ========= Matrix 画布：支持 DPR 高清渲染 ========= */
@@ -670,13 +792,29 @@
             mCanvas.style.height = h + 'px';
             mCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
             const cols = Math.max(1, Math.floor(w / 18));
-            window.mDrops = new Array(cols).fill(1);
+            mDrops = new Array(cols).fill(1);
+        }
+
+        // IMPROVE: 代码雨颜色跟随 --primary（黑客模式绿、普通模式紫）
+        function refreshMatrixColor() {
+            try {
+                const c = getComputedStyle(document.body).getPropertyValue('--primary').trim();
+                matrixColor = c || '#0f0';
+            } catch (e) {
+                matrixColor = '#0f0';
+            }
         }
 
         function startMatrix() {
             if (matrixRunning || !mCtx) return;
+            // IMPROVE: 尊重系统「减少动态效果」偏好，跳过动画
+            if (prefersReducedMotion()) {
+                addLog('System: Motion reduced — matrix stream skipped');
+                return;
+            }
             matrixRunning = true;
             initMatrix();
+            refreshMatrixColor();
             mCtx.clearRect(0, 0, window.innerWidth, window.innerHeight);
             matrixRaf = requestAnimationFrame(drawMatrix);
         }
@@ -686,12 +824,12 @@
             const w = window.innerWidth, h = window.innerHeight;
             mCtx.fillStyle = 'rgba(0,0,0,.05)';
             mCtx.fillRect(0, 0, w, h);
-            mCtx.fillStyle = '#0f0';
+            mCtx.fillStyle = matrixColor;
             mCtx.font = '18px monospace';
-            window.mDrops.forEach((y, i) => {
+            mDrops.forEach((y, i) => {
                 mCtx.fillText(String.fromCharCode(Math.floor(Math.random() * 128)), i * 18, y * 18);
-                if (y * 18 > h && Math.random() > 0.975) window.mDrops[i] = 0;
-                window.mDrops[i]++;
+                if (y * 18 > h && Math.random() > 0.975) mDrops[i] = 0;
+                mDrops[i]++;
             });
             matrixRaf = requestAnimationFrame(drawMatrix);
         }
@@ -712,6 +850,7 @@
             document.body.style.animation = 'none';
             if (logMode) logMode.textContent = 'STABLE';
             stopMatrix();
+            matrixColor = '#0f0';
             if (mCanvas) {
                 mCanvas.style.opacity = '0';
                 mCanvas.style.background = 'transparent';
@@ -720,11 +859,15 @@
             if (gravityTimer) { clearTimeout(gravityTimer); gravityTimer = null; }
             if (glitchTimer) { clearTimeout(glitchTimer); glitchTimer = null; }
             if (vibrateTimer) { clearTimeout(vibrateTimer); vibrateTimer = null; }
+            if (echoTimer) { clearTimeout(echoTimer); echoTimer = null; }
             resetGravity();
             document.querySelectorAll('[data-original]').forEach(node => { node.textContent = node.dataset.original; delete node.dataset.original; });
             document.querySelectorAll('h1, h2, .glass-card').forEach(el => { el.style.textShadow = ''; });
-            document.documentElement.style.setProperty('--primary', '#8a2be2');
-            document.documentElement.style.setProperty('--secondary', '#ff69b4');
+            // 同时清理 html/body 上的内联变量，回退到 CSS 默认
+            document.documentElement.style.removeProperty('--primary');
+            document.documentElement.style.removeProperty('--secondary');
+            document.body.style.removeProperty('--primary');
+            document.body.style.removeProperty('--secondary');
         }
 
         const commands = {
@@ -746,7 +889,13 @@
                 document.querySelectorAll('h1, h2, .glass-card').forEach(el => {
                     el.style.textShadow = '5px 5px 0 var(--primary), -5px -5px 0 var(--secondary)';
                 });
-                addLog('Effect: Visual echo synchronized');
+                addLog('Effect: Visual echo synchronized (auto restore in 10s)');
+                if (echoTimer) clearTimeout(echoTimer);
+                echoTimer = setTimeout(() => {
+                    document.querySelectorAll('h1, h2, .glass-card').forEach(el => { el.style.textShadow = ''; });
+                    echoTimer = null;
+                    addLog('System: Echo cleared');
+                }, 10000);
             },
             '/vibrate': () => {
                 document.body.style.animation = 'shake .2s infinite';
@@ -762,8 +911,13 @@
                 if (discoTimer) clearInterval(discoTimer);
                 discoTimer = setInterval(() => {
                     const h = Math.floor(Math.random() * 360);
-                    document.documentElement.style.setProperty('--primary', `hsl(${h},100%,50%)`);
-                    document.documentElement.style.setProperty('--secondary', `hsl(${(h + 150) % 360},100%,50%)`);
+                    const p = `hsl(${h},100%,50%)`;
+                    const s = `hsl(${(h + 150) % 360},100%,50%)`;
+                    // 写到 body，因为 body.hacker-mode 会在 body 上重定义 --primary/--secondary
+                    document.body.style.setProperty('--primary', p);
+                    document.body.style.setProperty('--secondary', s);
+                    // IMPROVE: 若 Matrix 正在运行，同步代码雨颜色
+                    if (matrixRunning) matrixColor = p;
                 }, 150);
                 addLog('System: Neural rave active');
             },
@@ -785,7 +939,6 @@
                 document.body.style.filter = 'contrast(1.5) saturate(2) hue-rotate(45deg)';
                 document.body.style.animation = 'v-flicker .06s infinite';
                 addLog('Critical: Data corruption detected');
-                // 关键：3 秒后自动恢复，避免永久重绘拖死页面
                 if (glitchTimer) clearTimeout(glitchTimer);
                 glitchTimer = setTimeout(() => {
                     document.body.style.filter = 'none';
@@ -806,16 +959,15 @@
             '/warp': (arg) => {
                 const target = String(arg || '').trim().toLowerCase();
                 if (target === 'osu!' || target === 'osu') {
+                    // 注意：4k mania.html 需与 index.html 同目录，否则会 404
                     const url = encodeURI('./4k mania.html');
                     addLog('Warp: Target locked → 4K MANIA (new tab)');
                     // 必须在用户手势（回车/点击）的同步栈内调用，否则会被浏览器拦截
                     let win = null;
                     try { win = window.open(url, '_blank'); } catch (e) { win = null; }
                     if (win) {
-                        // 手动断开 opener，保证新页面无法反向操作当前页
                         try { win.opener = null; } catch (e) {}
                     } else {
-                        // 弹窗被拦截：回退为当前页跳转
                         addLog('Warning: Popup blocked, redirecting in current tab');
                         window.location.href = url;
                     }
@@ -830,11 +982,16 @@
                 addLog('Session reset');
             },
             '/help': async () => {
-                addLog('Available commands:');
-                for (const key of Object.keys(commands)) {
+                // FIX: 加锁，避免快速重复输入 /help 时多组循环叠加
+                if (helpRunning) { addLog('Warning: /help already running'); return; }
+                helpRunning = true;
+                // IMPROVE: 列表不再重复列出 /help 自身，改为在提示里说明
+                addLog('Available commands (type /help to repeat):');
+                for (const key of Object.keys(commands).filter(k => k !== '/help')) {
                     await new Promise(r => setTimeout(r, 120));
                     addLog('Cmd: ' + (key === '/warp' ? '/warp osu!' : key));
                 }
+                helpRunning = false;
             }
         };
 
@@ -874,9 +1031,23 @@
         function initAudio() {
             const playBtn = $('play-btn');
             if (!playBtn || !audio) return;
+
+            // FIX: bgm.mp3 缺失 / 网络错误时降级为 OFFLINE，而不是"点了没反应"
+            const markOffline = () => {
+                const cont = $('audio-container');
+                if (cont) cont.classList.add('no-signal');
+                const label = cont && cont.querySelector('.player-label');
+                if (label) label.textContent = 'OFFLINE';
+            };
+            audio.addEventListener('error', () => {
+                markOffline();
+                addLog('Warning: Audio source offline');
+            });
+
             playBtn.addEventListener('click', () => {
                 const icon = $('play-icon'), cont = $('audio-container');
                 if (!icon || !cont) return;
+                if (cont.classList.contains('no-signal')) return;
                 if (audio.paused) {
                     const p = audio.play();
                     if (p && p.then) {
@@ -884,7 +1055,11 @@
                             icon.className = 'fas fa-pause text-white';
                             cont.classList.add('playing');
                             addLog('Audio: Stream active');
-                        }).catch(() => addLog('Warning: Audio stream unavailable'));
+                        }).catch(() => {
+                            // FIX: 播放失败（文件缺失 / 解码失败 / 自动播放策略）同样降级
+                            markOffline();
+                            addLog('Warning: Audio stream unavailable');
+                        });
                     }
                 } else {
                     audio.pause();
@@ -912,7 +1087,6 @@
                 const bc = $('broadcast-btn');
                 if (bc) bc.addEventListener('click', sendDanmaku);
                 const di = $('danmaku-input');
-                // 修正：keypress 已废弃，改用 keydown
                 if (di) di.addEventListener('keydown', e => { if (e.key === 'Enter') sendDanmaku(); });
 
                 window.addEventListener('scroll', () => {
