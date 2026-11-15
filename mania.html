@@ -285,6 +285,79 @@
   }
   .keybind-item input:focus { border-bottom-color: var(--secondary); }
 
+  /* ======= 下载窗口样式 ======= */
+  #download-panel {
+    position: fixed; inset: 0; display: none; flex-direction: column;
+    align-items: center; justify-content: center; z-index: 60;
+    background: rgba(0,0,0,0.9); backdrop-filter: blur(8px); padding: 20px;
+  }
+  #download-panel .glass-card {
+    max-width: 760px; height: 85vh; display: flex; flex-direction: column;
+    padding: 15px 20px;
+  }
+  
+  .search-bar {
+    display: flex; gap: 8px; margin-bottom: 12px;
+  }
+  .search-bar input {
+    flex: 1; padding: 10px 15px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1);
+    background: rgba(0,0,0,0.5); color: #fff; font-family: 'Share Tech Mono', monospace;
+    font-size: 15px; outline: none; transition: border-color 0.2s;
+  }
+  .search-bar input:focus { border-color: var(--secondary); }
+  .search-bar .btn { margin: 0; padding: 0 20px; display: flex; align-items: center; justify-content: center; }
+
+  /* 筛选区域排版 */
+  #filter-bar {
+    display: flex; flex-direction: column; gap: 8px;
+    margin-bottom: 12px; text-align: left; font-size: 12px;
+    background: rgba(0,0,0,0.3); padding: 10px; border-radius: 6px;
+    border: 1px solid rgba(255,255,255,0.05);
+  }
+  .filter-group { display: flex; align-items: flex-start; gap: 10px; }
+  .filter-label { color: var(--text-dim); min-width: 50px; font-weight: bold; }
+  .filter-options { display: flex; flex-wrap: wrap; gap: 8px; }
+  .filter-opt {
+    color: #aaa; cursor: pointer; transition: color 0.15s;
+    padding: 2px 6px; border-radius: 3px;
+  }
+  .filter-opt:hover { color: #fff; background: rgba(255,255,255,0.1); }
+  .filter-opt.active { color: var(--secondary); font-weight: bold; text-shadow: 0 0 5px rgba(255,105,180,0.5); }
+  .filter-opt.active::before { content: '✔ '; font-size: 10px; }
+
+  /* 排序表头 */
+  .sort-header {
+    display: flex; align-items: center; gap: 15px; 
+    padding: 8px 10px; background: rgba(255,255,255,0.05); 
+    border-radius: 6px; margin-bottom: 10px; font-size: 12px;
+    flex-wrap: wrap;
+  }
+  .sort-label { color: var(--text-dim); font-weight: bold; }
+  .sort-btn {
+    color: #aaa; cursor: pointer; transition: color 0.15s;
+    display: flex; align-items: center; gap: 4px; user-select: none;
+  }
+  .sort-btn:hover { color: #fff; }
+  .sort-btn.active { color: #fff; font-weight: bold; }
+  .sort-btn .sort-icon { font-size: 10px; color: var(--secondary); }
+
+  #search-results {
+    flex: 1; overflow-y: auto; text-align: left;
+    display: flex; flex-direction: column; gap: 8px;
+    padding-right: 4px;
+  }
+  #search-results::-webkit-scrollbar { width: 6px; }
+  #search-results::-webkit-scrollbar-thumb { background: rgba(138,43,226,0.5); border-radius: 3px; }
+  
+  #search-results .song-item { padding: 10px; }
+  #search-results .song-item img {
+    width: 60px; height: 60px; object-fit: cover; border-radius: 4px; margin-right: 12px;
+    background: #222;
+  }
+  #search-results .song-item .btn {
+    margin: 0; padding: 6px 10px; font-size: 12px; letter-spacing: 1px;
+  }
+
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
   }
@@ -314,6 +387,7 @@
     <div class="btn primary" id="demo-btn" style="margin-top: 15px; width: 100%;">▶ 体验内置演示曲目</div>
     
     <div class="calib-link" id="toggle-upload" style="margin-top: 20px;">📁 导入 osu! 谱面 / .osz</div>
+    <div class="calib-link" id="open-download" style="margin-top: 12px; color: var(--gold); border-color: var(--gold);">🌐 在线搜索 / 下载谱面</div>
     
     <div id="upload-panel" style="display: none;">
       <div id="upload-zone">
@@ -330,6 +404,72 @@
         <span id="clear-songs-btn">清空</span>
       </div>
       <div id="song-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- 在线搜索 / 下载面板 -->
+<div id="download-panel">
+  <div class="glass-card">
+    <h1>DOWNLOAD</h1>
+    
+    <div class="search-bar">
+      <input type="text" id="search-input" placeholder="输入歌名、艺术家或谱面集 ID...">
+      <div class="btn primary" id="search-btn">搜索</div>
+    </div>
+
+    <!-- 筛选与排序区域 -->
+    <div id="filter-bar">
+      <div class="filter-group">
+        <span class="filter-label">常规</span>
+        <div class="filter-options" id="filter-general">
+          <span class="filter-opt active" data-type="general" data-value="">全部</span>
+          <span class="filter-opt" data-type="general" data-value="featured">推荐难度</span>
+          <span class="filter-opt" data-type="general" data-value="spotlight">精选艺术家</span>
+        </div>
+      </div>
+      <div class="filter-group">
+        <span class="filter-label">模式</span>
+        <div class="filter-options">
+          <span class="filter-opt active" style="pointer-events:none;">osu!mania</span>
+        </div>
+      </div>
+      <div class="filter-group">
+        <span class="filter-label">分类</span>
+        <div class="filter-options" id="filter-category">
+          <span class="filter-opt active" data-type="category" data-value="any">全部</span>
+          <span class="filter-opt" data-type="category" data-value="ranked">上架</span>
+          <span class="filter-opt" data-type="category" data-value="qualified">过审</span>
+          <span class="filter-opt" data-type="category" data-value="loved">社区喜爱</span>
+          <span class="filter-opt" data-type="category" data-value="pending">待定</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 排序表头 -->
+    <div class="sort-header">
+      <span class="sort-label">排序方式</span>
+      <div class="sort-btn active" data-field="ranked">
+        上架时间 <span class="sort-icon">▼</span>
+      </div>
+      <div class="sort-btn" data-field="rating">
+        评分 <span class="sort-icon"></span>
+      </div>
+      <div class="sort-btn" data-field="plays">
+        游玩次数 <span class="sort-icon"></span>
+      </div>
+      <div class="sort-btn" data-field="favourites">
+        收藏量 <span class="sort-icon"></span>
+      </div>
+    </div>
+
+    <div id="search-results">
+      <p style="text-align:center; color:var(--text-dim); margin-top:20px;">加载推荐谱面中...</p>
+    </div>
+
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px;">
+      <div id="download-status" style="font-size:12px; color:var(--secondary); word-break:break-all; max-width:70%;"></div>
+      <div class="btn" id="download-cancel">关闭</div>
     </div>
   </div>
 </div>
@@ -384,9 +524,7 @@
       <div class="btn" id="resume-btn">继续</div>
       <div class="btn retry" id="retry-btn">重试</div>
     </div>
-    <!-- 返回主菜单按钮 -->
     <div class="btn" id="pause-menu-btn" style="width: 100%;">返回主菜单</div>
-    
   </div>
 </div>
 
@@ -440,7 +578,7 @@ const HIT_VALUE        = { PERFECT: 320, GREAT: 300, GOOD: 200, OK: 100, MEH: 50
 const HIT_BONUS_VALUE  = { PERFECT: 32,  GREAT: 32,  GOOD: 16,  OK: 8,   MEH: 4,  MISS: 0, BREAK: 0 };
 const BONUS_CHANGE     = { PERFECT: 2,   GREAT: 1,   GOOD: -8,  OK: -24, MEH: -44, MISS: -100, BREAK: -100 };
 
-/* ========== Mod 定义（官方 mania 倍率） ========== */
+/* ========== Mod 定义 ========== */
 const MOD_DEFS = [
   { id:'EZ', name:'Easy', mult:0.50, cat:'reduce', desc:'更大判定/少扣血' },
   { id:'NF', name:'No Fail', mult:0.50, cat:'reduce', desc:'永不失败' },
@@ -543,6 +681,18 @@ let currentReplay = [];
 let replayCursor = 0;
 let hitErrors = [];
 
+// 试听状态
+let previewAudio = new Audio();
+let previewBtn = null;
+
+// 搜索筛选状态
+let searchState = {
+  general: '',
+  category: 'any',
+  sortField: 'ranked', 
+  sortDir: 'desc'      
+};
+
 // 自定义按键 (持久化到 localStorage)
 let customKeybinds = (() => {
   try {
@@ -576,7 +726,7 @@ function adjustHealth(delta) {
 }
 
 function getAcc() { 
-  return judgedCount ? (hitValueSum / (judgedCount * 320) * 100) : 100; 
+  return judgedCount ? (hitValueSum / (judgedCount * 320) * 100) : 0; 
 }
 
 function getRank(acc) {
@@ -656,7 +806,26 @@ function recalcModState() {
   useFlashlight = activeMods.has('FL');
 }
 
-/* ==================== 动态布局 (支持自定义按键) ==================== */
+/* ==================== PP 计算 ==================== */
+function calculateManiaPP(acc, noteCount, modsSet) {
+  const density = noteCount / (songEndTime > 0 ? songEndTime : 1);
+  let estimatedSR = 1.0 + (density * 0.18) + (effectiveOD * 0.15);
+  if (modsSet.has('DT') || modsSet.has('NC')) estimatedSR *= 1.1;
+  if (modsSet.has('HT') || modsSet.has('DC')) estimatedSR *= 0.9;
+  estimatedSR = Math.max(0.2, estimatedSR);
+
+  const accFrac = Math.max(0, Math.min(1, acc / 100));
+  const lenBonus = 1 + 0.1 * Math.min(1, noteCount / 1500);
+  let pp = 8 * Math.pow(Math.max(estimatedSR - 0.15, 0.05), 2.2) * Math.max(0, 5 * accFrac - 4) * lenBonus;
+
+  if (modsSet.has('NF')) pp *= 0.75;
+  if (modsSet.has('EZ')) pp *= 0.5;
+  if (modsSet.has('RX') || modsSet.has('AP') || modsSet.has('AT')) pp = 0;
+
+  return Math.max(0, pp);
+}
+
+/* ==================== 动态布局 ==================== */
 function charToCode(c) {
   const u = c.toUpperCase();
   if (u === ' ') return 'Space';
@@ -873,6 +1042,7 @@ function buildChart() {
       newNote.headJudged = false;
       newNote.holding = false;
       newNote.broken = false;
+      newNote.fadeOutTime = null;
     }
     return newNote;
   });
@@ -939,6 +1109,7 @@ function removeActiveHold(n) {
 }
 function finishHoldTail(n, res) {
   n.holding = false; n.judged = true;
+  n.fadeOutTime = songTime;
   removeActiveHold(n);
   if (res === 'MISS') {
     combo = 0; judgedCount++; counts.MISS = (counts.MISS || 0) + 1;
@@ -1130,6 +1301,8 @@ function drawNote(n) {
   const w = laneCount <= 2 ? LANE_W * wFactor : Math.min(120, LANE_W * wFactor);
   const h = laneCount > 4 ? 18 : 24;
 
+  const isFading = n.judged && n.type === 'hold' && n.fadeOutTime != null && (songTime - n.fadeOutTime < 0.2);
+
   if (n.type === 'tap') {
     const y = JUDGE_Y - (n.time - songTime) * PX_PER_SEC;
     if (y < -40 || y > H + 40) return;
@@ -1149,48 +1322,71 @@ function drawNote(n) {
     return;
   }
 
+  // 长键重写：统一宽度渲染
   const yHeadRaw = JUDGE_Y - (n.time - songTime) * PX_PER_SEC;
   const yTail = JUDGE_Y - (n.endTime - songTime) * PX_PER_SEC;
-  const yHead = n.holding ? JUDGE_Y : yHeadRaw;
+  const yHead = (n.holding || isFading) ? JUDGE_Y : yHeadRaw;
   
-  const bodyW = Math.min(40, LANE_W * 0.4);
-  const bodyX = x + (LANE_W - bodyW) / 2;
-  const bodyTop = Math.max(yTail, -10), bodyBot = Math.min(yHead, JUDGE_Y);
+  const bodyX = x + (LANE_W - w) / 2;
+  const bodyTop = Math.max(yTail, -20), bodyBot = Math.min(yHead, JUDGE_Y);
   
   if (bodyBot > bodyTop) {
-    let fillStyle;
-    if (n.broken) fillStyle = PAL.holdBodyBroken;
-    else if (n.holding) {
-      const bg = ctx.createLinearGradient(0, bodyTop, 0, bodyBot);
-      bg.addColorStop(0, PAL.holdBodyHi); bg.addColorStop(1, PAL.holdBodyLo); fillStyle = bg;
+    let bg = ctx.createLinearGradient(0, bodyTop, 0, bodyBot);
+    if (n.broken) {
+      bg.addColorStop(0, 'rgba(92,30,62,0.2)');
+      bg.addColorStop(1, 'rgba(92,30,62,0.8)');
+    } else if (n.holding) {
+      bg.addColorStop(0, 'rgba(255,105,180,0.6)'); 
+      bg.addColorStop(1, 'rgba(138,43,226,0.9)');
     } else {
-      const bg = ctx.createLinearGradient(0, bodyTop, 0, bodyBot);
-      bg.addColorStop(0, PAL.holdBodyLo); bg.addColorStop(1, PAL.holdBody); fillStyle = bg;
+      bg.addColorStop(0, 'rgba(138,43,226,0.2)'); 
+      bg.addColorStop(1, 'rgba(138,43,226,0.7)');
     }
-    ctx.fillStyle = fillStyle; ctx.fillRect(bodyX, bodyTop, bodyW, bodyBot - bodyTop);
-    if (n.holding) {
-      ctx.shadowColor = PAL.holdHead; ctx.shadowBlur = 18;
-      ctx.fillStyle = PAL.holdGlow; ctx.fillRect(bodyX - 5, bodyTop, bodyW + 10, bodyBot - bodyTop);
-      ctx.shadowBlur = 0;
+    
+    ctx.shadowColor = PAL.holdHead; ctx.shadowBlur = 10;
+    ctx.fillStyle = bg;
+    ctx.fillRect(bodyX, bodyTop, w, bodyBot - bodyTop);
+    ctx.shadowBlur = 0;
+    
+    if (!n.broken) {
+      ctx.fillStyle = 'rgba(255,255,255,0.15)';
+      ctx.fillRect(bodyX + 2, bodyTop, w * 0.2, bodyBot - bodyTop);
     }
   }
 
   if (yHead > -40 && yHead < H + 40) {
     const pulse = n.holding && !reducedMotion ? 1 + 0.06 * Math.sin(frameNow / 90) : 1;
     const hh = h * pulse;
-    const headColor = n.broken ? '#6a2a45' : (n.headJudged ? PAL.holdHeadLit : PAL.holdHead);
-    ctx.shadowColor = PAL.broken; ctx.shadowBlur = 18; ctx.fillStyle = headColor;
-    roundRect(x + (LANE_W - w) / 2, yHead - hh / 2, w, hh, hh / 2); ctx.fill(); ctx.shadowBlur = 0;
+    
+    let headGrad = ctx.createLinearGradient(0, yHead - hh/2, 0, yHead + hh/2);
+    if (n.broken) {
+      headGrad.addColorStop(0, '#6a2a45'); headGrad.addColorStop(1, '#4a1a30');
+    } else if (n.headJudged) {
+      headGrad.addColorStop(0, '#ffffff'); headGrad.addColorStop(1, '#ffb6c1');
+    } else {
+      headGrad.addColorStop(0, '#ff8fcb'); headGrad.addColorStop(1, '#ff1493');
+    }
+    
+    ctx.shadowColor = PAL.broken; ctx.shadowBlur = 18; 
+    ctx.fillStyle = headGrad;
+    roundRect(bodyX, yHead - hh / 2, w, hh, hh / 2); 
+    ctx.fill(); 
+    ctx.shadowBlur = 0;
+    
     if (!n.broken && !n.headJudged) {
       const lg = ctx.createLinearGradient(0, yHead - hh / 2, 0, yHead + hh / 2);
       lg.addColorStop(0, PAL.noteCore); lg.addColorStop(1, 'rgba(255,255,255,0)');
-      ctx.fillStyle = lg; roundRect(x + (LANE_W - w) / 2 + 2, yHead - hh / 2 + 3, w - 4, hh - 8, (hh - 8) / 2); ctx.fill();
+      ctx.fillStyle = lg; roundRect(bodyX + 2, yHead - hh / 2 + 2, w - 4, hh - 4, (hh - 4) / 2); ctx.fill();
     }
   }
 
   if (!n.broken && yTail > -40 && yTail < H + 40) {
-    ctx.shadowColor = PAL.holdTail; ctx.shadowBlur = 12; ctx.fillStyle = PAL.holdTail;
-    roundRect(bodyX, yTail - 7, bodyW, 14, 7); ctx.fill(); ctx.shadowBlur = 0;
+    const tailH = 12;
+    ctx.shadowColor = PAL.holdTail; ctx.shadowBlur = 12; 
+    ctx.fillStyle = '#ff69b4';
+    roundRect(bodyX, yTail - tailH / 2, w, tailH, tailH / 2); 
+    ctx.fill(); 
+    ctx.shadowBlur = 0;
   }
 }
 
@@ -1224,24 +1420,34 @@ function drawHUD() {
   const displayScore = Math.min(TOTAL_SCORE, Math.round(totalScore));
   ctx.textAlign = 'left'; ctx.fillStyle = PAL.text;
   ctx.font = 'bold 22px "Share Tech Mono", monospace';
-  ctx.fillText(String(displayScore).padStart(7, '0'), 14, 26);
+  ctx.fillText(String(displayScore).padStart(7, '0'), 14, 20);
 
   const acc = getAcc(); const rank = getRank(acc);
   const rc = isSilverSS(acc) ? '#c0c0c0' : colorOfRank(rank);
   ctx.textAlign = 'center'; ctx.font = '900 30px "Orbitron", sans-serif';
   ctx.fillStyle = rc; ctx.shadowColor = rc; ctx.shadowBlur = 14;
-  ctx.fillText(rank, W / 2, 26); ctx.shadowBlur = 0;
+  ctx.fillText(judgedCount > 0 ? rank : '-', W / 2, 20); ctx.shadowBlur = 0;
+
+  let currentPP = 0;
+  if (judgedCount > 0 && notes.length > 0) {
+    currentPP = calculateManiaPP(acc, totalNoteCount, activeMods);
+  }
+  ctx.textAlign = 'center'; ctx.font = 'bold 14px "Orbitron", sans-serif';
+  ctx.fillStyle = '#ffd700'; ctx.shadowColor = '#ffd700'; ctx.shadowBlur = 8;
+  ctx.fillText(currentPP.toFixed(1) + ' pp', W / 2, 44); 
+  ctx.shadowBlur = 0;
 
   ctx.textAlign = 'right'; ctx.font = '13px "Share Tech Mono", monospace'; ctx.fillStyle = PAL.textDim;
-  ctx.fillText(acc.toFixed(2) + '%', W - 14, 18); ctx.fillText(maxCombo + 'x', W - 14, 36);
+  ctx.fillText(acc.toFixed(2) + '%', W - 14, 18);
+  ctx.fillText(maxCombo + 'x', W - 14, 36);
 
   if (activeMods.size > 0) {
     ctx.textAlign = 'left'; ctx.font = 'bold 10px "Share Tech Mono", monospace';
-    let mx = 14, my = 48;
+    let mx = 14, my = 38;
     activeMods.forEach(id => {
       ctx.fillStyle = '#ffd700';
       ctx.fillText(id, mx, my); mx += 20;
-      if (mx > W - 40) { mx = 14; my += 12; }
+      if (mx > W - 80) { mx = 14; my += 12; }
     });
   }
 
@@ -1329,6 +1535,13 @@ function draw() {
       if (n.broken && n.brokenTime != null) {
         const age = songTime - n.brokenTime;
         if (age < 0.35) { ctx.globalAlpha = 1 - age / 0.35; drawNote(n); ctx.globalAlpha = 1; }
+      } else if (n.type === 'hold' && n.fadeOutTime != null) {
+        const age = songTime - n.fadeOutTime;
+        if (age < 0.2) { 
+          ctx.globalAlpha = 1 - age / 0.2; 
+          drawNote(n); 
+          ctx.globalAlpha = 1; 
+        }
       }
       continue;
     }
@@ -1448,7 +1661,6 @@ document.getElementById('resume-btn').addEventListener('click', (e) => { e.stopP
 document.getElementById('retry-btn').addEventListener('click', (e) => { e.stopPropagation(); resetGame(); });
 document.getElementById('pause-btn').addEventListener('click', (e) => { e.stopPropagation(); if (running) togglePause(); });
 
-// 暂停菜单返回主菜单逻辑
 document.getElementById('pause-menu-btn').addEventListener('click', (e) => {
   e.stopPropagation();
   document.getElementById('pause-overlay').classList.remove('show');
@@ -1472,12 +1684,10 @@ function addSongToLibrary(song) {
   return song;
 }
 
-// 新增：清空曲目库逻辑
 function clearSongLibrary() {
   if (songLibrary.length === 0) return;
   if (!confirm("确认清空所有已导入的曲目吗？")) return;
 
-  // 释放 Blob URL 内存
   songLibrary.forEach(song => {
     if (song.bgUrl && song.bgUrl.startsWith('blob:')) {
       try { URL.revokeObjectURL(song.bgUrl); } catch (_) {}
@@ -1486,7 +1696,7 @@ function clearSongLibrary() {
 
   songLibrary = [];
   renderSongList();
-  fileStatus.innerHTML = ''; // 清空状态提示
+  fileStatus.innerHTML = '';
 }
 
 /* ==================== 选关 / UI ==================== */
@@ -1500,7 +1710,7 @@ const songListEl = document.getElementById('song-list');
 const songListWrap = document.getElementById('song-list-wrap');
 const loadingEl = document.getElementById('loading');
 const settingsBtn = document.getElementById('settings-btn');
-const clearSongsBtn = document.getElementById('clear-songs-btn'); // 新增清空按钮
+const clearSongsBtn = document.getElementById('clear-songs-btn');
 
 demoBtn.addEventListener('click', () => {
   setupGameLayout(4);
@@ -1604,12 +1814,11 @@ function showStartMenu() {
   renderSongList();
 }
 
-/* ==================== 设置面板（文件夹式 Mod） ==================== */
+/* ==================== 设置面板 ==================== */
 function openSettings() {
   const folderContainer = document.getElementById('mod-folders-container');
   folderContainer.innerHTML = '';
 
-  // 分组
   const groups = {
     reduce: { name: 'Difficulty Reduction (降低难度)', items: [] },
     increase: { name: 'Difficulty Increase (增加难度)', items: [] },
@@ -1620,14 +1829,12 @@ function openSettings() {
     if (groups[m.cat]) groups[m.cat].items.push(m);
   });
 
-  // 渲染文件夹
   for (const cat in groups) {
     const g = groups[cat];
     if (g.items.length === 0) continue;
 
     const details = document.createElement('details');
     details.className = 'mod-folder';
-    // 如果有选中的 Mod 在这个文件夹里，默认展开
     const hasActive = g.items.some(m => activeMods.has(m.id));
     if (hasActive) details.setAttribute('open', '');
 
@@ -1660,7 +1867,6 @@ function openSettings() {
     folderContainer.appendChild(details);
   }
   
-  // 渲染自定义按键
   const kbGrid = document.getElementById('keybind-grid');
   kbGrid.innerHTML = '';
   for (let k = 1; k <= 9; k++) {
@@ -1720,6 +1926,277 @@ document.getElementById('settings-close').addEventListener('click', (e) => {
   document.getElementById('start').style.display = 'flex';
   settingsBtn.style.display = 'flex';
 });
+
+/* ==================== 在线搜索、试听与下载 ==================== */
+const downloadPanel = document.getElementById('download-panel');
+const searchInput = document.getElementById('search-input');
+const searchBtn = document.getElementById('search-btn');
+const searchResults = document.getElementById('search-results');
+const downloadStatus = document.getElementById('download-status');
+const downloadCancel = document.getElementById('download-cancel');
+const openDownloadBtn = document.getElementById('open-download');
+
+const MIRROR_HOSTS = [
+  'https://catboy.best/d/',
+  'https://osu.direct/api/d/',
+  'https://api.nerinyan.moe/d/'
+];
+
+openDownloadBtn.addEventListener('click', () => {
+  downloadPanel.style.display = 'flex';
+  searchInput.value = '';
+  settingsBtn.style.display = 'none'; 
+  
+  doSearch(); 
+});
+
+downloadCancel.addEventListener('click', () => {
+  downloadPanel.style.display = 'none';
+  stopPreview();
+  settingsBtn.style.display = 'flex'; 
+});
+
+// 筛选点击 (UI 保留，但暂不影响底层 API 请求)
+document.querySelectorAll('.filter-opt[data-type]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const type = btn.dataset.type;
+    const value = btn.dataset.value;
+    document.querySelectorAll(`.filter-opt[data-type="${type}"]`).forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    searchState[type] = value;
+  });
+});
+
+// 排序点击 (UI 保留)
+document.querySelectorAll('.sort-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const field = btn.dataset.field;
+    if (searchState.sortField === field) {
+      searchState.sortDir = searchState.sortDir === 'desc' ? 'asc' : 'desc';
+    } else {
+      searchState.sortField = field;
+      searchState.sortDir = 'desc';
+    }
+    updateSortUI();
+  });
+});
+
+function updateSortUI() {
+  document.querySelectorAll('.sort-btn').forEach(btn => {
+    const field = btn.dataset.field;
+    const icon = btn.querySelector('.sort-icon');
+    if (field === searchState.sortField) {
+      btn.classList.add('active');
+      icon.textContent = searchState.sortDir === 'desc' ? '▼' : '▲';
+    } else {
+      btn.classList.remove('active');
+      icon.textContent = '';
+    }
+  });
+}
+
+searchBtn.addEventListener('click', doSearch);
+searchInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') doSearch();
+});
+
+// 恢复最纯粹的搜索逻辑
+async function doSearch() {
+  const query = searchInput.value.trim();
+
+  stopPreview();
+  searchResults.innerHTML = '';
+  
+  // 如果输入全数字，直接显示快捷导入
+  if (/^\d+$/.test(query)) {
+    const directDiv = document.createElement('div');
+    directDiv.className = 'song-item';
+    directDiv.style.padding = '10px';
+    directDiv.innerHTML = `
+      <div class="song-info">
+        <div class="song-title">直接导入 ID: ${query}</div>
+        <div class="song-sub">跳过搜索，直接尝试下载该 ID 的谱面</div>
+      </div>
+      <div class="btn primary" style="margin:0; padding:6px 12px; font-size:12px;" onclick="downloadBeatmap(${query}, this)">导入</div>
+    `;
+    searchResults.appendChild(directDiv);
+  }
+
+  const loadingDiv = document.createElement('div');
+  loadingDiv.style.textAlign = 'center';
+  loadingDiv.style.color = 'var(--text-dim)';
+  loadingDiv.style.marginTop = '20px';
+  loadingDiv.textContent = '搜索中...';
+  searchResults.appendChild(loadingDiv);
+
+  // 最基础的 API 节点，不附加任何多余参数，保证跨域和兼容性
+  const apiEndpoints = [
+    `https://api.nerinyan.moe/search?q=${encodeURIComponent(query)}&m=3&limit=15`,
+    `https://osu.direct/api/v2/search?query=${encodeURIComponent(query)}&m=3&limit=15`,
+    `https://catboy.best/api/v2/search?query=${encodeURIComponent(query)}&m=3&limit=15`
+  ];
+
+  let beatmapsets = null;
+  let apiSuccess = false;
+
+  for (const url of apiEndpoints) {
+    try {
+      const res = await fetch(url);
+      if (res.ok) {
+        const data = await res.json();
+        beatmapsets = Array.isArray(data) ? data : (data.beatmapsets || []);
+        apiSuccess = true;
+        break; 
+      }
+    } catch (err) {
+      console.warn('API failed:', url, err);
+    }
+  }
+
+  if (searchResults.contains(loadingDiv)) {
+    searchResults.removeChild(loadingDiv);
+  }
+
+  if (!apiSuccess) {
+    if (!/^\d+$/.test(query)) {
+      searchResults.innerHTML = '<p style="text-align:center; color:#ff3355; font-size:12px; padding:20px;">网络请求失败，第三方接口可能不可用。<br><br>请直接输入纯数字 ID 进行导入。</p>';
+    }
+    return;
+  }
+  
+  if (!beatmapsets || beatmapsets.length === 0) {
+    if (!/^\d+$/.test(query)) {
+      searchResults.innerHTML = '<p style="text-align:center; color:var(--text-dim);">未找到相关谱面</p>';
+    }
+    return;
+  }
+
+  beatmapsets.forEach(set => {
+    const coverUrl = set.covers ? (set.covers.cover || set.covers.list) : `https://assets.ppy.sh/beatmaps/${set.id}/covers/list.jpg`;
+    const itemDiv = document.createElement('div');
+    itemDiv.className = 'song-item';
+    itemDiv.style.padding = '10px';
+    
+    itemDiv.innerHTML = `
+      <img src="${coverUrl}" style="width:60px; height:60px; object-fit:cover; border-radius:4px; margin-right:12px; background:#222;" loading="lazy" onerror="this.src='https://assets.ppy.sh/beatmaps/${set.id}/covers/list.jpg'">
+      <div class="song-info">
+        <div class="song-title">${escapeHtml(set.title)}</div>
+        <div class="song-sub">${escapeHtml(set.artist)}</div>
+        <div class="song-sub" style="margin-top:2px; font-size:10px; color:var(--secondary);">
+          ID: ${set.id} · By: ${escapeHtml(set.creator || 'Unknown')}
+        </div>
+      </div>
+      <div style="display:flex; gap:6px; align-items:center;">
+        <div class="btn" style="margin:0; padding:6px 10px; font-size:12px; border-color:#00f0ff; color:#00f0ff;" onclick="togglePreview(${set.id}, this)">▶ 试听</div>
+        <div class="btn primary" style="margin:0; padding:6px 10px; font-size:12px;" onclick="downloadBeatmap(${set.id}, this)">导入</div>
+      </div>
+    `;
+    searchResults.appendChild(itemDiv);
+  });
+}
+
+/* --- 试听逻辑 --- */
+window.togglePreview = function(setId, btnElement) {
+  if (previewBtn === btnElement && !previewAudio.paused) {
+    stopPreview();
+    return;
+  }
+
+  stopPreview();
+
+  const url = `https://b.ppy.sh/preview/${setId}.mp3`;
+  previewAudio.src = url;
+  previewAudio.volume = 0.8;
+  
+  previewBtn = btnElement;
+  previewBtn.textContent = '⏸ 停止';
+  previewBtn.style.borderColor = '#ff3355';
+  previewBtn.style.color = '#ff3355';
+
+  previewAudio.play().catch(err => {
+    console.warn("试听失败 (尝试镜像):", err);
+    previewAudio.src = `https://catboy.best/preview/${setId}`;
+    previewAudio.play().catch(e2 => {
+       downloadStatus.textContent = "试听加载失败，请尝试直接导入。";
+       stopPreview();
+    });
+  });
+
+  previewAudio.onended = () => {
+    stopPreview();
+  };
+};
+
+function stopPreview() {
+  if (previewBtn) {
+    previewBtn.textContent = '▶ 试听';
+    previewBtn.style.borderColor = '#00f0ff';
+    previewBtn.style.color = '#00f0ff';
+    previewBtn = null;
+  }
+  previewAudio.pause();
+  previewAudio.currentTime = 0;
+}
+
+/* --- 下载/导入逻辑 --- */
+window.downloadBeatmap = async function(setId, btnElement) {
+  const originalText = btnElement.textContent;
+  btnElement.textContent = '导入中...';
+  btnElement.style.pointerEvents = 'none';
+  downloadStatus.textContent = `⏳ 正在获取谱面 ID: ${setId} ...`;
+
+  let success = false;
+
+  for (const host of MIRROR_HOSTS) {
+    const url = host + setId;
+    try {
+      downloadStatus.textContent = `⏳ 尝试: ${new URL(url).hostname} ...`;
+      const resp = await fetch(url);
+      
+      if (resp.ok) {
+        const blob = await resp.blob();
+        const firstBytes = await blob.slice(0, 2).arrayBuffer();
+        const isZip = new Uint8Array(firstBytes)[0] === 0x50 && new Uint8Array(firstBytes)[1] === 0x4B;
+        
+        if (isZip) {
+          downloadStatus.textContent = '✅ 下载成功，正在解析...';
+          const file = new File([blob], `beatmap_${setId}.osz`, { type: 'application/zip' });
+          
+          await handleOszFile(file);
+          
+          downloadStatus.textContent = '✅ 导入完成！';
+          success = true;
+          break;
+        }
+      }
+    } catch (e) {
+      console.warn(`镜像 ${host} 失败:`, e);
+    }
+  }
+
+  if (success) {
+    downloadPanel.style.display = 'none';
+    settingsBtn.style.display = 'flex'; 
+    fileStatus.innerHTML = `✅ 在线谱面导入成功！请在下方的曲目列表中选择游玩。`;
+    setTimeout(() => {
+        btnElement.textContent = originalText;
+        btnElement.style.pointerEvents = 'auto';
+        btnElement.style.borderColor = '';
+        btnElement.style.color = '';
+    }, 500);
+  } else {
+    downloadStatus.textContent = '❌ 所有镜像均下载失败，请稍后再试。';
+    btnElement.textContent = '失败';
+    btnElement.style.borderColor = '#ff3355';
+    btnElement.style.color = '#ff3355';
+    setTimeout(() => {
+      btnElement.textContent = originalText;
+      btnElement.style.pointerEvents = 'auto';
+      btnElement.style.borderColor = '';
+      btnElement.style.color = '';
+    }, 3000);
+  }
+};
 
 /* ==================== 文件读取 ==================== */
 function handleFiles(files) {
@@ -1868,9 +2345,24 @@ function finish(isFailed) {
   const ur = hitErrors.length > 1 ? (Math.sqrt(hitErrors.reduce((s,e) => s + e*e, 0) / hitErrors.length) * 10).toFixed(2) : '---';
   const modList = activeMods.size ? [...activeMods].join('') : 'NM';
   
+  let pp = 0;
+  if (!isFailed) pp = calculateManiaPP(acc, totalNoteCount, activeMods);
+  const ppStr = isFailed ? '0' : pp.toFixed(2);
+
+  // FC / AP 标签
+  let fcTag = '';
+  if (!isFailed) {
+    const hasMiss = (counts.MISS || 0) > 0 || (counts.BREAK || 0) > 0;
+    if (!hasMiss) {
+      if (acc >= 100) fcTag = ' <span style="color:var(--gold); font-size:14px;">[AP]</span>';
+      else fcTag = ' <span style="color:var(--silver); font-size:14px;">[FC]</span>';
+    }
+  }
+
   document.getElementById('result-stats').innerHTML = `
-    <p style="font-size:24px; color:#fff; margin:8px 0; letter-spacing:2px;">${finalScore.toLocaleString()}</p>
-    <p style="font-size:11px; color:#666; margin:-4px 0 8px;">/ 1,000,000 · ${modList}</p>
+    <p style="font-size:40px; color:var(--gold); margin:4px 0; font-weight:900; text-shadow: 0 0 15px rgba(255,215,0,0.6); line-height:1.2;">${ppStr} PP</p>
+    <p style="font-size:24px; color:#fff; margin:4px 0 2px; letter-spacing:2px;">${finalScore.toLocaleString()}</p>
+    <p style="font-size:11px; color:#666; margin:0 0 8px;">/ 1,000,000 · ${modList}${fcTag}</p>
     <p>准确率 <b style="color:#ff69b4">${acc.toFixed(2)}%</b> · UR <b style="color:#ffd700">${ur}</b></p>
     <p>最大连击 <b style="color:#8a2be2">${maxCombo}</b></p>
     <p style="margin-top:10px; line-height:1.8; font-size:12px; color:#a78bcc;">
