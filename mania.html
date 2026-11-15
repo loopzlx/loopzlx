@@ -13,13 +13,17 @@
 <style>
   :root {
     --primary: #8a2be2;
+    --primary-glow: rgba(138,43,226,0.4);
     --secondary: #ff69b4;
+    --secondary-glow: rgba(255,105,180,0.4);
     --bg: #000000;
-    --card-bg: rgba(15, 5, 25, 0.85);
-    --text: #e2e8f0;
+    --card-bg: rgba(15, 8, 25, 0.75);
+    --card-border: rgba(138,43,226,0.35);
+    --text: #f0f4f8;
     --text-dim: #a78bcc;
     --gold: #ffd700;
-    --silver: #c0c0c0;
+    --danger: #ff3355;
+    --success: #00ff41;
   }
   * { box-sizing: border-box; }
   html, body {
@@ -35,30 +39,35 @@
   }
   body::before {
     content: ''; position: fixed; inset: 0; z-index: -2;
-    background-image: linear-gradient(rgba(138,43,226,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(138,43,226,0.06) 1px, transparent 1px);
+    background-image: linear-gradient(rgba(138,43,226,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(138,43,226,0.08) 1px, transparent 1px);
     background-size: 40px 40px; pointer-events: none;
   }
+
+  /* 全局滚动条 */
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(138,43,226,0.4); border-radius: 10px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--secondary); }
 
   #wrap {
     display: flex; align-items: center; justify-content: center;
     width: 100vw; height: 100dvh;
     padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
-    transition: padding-bottom 0.25s ease;
+    transition: padding-bottom 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
   body.pads-active #wrap {
-    padding-bottom: calc(max(16px, env(safe-area-inset-bottom)) + clamp(50px, 15vw, 80px) + 10px);
+    padding-bottom: calc(max(16px, env(safe-area-inset-bottom)) + clamp(60px, 16vw, 85px) + 10px);
   }
   
   #board {
     position: relative; 
     height: 100%;
-    /* 默认 4K 比例，会由 JS 动态更新 */
     aspect-ratio: var(--board-aspect, 440 / 680);
     max-width: 100%;
     max-height: 100%;
     flex-shrink: 0;
-    box-shadow: 0 0 50px rgba(138,43,226,0.2), inset 0 0 0 1px rgba(138,43,226,0.3);
-    border-radius: 6px; background: #000;
+    box-shadow: 0 0 60px rgba(138,43,226,0.2), inset 0 0 0 1px var(--card-border);
+    border-radius: 8px; background: #000;
     overflow: hidden;
     transition: aspect-ratio 0.3s ease;
   }
@@ -67,7 +76,7 @@
     position: absolute; inset: -20px; 
     background-size: cover; background-position: center;
     background-color: #0a0510;
-    filter: blur(12px) brightness(0.65);
+    filter: blur(15px) brightness(0.6);
     z-index: 0; opacity: 0; transition: opacity 0.5s ease;
     pointer-events: none;
   }
@@ -75,228 +84,238 @@
 
   #bg-overlay {
     position: absolute; inset: 0; z-index: 1; pointer-events: none;
-    background: linear-gradient(rgba(10,5,20,0.1), rgba(0,0,0,0.5));
+    background: linear-gradient(rgba(10,5,20,0.2), rgba(0,0,0,0.6));
   }
 
   canvas { position: relative; z-index: 2; display: block; width: 100%; height: 100%; touch-action: none; }
 
-  /* ======= 顶部工具栏按钮 ======= */
+  /* ======= 顶部工具栏 ======= */
+  .top-btn {
+    width: 44px; height: 44px; border-radius: 10px; z-index: 100;
+    background: rgba(10, 5, 20, 0.85); border: 1px solid var(--primary); color: var(--primary);
+    font-size: 20px; display: flex; cursor: pointer; align-items: center; justify-content: center; 
+    backdrop-filter: blur(10px); transition: all 0.2s;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+  }
+  .top-btn:hover { background: var(--primary); color: #000; box-shadow: 0 0 20px var(--primary-glow); }
+  .top-btn:active { transform: scale(0.9); }
+
   #settings-btn {
     position: fixed; 
     top: calc(env(safe-area-inset-top, 0px) + 16px); 
     left: calc(env(safe-area-inset-left, 0px) + 16px);
-    width: 44px; height: 44px; border-radius: 8px; z-index: 100;
-    background: rgba(0,0,0,0.8); border: 1px solid var(--primary); color: var(--primary);
-    font-size: 20px; display: flex; cursor: pointer; align-items: center; justify-content: center; 
-    backdrop-filter: blur(8px); transition: all 0.2s;
   }
-  #settings-btn:hover { background: var(--primary); color: #000; box-shadow: 0 0 15px var(--primary); }
 
   #pause-btn {
-    position: fixed; top: calc(env(safe-area-inset-top, 0px) + 16px); right: calc(env(safe-area-inset-right, 0px) + 16px);
-    width: 44px; height: 44px; border-radius: 8px; z-index: 100;
-    background: rgba(0,0,0,0.8); border: 1px solid var(--primary); color: var(--primary);
-    font-size: 16px; display: none; cursor: pointer; align-items: center; justify-content: center; backdrop-filter: blur(8px);
+    position: fixed; 
+    top: calc(env(safe-area-inset-top, 0px) + 16px); 
+    right: calc(env(safe-area-inset-right, 0px) + 16px);
+    display: none;
   }
   #pause-btn.show { display: flex; }
-  #pause-btn:hover { background: var(--primary); color: #000; }
 
-  /* ======= 右上角任务管理器 ======= */
+  /* ======= 任务管理器 ======= */
   #task-manager-container {
     position: fixed;
     top: calc(env(safe-area-inset-top, 0px) + 16px);
     right: calc(env(safe-area-inset-right, 0px) + 16px);
     z-index: 200;
   }
-  #task-manager-btn {
-    width: 44px; height: 44px; border-radius: 8px;
-    background: rgba(0,0,0,0.8); border: 1px solid var(--primary); color: var(--primary);
-    font-size: 20px; display: flex; cursor: pointer; align-items: center; justify-content: center; 
-    backdrop-filter: blur(8px); transition: all 0.2s; position: relative;
-  }
-  #task-manager-btn:hover { background: var(--primary); color: #000; box-shadow: 0 0 15px var(--primary); }
   
+  #task-manager-btn {
+    position: relative;
+  }
   #task-badge {
     position: absolute; top: -5px; right: -5px;
     background: var(--secondary); color: #000;
-    font-size: 10px; font-weight: bold; padding: 2px 5px; border-radius: 10px;
-    display: none;
+    font-size: 10px; font-weight: 900; padding: 2px 6px; border-radius: 12px;
+    display: none; box-shadow: 0 0 10px var(--secondary-glow);
   }
 
   #task-manager-panel {
-    position: absolute; top: 54px; right: 0;
-    width: 320px; max-height: 60vh;
-    background: rgba(10, 5, 20, 0.95);
-    border: 1px solid rgba(138,43,226,0.5); border-radius: 8px;
-    backdrop-filter: blur(12px); box-shadow: 0 10px 30px rgba(0,0,0,0.8);
-    display: none; flex-direction: column; overflow: hidden;
+    position: absolute; top: 55px; right: 0;
+    width: 340px; max-height: 65vh;
+    background: rgba(12, 6, 22, 0.95);
+    border: 1px solid var(--primary); border-radius: 12px;
+    backdrop-filter: blur(16px); 
+    box-shadow: 0 15px 40px rgba(0,0,0,0.8), 0 0 20px var(--primary-glow);
+    display: flex; flex-direction: column; overflow: hidden;
+    
+    opacity: 0; transform: translateY(-10px); pointer-events: none;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   }
-  #task-manager-panel.show { display: flex; }
+  #task-manager-panel.show { 
+    opacity: 1; transform: translateY(0); pointer-events: auto; 
+  }
 
   .task-panel-header {
-    padding: 10px 12px; display: flex; justify-content: space-between; align-items: center;
-    border-bottom: 1px solid rgba(138,43,226,0.2); font-size: 12px; color: var(--text-dim);
+    padding: 12px 16px; display: flex; justify-content: space-between; align-items: center;
+    border-bottom: 1px solid rgba(138,43,226,0.3);
+    font-size: 13px; font-weight: bold; color: #fff; letter-spacing: 1px;
+    background: rgba(138,43,226,0.1);
   }
   .task-panel-header button {
     background: transparent; border: 1px solid var(--primary); color: var(--primary);
-    padding: 2px 8px; border-radius: 4px; font-size: 10px; cursor: pointer;
+    padding: 4px 10px; border-radius: 6px; font-size: 11px; cursor: pointer;
+    transition: all 0.2s; font-family: inherit;
   }
   .task-panel-header button:hover { background: var(--primary); color: #000; }
 
   #task-list {
-    flex: 1; overflow-y: auto; padding: 8px; display: flex; flex-direction: column; gap: 8px;
+    flex: 1; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 10px;
   }
-  #task-list::-webkit-scrollbar { width: 6px; }
-  #task-list::-webkit-scrollbar-thumb { background: rgba(138,43,226,0.5); border-radius: 3px; }
 
   .task-item {
-    background: rgba(138,43,226,0.08); border: 1px solid rgba(138,43,226,0.25);
-    border-radius: 6px; padding: 8px 10px;
+    background: rgba(20, 10, 35, 0.8); border: 1px solid rgba(138,43,226,0.25);
+    border-radius: 10px; padding: 12px; transition: all 0.2s;
+    display: flex; flex-direction: column; gap: 8px;
   }
-  .task-header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
-  .task-name { font-size: 12px; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px; }
-  .task-status { font-size: 10px; color: var(--secondary); }
-  .task-progress-bg { height: 6px; background: rgba(0,0,0,0.5); border-radius: 3px; overflow: hidden; margin-bottom: 8px; }
-  .task-progress-fill { height: 100%; background: linear-gradient(90deg, #8a2be2, #ff69b4); box-shadow: 0 0 8px #ff69b4; border-radius: 3px; transition: width 0.2s ease; }
-  .task-actions { display: flex; gap: 6px; justify-content: flex-end; }
+  .task-item:hover { border-color: rgba(255,105,180,0.5); box-shadow: 0 0 15px rgba(255,105,180,0.1); }
+  
+  .task-header-row { display: flex; justify-content: space-between; align-items: flex-start; }
+  .task-name { font-size: 13px; color: #fff; word-break: break-all; padding-right: 10px; }
+  .task-status { font-size: 11px; color: var(--secondary); white-space: nowrap; }
+  
+  .task-progress-bg { 
+    height: 6px; background: rgba(0,0,0,0.6); border-radius: 4px; overflow: hidden; 
+    position: relative; box-shadow: inset 0 1px 3px rgba(0,0,0,0.5);
+  }
+  .task-progress-fill { 
+    height: 100%; background: linear-gradient(90deg, var(--primary), var(--secondary)); 
+    box-shadow: 0 0 10px var(--secondary-glow); border-radius: 4px; 
+    transition: width 0.3s ease, background 0.3s ease;
+  }
+  
+  .task-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 2px; }
   .task-btn {
     background: transparent; border: 1px solid var(--primary); color: var(--primary);
-    padding: 2px 8px; border-radius: 4px; font-size: 10px; cursor: pointer; transition: all 0.2s;
+    padding: 4px 12px; border-radius: 6px; font-size: 11px; cursor: pointer; 
+    transition: all 0.2s; font-family: inherit;
   }
   .task-btn:hover { background: var(--primary); color: #000; }
-  .task-btn.cancel { border-color: #ff3355; color: #ff3355; }
-  .task-btn.cancel:hover { background: #ff3355; color: #000; }
+  .task-btn.cancel { border-color: var(--danger); color: var(--danger); }
+  .task-btn.cancel:hover { background: var(--danger); color: #fff; }
 
   /* ======= 底部按键 ======= */
   #bottom-pads {
     position: fixed; bottom: max(16px, env(safe-area-inset-bottom)); 
     left: 50%; transform: translateX(-50%);
     display: flex; gap: 8px; z-index: 10; pointer-events: none;
-    width: 90vw; max-width: 480px; justify-content: center;
+    width: 92vw; max-width: 500px; justify-content: center;
   }
   .pad-key {
     pointer-events: auto; flex: 1; max-width: 110px;
-    height: clamp(50px, 15vw, 80px); 
-    border-radius: 12px; background: rgba(20, 10, 30, 0.85);
-    border: 2px solid rgba(138,43,226,0.6); color: var(--primary);
-    font-family: 'Share Tech Mono', monospace; font-size: clamp(18px, 5vw, 28px); font-weight: bold;
+    height: clamp(55px, 16vw, 85px); 
+    border-radius: 14px; background: rgba(20, 10, 35, 0.85);
+    border: 2px solid rgba(138,43,226,0.4); color: rgba(255,255,255,0.3);
+    font-family: 'Orbitron', sans-serif; font-size: clamp(18px, 5vw, 26px); font-weight: 900;
     display: flex; align-items: center; justify-content: center;
     user-select: none; touch-action: none; 
-    box-shadow: 0 0 20px rgba(138,43,226,0.15), inset 0 0 15px rgba(138,43,226,0.15);
-    transition: all 0.08s ease;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.5), inset 0 0 15px rgba(138,43,226,0.1);
+    transition: all 0.1s cubic-bezier(0.4, 0, 0.2, 1);
   }
   .pad-key.active {
-    background: rgba(138,43,226,0.5); border-color: var(--secondary); color: var(--secondary);
-    box-shadow: 0 0 35px var(--secondary), inset 0 0 25px var(--secondary); transform: scale(0.92);
+    background: rgba(138,43,226,0.3); border-color: var(--secondary); color: #fff;
+    box-shadow: 0 0 35px var(--secondary-glow), inset 0 0 25px var(--secondary-glow); 
+    transform: translateY(4px) scale(0.96);
   }
 
+  /* ======= 玻璃卡片 (UI 面板) ======= */
   .glass-card {
-    position: relative; background: var(--card-bg); backdrop-filter: blur(12px);
-    border: 1px solid rgba(138,43,226,0.3); border-radius: 12px;
-    padding: clamp(20px, 4vw, 30px) clamp(20px, 5vw, 30px);
-    text-align: center; max-width: 480px; width: 90vw;
-    max-height: 88dvh; overflow-y: auto;
-    box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+    position: relative; background: var(--card-bg); backdrop-filter: blur(20px);
+    border: 1px solid var(--card-border); border-radius: 16px;
+    padding: 30px; text-align: center; 
+    max-width: 520px; width: 90vw; max-height: 88dvh; overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.9), 0 0 30px rgba(138,43,226,0.15);
+    animation: card-pop 0.3s ease-out forwards;
   }
-  .glass-card::-webkit-scrollbar { display: none; }
-  .glass-card { scrollbar-width: none; }
+  @keyframes card-pop {
+    from { opacity: 0; transform: scale(0.95) translateY(10px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+  }
 
   .glass-card::before, .glass-card::after {
-    content: ''; position: absolute; width: 16px; height: 16px; border: 2px solid var(--primary); pointer-events: none;
+    content: ''; position: absolute; width: 20px; height: 20px; border: 2px solid var(--primary); pointer-events: none; opacity: 0.6;
   }
-  .glass-card::before { top: -1px; left: -1px; border-right: none; border-bottom: none; }
-  .glass-card::after { bottom: -1px; right: -1px; border-left: none; border-top: none; }
+  .glass-card::before { top: 10px; left: 10px; border-right: none; border-bottom: none; border-radius: 8px 0 0 0; }
+  .glass-card::after { bottom: 10px; right: 10px; border-left: none; border-top: none; border-radius: 0 0 8px 0; }
 
   h1, h2, .font-black { font-family: 'Orbitron', sans-serif; letter-spacing: 0.05em; }
-  h1 { font-size: 28px; margin: 0 0 12px; font-weight: 900; text-transform: uppercase; color: #fff; text-shadow: 0 0 10px rgba(138,43,226,0.8); }
-  p { color: var(--text-dim); margin: 8px 0; font-size: 14px; line-height: 1.5; }
+  h1 { font-size: 32px; margin: 0 0 16px; font-weight: 900; text-transform: uppercase; color: #fff; text-shadow: 0 0 15px var(--primary-glow); }
+  p { color: var(--text-dim); margin: 10px 0; font-size: 14px; line-height: 1.6; }
   
+  /* 按钮体系 */
   .btn {
-    margin-top: 10px; padding: 12px 24px; cursor: pointer;
-    background: transparent; border: 1px solid var(--primary); border-radius: 4px;
-    color: var(--primary); font-family: 'Share Tech Mono', monospace;
-    font-size: 14px; text-transform: uppercase; letter-spacing: 2px;
-    transition: all 0.3s ease; display: inline-block;
+    margin-top: 12px; padding: 12px 24px; cursor: pointer;
+    background: rgba(138,43,226,0.1); border: 1px solid var(--primary); border-radius: 8px;
+    color: #fff; font-family: inherit; font-size: 14px; font-weight: bold;
+    text-transform: uppercase; letter-spacing: 1px;
+    transition: all 0.2s ease; display: inline-flex; align-items: center; justify-content: center;
   }
-  .btn:hover { background: var(--primary); color: #000; box-shadow: 0 0 15px var(--primary); }
-  .btn:disabled { opacity: 0.5; cursor: not-allowed; border-color: #666; color: #666; }
+  .btn:hover { background: var(--primary); box-shadow: 0 0 20px var(--primary-glow); transform: translateY(-2px); }
+  .btn:active { transform: translateY(0); }
   
-  .btn.primary { border-color: var(--secondary); color: var(--secondary); }
-  .btn.primary:hover { background: var(--secondary); color: #000; box-shadow: 0 0 15px var(--secondary); }
-  
-  .btn.retry { border-color: var(--secondary); color: var(--secondary); }
-  .btn.retry:hover { background: var(--secondary); color: #000; box-shadow: 0 0 15px var(--secondary); }
+  .btn.primary { background: rgba(255,105,180,0.1); border-color: var(--secondary); color: var(--secondary); }
+  .btn.primary:hover { background: var(--secondary); color: #000; box-shadow: 0 0 20px var(--secondary-glow); }
 
-  .calib-link { margin-top: 16px; font-size: 12px; color: var(--text-dim); border-bottom: 1px dashed var(--primary); padding-bottom: 2px; cursor: pointer; display: inline-block; transition: color 0.3s; }
-  .calib-link:hover { color: var(--secondary); border-color: var(--secondary); }
+  .btn.danger { border-color: var(--danger); color: var(--danger); background: transparent; }
+  .btn.danger:hover { background: var(--danger); color: #fff; box-shadow: 0 0 20px rgba(255,51,85,0.4); }
 
+  /* 链接式按钮 */
+  .link-btn { 
+    margin-top: 16px; font-size: 13px; color: var(--text-dim); 
+    border-bottom: 1px dashed var(--primary); padding-bottom: 2px; 
+    cursor: pointer; display: inline-block; transition: all 0.2s; 
+  }
+  .link-btn:hover { color: var(--secondary); border-color: var(--secondary); }
+
+  /* 导入区 */
   #upload-zone {
-    border: 2px dashed rgba(138,43,226,0.5); border-radius: 8px; padding: 15px;
-    margin: 12px 0; cursor: pointer; transition: all 0.3s;
+    border: 2px dashed rgba(138,43,226,0.4); border-radius: 12px; padding: 20px;
+    margin: 16px 0; cursor: pointer; transition: all 0.2s;
+    background: rgba(0,0,0,0.2);
   }
-  #upload-zone.hover { background: rgba(138,43,226,0.2); border-color: var(--secondary); }
-  #upload-zone .file-status { font-size: 13px; margin-top: 10px; color: #00ff41; word-break: break-all; }
+  #upload-zone.hover { background: rgba(138,43,226,0.15); border-color: var(--secondary); }
+  #upload-zone .file-status { font-size: 13px; margin-top: 12px; color: var(--success); word-break: break-all; }
 
-  #song-list-wrap { margin-top: 16px; text-align: left; }
-  #song-list-wrap .list-title {
-    font-size: 12px; color: var(--text-dim); letter-spacing: 1px;
-    margin-bottom: 8px; text-transform: uppercase;
+  /* 歌曲列表 */
+  #song-list-wrap { margin-top: 20px; text-align: left; }
+  .list-title {
+    font-size: 13px; color: var(--text-dim); letter-spacing: 1px;
+    margin-bottom: 10px; text-transform: uppercase;
     display: flex; justify-content: space-between; align-items: center;
   }
-  #clear-songs-btn {
-    color: var(--secondary); cursor: pointer; text-decoration: underline; font-size: 11px;
-    transition: color 0.2s;
-  }
-  #clear-songs-btn:hover { color: #ff3355; }
+  #clear-songs-btn { color: var(--danger); cursor: pointer; font-size: 12px; transition: all 0.2s; }
+  #clear-songs-btn:hover { text-shadow: 0 0 10px var(--danger); }
   
-  #song-list { max-height: 300px; overflow-y: auto; -webkit-overflow-scrolling: touch; padding-right: 4px; }
-  #song-list::-webkit-scrollbar { width: 6px; }
-  #song-list::-webkit-scrollbar-thumb { background: rgba(138,43,226,0.5); border-radius: 3px; }
+  #song-list { max-height: 280px; overflow-y: auto; padding-right: 4px; }
   .song-item {
     display: flex; align-items: center; justify-content: space-between;
-    padding: 10px 14px; margin: 6px 0;
-    background: rgba(138,43,226,0.08);
-    border: 1px solid rgba(138,43,226,0.25);
-    border-radius: 6px; cursor: pointer;
-    transition: all 0.15s ease;
-    text-align: left;
+    padding: 12px 16px; margin: 8px 0;
+    background: rgba(138,43,226,0.08); border: 1px solid rgba(138,43,226,0.2);
+    border-radius: 10px; cursor: pointer; transition: all 0.2s;
   }
-  .song-item:hover, .song-item:active {
-    background: rgba(138,43,226,0.25);
-    border-color: var(--secondary);
-    box-shadow: 0 0 14px rgba(255,105,180,0.35);
-    transform: translateX(2px);
-  }
+  .song-item:hover { background: rgba(138,43,226,0.2); border-color: var(--secondary); transform: translateX(4px); }
   .song-item .song-info { min-width: 0; flex: 1; }
-  .song-item .song-title {
-    font-size: 13px; color: #fff; white-space: nowrap;
-    overflow: hidden; text-overflow: ellipsis;
-  }
-  .song-item .song-sub {
-    font-size: 11px; color: var(--text-dim); margin-top: 4px;
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    display: flex; align-items: center; gap: 4px;
-  }
-  .song-item .song-meta {
-    font-size: 10px; color: var(--secondary); text-align: right;
-    flex-shrink: 0; margin-left: 10px; line-height: 1.4;
-  }
+  .song-item .song-title { font-size: 14px; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .song-item .song-sub { font-size: 11px; color: var(--text-dim); margin-top: 4px; display: flex; align-items: center; gap: 6px; }
+  .song-item .song-meta { font-size: 11px; color: var(--secondary); text-align: right; flex-shrink: 0; margin-left: 12px; }
   
   .mode-tag, .key-tag, .od-tag {
     display: inline-flex; align-items: center; justify-content: center;
-    padding: 1px 5px; font-size: 10px; border-radius: 3px;
-    color: #fff; font-weight: bold;
+    padding: 2px 6px; font-size: 10px; border-radius: 4px; font-weight: bold;
   }
-  .mode-tag { background: rgba(138,43,226,0.4); }
-  .mode-tag.warn { background: rgba(255,51,85,0.5); }
+  .mode-tag { background: rgba(138,43,226,0.4); color: #fff; }
+  .mode-tag.warn { background: var(--danger); }
   .key-tag { background: #00f0ff; color: #000; }
-  .od-tag { background: rgba(255,105,180,0.3); border: 1px solid rgba(255,105,180,0.5); }
+  .od-tag { background: rgba(255,105,180,0.2); border: 1px solid rgba(255,105,180,0.5); color: var(--secondary); }
 
+  /* ======= 全屏遮罩层 ======= */
   #start, #calib, #pause-overlay, #result, #settings-panel {
     position: fixed; inset: 0; display: flex; flex-direction: column;
     align-items: center; justify-content: center; z-index: 20;
-    background: rgba(0,0,0,0.85); backdrop-filter: blur(4px);
-    padding: 20px;
+    background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); padding: 20px;
+    transition: opacity 0.3s;
   }
   #start { display: flex; cursor: default; z-index: 20; }
   #calib, #pause-overlay, #result, #settings-panel { display: none; z-index: 30; }
@@ -306,148 +325,185 @@
   #loading {
     position: fixed; inset: 0; z-index: 50; display: none;
     flex-direction: column; align-items: center; justify-content: center;
-    background: rgba(0,0,0,0.9); color: var(--secondary);
+    background: rgba(0,0,0,0.95); color: var(--secondary);
   }
   #loading.show { display: flex; }
 
+  /* ======= 校准脉冲（呼吸式） ======= */
   .pulse {
     width: 60px; height: 60px; border-radius: 50%; border: 2px solid var(--primary); margin: 20px auto;
-    box-shadow: 0 0 20px rgba(138,43,226,0.5); transition: transform .08s ease, box-shadow .08s ease, border-color .08s ease;
+    box-shadow: 0 0 20px var(--primary-glow); transition: transform .08s ease, box-shadow .08s ease, border-color .08s ease;
   }
-  .pulse.beat { transform: scale(1.3); border-color: var(--secondary); box-shadow: 0 0 40px var(--secondary), inset 0 0 20px var(--secondary); }
+  .pulse.beat { transform: scale(1.4); border-color: var(--secondary); box-shadow: 0 0 40px var(--secondary-glow), inset 0 0 20px var(--secondary-glow); }
 
-  /* ======= 设置面板与文件夹样式 ======= */
-  .settings-section { text-align: left; margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid rgba(138,43,226,0.2); }
-  .settings-section:last-child { border-bottom: none; margin-bottom: 0; }
-  .settings-section h3 { font-size: 14px; color: var(--secondary); margin: 0 0 10px; text-transform: uppercase; letter-spacing: 1px; }
-  
-  .mod-folder { margin-bottom: 8px; border: 1px solid rgba(138,43,226,0.3); border-radius: 6px; background: rgba(0,0,0,0.2); overflow: hidden; }
-  .mod-folder summary {
-    padding: 10px 12px; cursor: pointer; background: rgba(138,43,226,0.15);
-    font-size: 13px; color: #fff; font-weight: bold; user-select: none;
-    display: flex; justify-content: space-between; align-items: center;
+  /* ✅ 新增：旋转加载圈（搜索/加载用） */
+  .spinner {
+    width: 44px; height: 44px;
+    margin: 0 auto 20px;
+    border: 3px solid rgba(138,43,226,0.2);
+    border-top-color: var(--secondary);
+    border-right-color: var(--primary);
+    border-radius: 50%;
+    animation: spin 0.9s linear infinite;
+    box-shadow: 0 0 15px var(--secondary-glow);
   }
-  .mod-folder summary:hover { background: rgba(138,43,226,0.3); }
-  .mod-folder[open] summary { border-bottom: 1px solid rgba(138,43,226,0.3); background: rgba(138,43,226,0.25); }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ======= 设置面板 ======= */
+  .settings-section { text-align: left; margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid rgba(138,43,226,0.15); }
+  .settings-section:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+  .settings-section h3 { font-size: 15px; color: var(--secondary); margin: 0 0 12px; letter-spacing: 1px; display: flex; justify-content: space-between; }
+  
+  /* Mod 网格 */
+  .mod-folder { margin-bottom: 10px; border: 1px solid rgba(138,43,226,0.3); border-radius: 8px; background: rgba(0,0,0,0.3); overflow: hidden; }
+  .mod-folder summary {
+    padding: 12px 16px; cursor: pointer; background: rgba(138,43,226,0.1);
+    font-size: 13px; color: #fff; font-weight: bold; user-select: none;
+    display: flex; justify-content: space-between; align-items: center; transition: all 0.2s;
+  }
+  .mod-folder summary:hover { background: rgba(138,43,226,0.25); }
+  .mod-folder[open] summary { border-bottom: 1px solid rgba(138,43,226,0.3); background: rgba(138,43,226,0.2); }
   .mod-folder summary::-webkit-details-marker { display: none; }
-  .mod-folder summary::after { content: '▼'; font-size: 10px; color: var(--text-dim); transition: transform 0.2s; }
+  .mod-folder summary::after { content: '▼'; font-size: 10px; color: var(--text-dim); transition: transform 0.3s; }
   .mod-folder[open] summary::after { transform: rotate(180deg); }
-  .mod-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 8px; padding: 10px; }
+  .mod-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(85px, 1fr)); gap: 10px; padding: 12px; }
   
   .mod-item {
-    padding: 8px 4px; border: 1px solid rgba(138,43,226,0.4); border-radius: 6px;
-    background: rgba(138,43,226,0.06); cursor: pointer; transition: all 0.15s;
-    text-align: center; user-select: none;
+    padding: 10px 6px; border: 1px solid rgba(138,43,226,0.3); border-radius: 8px;
+    background: rgba(0,0,0,0.2); cursor: pointer; transition: all 0.2s; text-align: center;
   }
-  .mod-item:hover { border-color: var(--secondary); background: rgba(138,43,226,0.2); }
-  .mod-item.active { border-color: var(--secondary); background: rgba(138,43,226,0.35); box-shadow: 0 0 12px rgba(255,105,180,0.4); }
-  .mod-item .mod-abbr { font-size: 15px; font-weight: bold; color: #fff; }
-  .mod-item .mod-name { font-size: 10px; color: var(--text-dim); margin-top: 2px; }
-  .mod-item .mod-mult { font-size: 10px; color: var(--gold); margin-top: 2px; }
+  .mod-item:hover { border-color: var(--secondary); background: rgba(138,43,226,0.15); transform: translateY(-2px); }
+  .mod-item.active { border-color: var(--secondary); background: rgba(138,43,226,0.3); box-shadow: 0 0 15px var(--secondary-glow); }
+  .mod-item .mod-abbr { font-size: 16px; font-weight: 900; color: #fff; margin-bottom: 4px; }
+  .mod-item .mod-name { font-size: 10px; color: var(--text-dim); }
+  .mod-item .mod-mult { font-size: 11px; color: var(--gold); margin-top: 4px; }
 
-  .keybind-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-  .keybind-item {
-    display: flex; align-items: center; gap: 6px;
-    background: rgba(0,0,0,0.3); padding: 6px 8px; border-radius: 4px;
-    border: 1px solid rgba(138,43,226,0.2);
+  /* 自定义按键区 */
+  .keybind-k-selector {
+    display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap;
   }
-  .keybind-item label { font-size: 12px; color: var(--text-dim); min-width: 24px; }
-  .keybind-item input {
-    width: 100%; background: transparent; border: none; border-bottom: 1px dashed rgba(138,43,226,0.5);
-    color: #fff; font-family: 'Share Tech Mono', monospace; font-size: 14px;
-    text-align: center; outline: none; text-transform: uppercase;
+  .keybind-k-btn {
+    padding: 6px 12px; border-radius: 6px; background: rgba(138,43,226,0.1);
+    border: 1px solid rgba(138,43,226,0.3); color: var(--text-dim);
+    cursor: pointer; font-size: 13px; transition: all 0.2s; font-family: inherit; font-weight: bold;
   }
-  .keybind-item input:focus { border-bottom-color: var(--secondary); }
+  .keybind-k-btn:hover { border-color: var(--primary); color: #fff; }
+  .keybind-k-btn.active {
+    background: var(--primary); color: #fff; border-color: var(--secondary);
+    box-shadow: 0 0 12px var(--primary-glow);
+  }
 
-  /* ======= 下载窗口样式 ======= */
+  .keybind-lanes {
+    display: grid; grid-template-columns: repeat(9, 1fr); gap: 8px;
+  }
+  @media (max-width: 500px) {
+    .keybind-lanes { grid-template-columns: repeat(5, 1fr); }
+  }
+  .keybind-btn {
+    padding: 10px 4px; border-radius: 8px; text-align: center;
+    background: rgba(0,0,0,0.4); border: 1px solid rgba(138,43,226,0.3);
+    color: #fff; font-size: 14px; cursor: pointer; transition: all 0.2s;
+    position: relative; font-family: inherit; min-height: 48px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+  }
+  .keybind-btn .lane-label { font-size: 10px; color: var(--text-dim); position: absolute; top: 4px; }
+  .keybind-btn .key-text { margin-top: 10px; font-weight: bold; color: var(--secondary); }
+  
+  .keybind-btn:hover { border-color: var(--secondary); background: rgba(138,43,226,0.1); }
+  .keybind-btn.listening {
+    background: rgba(255,105,180,0.2); border-color: var(--secondary);
+    animation: pulse-glow 1s infinite alternate; color: var(--secondary);
+  }
+  @keyframes pulse-glow {
+    from { box-shadow: 0 0 5px rgba(255,105,180,0.2); }
+    to { box-shadow: 0 0 20px rgba(255,105,180,0.8); }
+  }
+
+  /* ======= 下载窗口 ======= */
   #download-panel {
     position: fixed; inset: 0; display: none; flex-direction: column;
     align-items: center; justify-content: center; z-index: 60;
-    background: rgba(0,0,0,0.9); backdrop-filter: blur(8px); padding: 20px;
+    background: rgba(0,0,0,0.9); backdrop-filter: blur(12px); padding: 20px;
   }
   #download-panel .glass-card {
     max-width: 760px; height: 85vh; display: flex; flex-direction: column;
-    padding: 15px 20px;
+    padding: 24px;
   }
   
-  .search-bar {
-    display: flex; gap: 8px; margin-bottom: 12px;
-  }
+  .search-bar { display: flex; gap: 10px; margin-bottom: 16px; }
   .search-bar input {
-    flex: 1; padding: 10px 15px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1);
-    background: rgba(0,0,0,0.5); color: #fff; font-family: 'Share Tech Mono', monospace;
-    font-size: 15px; outline: none; transition: border-color 0.2s;
+    flex: 1; padding: 12px 18px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1);
+    background: rgba(0,0,0,0.6); color: #fff; font-family: inherit; font-size: 15px;
+    outline: none; transition: all 0.2s;
   }
-  .search-bar input:focus { border-color: var(--secondary); }
-  .search-bar .btn { margin: 0; padding: 0 20px; display: flex; align-items: center; justify-content: center; }
+  .search-bar input:focus { border-color: var(--secondary); box-shadow: 0 0 15px rgba(255,105,180,0.2); }
+  .search-bar .btn { margin: 0; padding: 0 24px; border-radius: 10px; }
 
+  /* 筛选与排序 */
   #filter-bar {
-    display: flex; flex-direction: column; gap: 8px;
-    margin-bottom: 12px; text-align: left; font-size: 12px;
-    background: rgba(0,0,0,0.3); padding: 10px; border-radius: 6px;
+    display: flex; flex-direction: column; gap: 12px;
+    margin-bottom: 16px; text-align: left; font-size: 13px;
+    background: rgba(0,0,0,0.3); padding: 14px; border-radius: 10px;
     border: 1px solid rgba(255,255,255,0.05);
   }
-  .filter-group { display: flex; align-items: flex-start; gap: 10px; }
-  .filter-label { color: var(--text-dim); min-width: 50px; font-weight: bold; }
-  .filter-options { display: flex; flex-wrap: wrap; gap: 8px; }
+  .filter-group { display: flex; align-items: flex-start; gap: 12px; }
+  .filter-label { color: var(--text-dim); min-width: 48px; font-weight: bold; margin-top: 2px; }
+  .filter-options { display: flex; flex-wrap: wrap; gap: 10px; }
   .filter-opt {
-    color: #aaa; cursor: pointer; transition: color 0.15s;
-    padding: 2px 6px; border-radius: 3px;
+    color: #aaa; cursor: pointer; transition: all 0.2s; padding: 4px 8px; border-radius: 6px;
   }
   .filter-opt:hover { color: #fff; background: rgba(255,255,255,0.1); }
-  .filter-opt.active { color: var(--secondary); font-weight: bold; text-shadow: 0 0 5px rgba(255,105,180,0.5); }
+  .filter-opt.active { color: var(--secondary); font-weight: bold; background: rgba(255,105,180,0.1); }
   .filter-opt.active::before { content: '✔ '; font-size: 10px; }
 
   .sort-header {
-    display: flex; align-items: center; gap: 15px; 
-    padding: 8px 10px; background: rgba(255,255,255,0.05); 
-    border-radius: 6px; margin-bottom: 10px; font-size: 12px;
-    flex-wrap: wrap;
+    display: flex; align-items: center; gap: 16px; 
+    padding: 10px 14px; background: rgba(138,43,226,0.1); 
+    border-radius: 8px; margin-bottom: 12px; font-size: 13px; flex-wrap: wrap;
   }
   .sort-label { color: var(--text-dim); font-weight: bold; }
   .sort-btn {
-    color: #aaa; cursor: pointer; transition: color 0.15s;
+    color: #aaa; cursor: pointer; transition: all 0.2s;
     display: flex; align-items: center; gap: 4px; user-select: none;
   }
   .sort-btn:hover { color: #fff; }
-  .sort-btn.active { color: #fff; font-weight: bold; }
-  .sort-btn .sort-icon { font-size: 10px; color: var(--secondary); }
+  .sort-btn.active { color: var(--secondary); font-weight: bold; }
+  .sort-btn .sort-icon { font-size: 10px; }
 
   #search-results {
     flex: 1; overflow-y: auto; text-align: left;
-    display: flex; flex-direction: column; gap: 8px;
-    padding-right: 4px;
+    display: flex; flex-direction: column; gap: 10px; padding-right: 6px;
   }
-  #search-results::-webkit-scrollbar { width: 6px; }
-  #search-results::-webkit-scrollbar-thumb { background: rgba(138,43,226,0.5); border-radius: 3px; }
   
-  #search-results .song-item { padding: 10px; }
+  #search-results .song-item { padding: 12px; border-radius: 10px; }
   #search-results .song-item img {
-    width: 60px; height: 60px; object-fit: cover; border-radius: 4px; margin-right: 12px;
+    width: 64px; height: 64px; object-fit: cover; border-radius: 8px; margin-right: 16px;
     background: #222;
   }
   #search-results .song-item .btn {
-    margin: 0; padding: 6px 10px; font-size: 12px; letter-spacing: 1px;
+    margin: 0; padding: 8px 14px; font-size: 12px; border-radius: 8px;
   }
 
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+    /* ✅ 加载圈静止会让人误以为卡住，这里给它保留可见的慢速旋转 */
+    .spinner { animation-duration: 2s !important; animation-iteration-count: infinite !important; }
   }
 </style>
 </head>
 <body>
 
 <!-- 顶部工具栏 -->
-<button id="settings-btn" aria-label="Settings">⚙</button>
+<button id="settings-btn" class="top-btn" aria-label="Settings">⚙</button>
 
 <div id="task-manager-container">
-  <button id="task-manager-btn" aria-label="Tasks">
-    ⬇
+  <button id="task-manager-btn" class="top-btn" aria-label="Tasks">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
     <span id="task-badge">0</span>
   </button>
   <div id="task-manager-panel">
     <div class="task-panel-header">
-      <span>导入任务</span>
+      <span>导入任务管理器</span>
       <button id="clear-tasks-btn">清理已完成</button>
     </div>
     <div id="task-list"></div>
@@ -463,22 +519,24 @@
 </div>
 
 <div id="bottom-pads" style="display: none;"></div>
-<button id="pause-btn" aria-label="Pause">❚❚</button>
+<button id="pause-btn" class="top-btn" aria-label="Pause">❚❚</button>
 
 <!-- 开始界面 -->
 <div id="start">
   <div class="glass-card" style="max-width: 560px;">
     <h1>MANIA</h1>
-    <p>1K ~ 9K · ScoreV1 · Mods</p>
+    <p style="color:#fff; letter-spacing: 2px; font-weight: bold; margin-bottom: 30px;">CYBER NEXUS</p>
     
-    <div class="btn primary" id="demo-btn" style="margin-top: 15px; width: 100%;">▶ 体验内置演示曲目</div>
+    <div class="btn primary" id="demo-btn" style="margin-top: 0; width: 100%; padding: 16px; font-size: 16px;">▶ 体验内置演示曲目</div>
     
-    <div class="calib-link" id="toggle-upload" style="margin-top: 20px;">📁 导入 osu! 谱面 / .osz</div>
-    <div class="calib-link" id="open-download" style="margin-top: 12px; color: var(--gold); border-color: var(--gold);">🌐 在线搜索 / 下载谱面</div>
+    <div style="margin-top: 30px; display: flex; justify-content: center; gap: 20px; flex-wrap: wrap;">
+      <div class="link-btn" id="toggle-upload" style="margin: 0;">📁 导入 osu! 谱面 / .osz</div>
+      <div class="link-btn" id="open-download" style="margin: 0; color: var(--gold); border-color: var(--gold);">🌐 在线搜索 / 下载</div>
+    </div>
     
-    <div id="upload-panel" style="display: none;">
+    <div id="upload-panel" style="display: none; margin-top: 20px;">
       <div id="upload-zone">
-        <p style="font-size: 14px; color: #fff;"><b>点击选择或拖拽文件</b></p>
+        <p style="font-size: 15px; color: #fff; font-weight: bold; margin-bottom: 8px;">点击选择或拖拽文件</p>
         <p style="font-size: 12px;">支持直接拖入 <b>.osz</b> 压缩包<br>或同时提供 <b>.osu</b> + <b>.mp3</b> 文件</p>
         <div id="file-status" class="file-status"></div>
       </div>
@@ -488,7 +546,7 @@
     <div id="song-list-wrap" style="display: none;">
       <div class="list-title">
         <span>曲目列表</span>
-        <span id="clear-songs-btn">清空</span>
+        <span id="clear-songs-btn">清空全部</span>
       </div>
       <div id="song-list"></div>
     </div>
@@ -517,7 +575,7 @@
       <div class="filter-group">
         <span class="filter-label">模式</span>
         <div class="filter-options">
-          <span class="filter-opt active" style="pointer-events:none;">osu!mania</span>
+          <span class="filter-opt active" style="pointer-events:none; color:var(--secondary);">osu!mania</span>
         </div>
       </div>
       <div class="filter-group">
@@ -549,19 +607,19 @@
     </div>
 
     <div id="search-results">
-      <p style="text-align:center; color:var(--text-dim); margin-top:20px;">加载推荐谱面中...</p>
+      <p style="text-align:center; color:var(--text-dim); margin-top:40px;">加载推荐谱面中...</p>
     </div>
 
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:16px;">
       <div id="download-status" style="font-size:12px; color:var(--secondary); word-break:break-all; max-width:70%;"></div>
-      <div class="btn" id="download-cancel">关闭</div>
+      <div class="btn" id="download-cancel">关闭窗口</div>
     </div>
   </div>
 </div>
 
 <!-- 设置面板 -->
 <div id="settings-panel">
-  <div class="glass-card" style="max-width: 520px;">
+  <div class="glass-card" style="max-width: 600px;">
     <h1>SETTINGS</h1>
     
     <div class="settings-section">
@@ -570,11 +628,13 @@
     </div>
 
     <div class="settings-section">
-      <h3>自定义按键 (输入字母/数字/符号，留空为默认)</h3>
-      <div class="keybind-grid" id="keybind-grid"></div>
+      <h3>自定义按键</h3>
+      <div class="keybind-k-selector" id="keybind-k-selector"></div>
+      <div class="keybind-lanes" id="keybind-lanes"></div>
+      <p style="font-size: 12px; margin-top: 12px; color: #888;">点击下方按钮，然后按下想要绑定的键盘按键即可。</p>
     </div>
 
-    <div class="settings-section" style="display:flex; gap:12px; justify-content:center;">
+    <div class="settings-section" style="display:flex; gap:16px; justify-content:center; margin-top: 30px;">
       <div class="btn" id="calib-link">⚠ 延迟校准</div>
       <div class="btn primary" id="settings-close">返回主菜单</div>
     </div>
@@ -594,7 +654,7 @@
     <p>跟着节拍敲任意键（或点击屏幕）</p>
     <p>当前已保存偏移: <b id="calib-cur" style="color:var(--secondary)">0</b> ms</p>
     <div class="pulse" id="calib-pulse"></div>
-    <p id="calib-status">准备中...</p>
+    <p id="calib-status" style="color:var(--gold);">准备中...</p>
     <div class="btn" id="calib-close">返回</div>
   </div>
 </div>
@@ -603,13 +663,12 @@
 <div id="pause-overlay">
   <div class="glass-card">
     <h1>PAUSED</h1>
-    <p style="margin-bottom: 24px;">点击继续 / ESC 恢复</p>
     
-    <div style="display: flex; gap: 16px; justify-content: center; margin-bottom: 12px;">
-      <div class="btn" id="resume-btn">继续</div>
-      <div class="btn retry" id="retry-btn">重试</div>
+    <div style="display: flex; gap: 16px; justify-content: center; margin-bottom: 16px;">
+      <div class="btn primary" id="resume-btn" style="flex:1;">继续</div>
+      <div class="btn" id="retry-btn" style="flex:1;">重试</div>
     </div>
-    <div class="btn" id="pause-menu-btn" style="width: 100%;">返回主菜单</div>
+    <div class="btn danger" id="pause-menu-btn" style="width: 100%;">返回主菜单</div>
   </div>
 </div>
 
@@ -617,12 +676,12 @@
 <div id="result">
   <div class="glass-card">
     <h1 id="result-title">RESULT</h1>
-    <div id="result-rank" style="font-size:84px; font-family:'Orbitron', sans-serif; font-weight:900; line-height:1; margin:14px 0; letter-spacing:4px;">S</div>
+    <div id="result-rank" style="font-size:96px; font-family:'Orbitron', sans-serif; font-weight:900; line-height:1; margin:20px 0; letter-spacing:4px;">S</div>
     <div id="result-stats"></div>
-    <div style="display:flex; gap:12px; justify-content:center; margin-top:24px; flex-wrap:wrap;">
-      <div class="btn primary" id="result-retry">再来一次</div>
-      <div class="btn" id="result-replay" style="border-color:var(--gold); color:var(--gold); display:none;">▶ 观看回放</div>
-      <div class="btn" id="result-menu">返回选单</div>
+    <div style="display:flex; gap:12px; justify-content:center; margin-top:30px; flex-wrap:wrap;">
+      <div class="btn primary" id="result-retry" style="flex:1;">再来一次</div>
+      <div class="btn" id="result-replay" style="border-color:var(--gold); color:var(--gold); display:none; flex:1;">▶ 回放</div>
+      <div class="btn" id="result-menu" style="flex:1;">返回选单</div>
     </div>
   </div>
 </div>
@@ -639,7 +698,7 @@ const APPROACH = 1.15;
 const PX_PER_SEC = JUDGE_Y / APPROACH;
 const LEAD_IN = 2.0; 
 
-const COL_W_4K = BASE_W / 4; // 4K 基准列宽 = 110
+const COL_W_4K = BASE_W / 4;
 let laneCount = 4;
 let LANE_W = COL_W_4K;
 let W = BASE_W; 
@@ -681,6 +740,15 @@ const MOD_DEFS = [
   { id:'AP', name:'Autopilot', mult:0.00, cat:'auto', desc:'自动判定，需按键' },
 ];
 
+/* ✅ FIX: Mods 互斥组 —— 同组内只能选一个 */
+const MOD_EXCLUSIVE_GROUPS = [
+  ['EZ', 'HR'],
+  ['HT', 'DT', 'NC', 'DC'],
+  ['HD', 'FL'],
+  ['SD', 'PF'],
+  ['AT', 'RX', 'AP'],
+];
+
 const DEMO_BPM = 140;
 const DEMO_BEAT = 60 / DEMO_BPM;
 const DEMO_BAR = DEMO_BEAT * 4;
@@ -694,7 +762,7 @@ const DEMO_LANE_SEQ = [0,2,1,3,2,0,3,1,1,3,0,2,3,1,2,0];
 const PENTA = [261.63, 293.66, 329.63, 392.00, 440.00, 523.25];
 
 const PAL = {
-  bgTop: 'rgba(10,5,16,0.3)', bgBot: 'rgba(0,0,0,0.6)',
+  bgTop: 'rgba(10,5,16,0.3)', bgBot: 'rgba(0,0,0,0.7)',
   laneOdd: 'rgba(138,43,226,0.08)', laneEven: 'rgba(20,5,40,0.2)',
   laneDivider: 'rgba(138,43,226,0.15)', note: '#ff69b4', noteGlow: '#ff69b4',
   noteCore: 'rgba(255,255,255,0.95)', noteCoreMid: 'rgba(255,255,255,0.15)',
@@ -774,6 +842,7 @@ let searchState = {
   sortDir: 'desc'      
 };
 
+// 旧数据兼容 & 存储
 let customKeybinds = (() => {
   try {
     const s = localStorage.getItem('mania_keybinds');
@@ -790,8 +859,7 @@ let audioOffset = (() => {
     const v = parseFloat(localStorage.getItem('mania_offset')); 
     if (isFinite(v) && Math.abs(v) <= 1.0) return v;
     return 0;
-  }
-  catch(e) { return 0; }
+  } catch(e) { return 0; }
 })();
 
 /* ==================== 任务管理器 ==================== */
@@ -833,7 +901,14 @@ function updateTaskBadge() {
 
 function renderAllTasks() {
   taskListEl.innerHTML = '';
-  tasks.slice().reverse().forEach(task => renderTask(task));
+  tasks.forEach(task => renderTask(task));
+}
+
+function scheduleTaskPanelAutoHide(delay = 3000) {
+  setTimeout(() => {
+    const hasActive = tasks.some(t => ['downloading', 'parsing', 'paused', 'pending'].includes(t.status));
+    if (!hasActive) taskManagerPanel.classList.remove('show');
+  }, delay);
 }
 
 function renderTask(task) {
@@ -856,18 +931,18 @@ function renderTask(task) {
     actions = `<button class="task-btn cancel" onclick="cancelTask('${task.id}')">取消</button>`;
   }
   
-  let color = 'linear-gradient(90deg, #8a2be2, #ff69b4)';
-  if (task.status === 'failed' || task.status === 'cancelled') color = '#ff3355';
-  if (task.status === 'completed') color = '#00ff41';
-  if (task.status === 'paused') color = '#ffd700';
+  let color = 'linear-gradient(90deg, var(--primary), var(--secondary))';
+  if (task.status === 'failed' || task.status === 'cancelled') color = 'var(--danger)';
+  if (task.status === 'completed') color = 'var(--success)';
+  if (task.status === 'paused') color = 'var(--gold)';
 
   el.innerHTML = `
     <div class="task-header-row">
       <span class="task-name" title="${escapeHtml(task.name)}">${escapeHtml(task.name)}</span>
-      <span class="task-status">${escapeHtml(task.statusText)}</span>
+      <span class="task-status" style="color: ${task.status === 'failed' ? 'var(--danger)' : 'var(--secondary)'}">${escapeHtml(task.statusText)}</span>
     </div>
     <div class="task-progress-bg">
-      <div class="task-progress-fill" style="width: ${task.progress}%; background: ${color};"></div>
+      <div class="task-progress-fill" style="width: ${task.progress}%; background: ${color}; box-shadow: 0 0 10px ${color};"></div>
     </div>
     <div class="task-actions">${actions}</div>
   `;
@@ -889,7 +964,9 @@ function createTask(name, type) {
     url: null,
     zip: null,
     osuNames: [],
-    audioBlob: null
+    audioBlob: null,
+    /* ✅ 新增：断点续传用 —— 记住上次成功连接的镜像 host */
+    resumeHost: null
   };
   tasks.push(task);
   renderTask(task);
@@ -902,10 +979,8 @@ window.pauseTask = function(id) {
   if (!task) return;
   if (task.status === 'downloading') {
     task.status = 'paused';
-    task.statusText = '已暂停';
-    if (task.abortController) {
-      task.abortController.abort();
-    }
+    task.statusText = '已暂停（' + (task.received/1048576).toFixed(1) + ' MB 已缓存）';
+    if (task.abortController) task.abortController.abort();
     renderTask(task);
     updateTaskBadge();
   }
@@ -924,9 +999,12 @@ window.cancelTask = function(id) {
   if (!task) return;
   task.status = 'cancelled';
   task.statusText = '已取消';
-  if (task.abortController) {
-    task.abortController.abort();
-  }
+  if (task.abortController) task.abortController.abort();
+  // ✅ 清空已下载数据，释放内存
+  task.chunks = [];
+  task.received = 0;
+  task.resumeHost = null;
+  task.progress = 0;
   renderTask(task);
   updateTaskBadge();
 };
@@ -940,75 +1018,131 @@ window.removeTask = function(id) {
   }
 };
 
-/* ==================== 进度与解析逻辑 ==================== */
+/* ==================== 导入与解析逻辑 ==================== */
+
+/* ✅ 断点续传核心逻辑：
+   - 暂停后保留 chunks / received / resumeHost
+   - 恢复时发送 Range: bytes=N- 请求
+   - 响应判断：
+     200 → 服务器不支持 Range，清空已有数据从头下载
+     206 → 服务器支持 Range，继续追加
+     416 → 已下载完整，直接进入解析
+*/
 async function startNetworkTask(task) {
   task.status = 'downloading';
-  task.statusText = '连接中...';
-  task.progress = 0;
-  task.chunks = [];
-  task.received = 0;
+  const isResume = task.received > 0 && task.chunks.length > 0;
+  task.statusText = isResume ? `恢复连接（${(task.received/1048576).toFixed(1)} MB 已缓存）...` : '连接中...';
+  if (!isResume) task.progress = 0;
   renderTask(task);
   updateTaskBadge();
   
   const mirrors = ['https://catboy.best/d/', 'https://osu.direct/api/d/', 'https://api.nerinyan.moe/d/'];
   const setId = task.url;
   
-  for (const host of mirrors) {
+  // 优先从上次成功连接的镜像继续
+  let mirrorsToTry = mirrors.slice();
+  if (task.resumeHost && mirrorsToTry.includes(task.resumeHost)) {
+    mirrorsToTry = [task.resumeHost, ...mirrorsToTry.filter(h => h !== task.resumeHost)];
+  }
+  
+  for (const host of mirrorsToTry) {
     if (task.status === 'cancelled' || task.status === 'paused') return;
     
     const url = host + setId;
     try {
-      task.statusText = `尝试 ${new URL(url).hostname}`;
+      const hostname = new URL(url).hostname;
+      const isSameHost = task.resumeHost === host;
+      task.statusText = (isSameHost && task.received > 0 ? '续传 ' : '尝试 ') + hostname + '...';
       renderTask(task);
       
       task.abortController = new AbortController();
-      const resp = await fetch(url, { signal: task.abortController.signal });
       
-      if (resp.ok) {
-        const contentLength = Number(resp.headers.get('content-length')) || 0;
-        task.totalSize = contentLength;
-        
-        const reader = resp.body.getReader();
-        while (true) {
-          if (task.status === 'paused' || task.status === 'cancelled') {
-            task.abortController.abort();
-            return;
-          }
-          const { done, value } = await reader.read();
-          if (done) break;
-          task.chunks.push(value);
-          task.received += value.length;
-          if (task.totalSize > 0) {
-            task.progress = (task.received / task.totalSize) * 70;
-            task.statusText = `下载中 ${(task.received/1048576).toFixed(2)}/${(task.totalSize/1048576).toFixed(2)} MB`;
-          } else {
-            task.progress = 35;
-            task.statusText = `下载中 ${(task.received/1048576).toFixed(2)} MB`;
-          }
-          renderTask(task);
-        }
-        
+      // 有部分数据则带 Range 请求头
+      const headers = {};
+      if (task.received > 0 && task.chunks.length > 0) {
+        headers['Range'] = `bytes=${task.received}-`;
+      }
+      
+      const resp = await fetch(url, { signal: task.abortController.signal, headers });
+      
+      // 416 Range Not Satisfiable：可能已下载完整
+      if (resp.status === 416 && task.received > 0 && task.chunks.length > 0) {
         const blob = new Blob(task.chunks);
         const firstBytes = await blob.slice(0, 2).arrayBuffer();
         const isZip = new Uint8Array(firstBytes)[0] === 0x50 && new Uint8Array(firstBytes)[1] === 0x4B;
-        
         if (isZip) {
+          task.resumeHost = null;
           await processOszBlob(task, blob);
           return;
-        } else {
-          throw new Error('下载的不是有效的 osz 文件');
         }
+        // 数据损坏，重置后尝试下一个镜像
+        task.chunks = []; task.received = 0; task.resumeHost = null;
+        continue;
+      }
+      
+      if (resp.status !== 200 && resp.status !== 206) {
+        throw new Error(`HTTP ${resp.status}`);
+      }
+      
+      // 200 = 服务器不支持 Range，从 0 开始（清空缓存数据）
+      if (resp.status === 200 && task.chunks.length > 0) {
+        task.chunks = [];
+        task.received = 0;
+      }
+      
+      // 解析总大小：优先从 Content-Range 拿，否则用 Content-Length
+      let remainingLen = Number(resp.headers.get('content-length')) || 0;
+      let totalSize = remainingLen;
+      const contentRange = resp.headers.get('content-range');
+      if (contentRange) {
+        const m = contentRange.match(/bytes\s+\d+-\d+\/(\d+)/);
+        if (m) totalSize = Number(m[1]);
+      }
+      task.totalSize = totalSize;
+      task.resumeHost = host;
+      
+      const reader = resp.body.getReader();
+      while (true) {
+        if (task.status === 'paused' || task.status === 'cancelled') {
+          task.abortController.abort();
+          return;
+        }
+        const { done, value } = await reader.read();
+        if (done) break;
+        task.chunks.push(value);
+        task.received += value.length;
+        
+        if (task.totalSize > 0) {
+          task.progress = Math.min(70, (task.received / task.totalSize) * 70);
+          task.statusText = `${(task.received/1048576).toFixed(1)} / ${(task.totalSize/1048576).toFixed(1)} MB`;
+        } else {
+          task.progress = Math.min(69, 35 + (task.received / 1048576) * 5);
+          task.statusText = `${(task.received/1048576).toFixed(1)} MB`;
+        }
+        renderTask(task);
+      }
+      
+      const blob = new Blob(task.chunks);
+      const firstBytes = await blob.slice(0, 2).arrayBuffer();
+      const isZip = new Uint8Array(firstBytes)[0] === 0x50 && new Uint8Array(firstBytes)[1] === 0x4B;
+      
+      if (isZip) {
+        task.resumeHost = null;
+        await processOszBlob(task, blob);
+        return;
+      } else {
+        // 不是 zip，可能镜像返回错误页，重置后尝试下一个
+        task.chunks = []; task.received = 0; task.resumeHost = null;
+        throw new Error('不是有效的 osz 文件');
       }
     } catch (e) {
       if (e.name === 'AbortError') {
         if (task.status === 'paused') {
-          task.statusText = '已暂停';
+          task.statusText = '已暂停（' + (task.received/1048576).toFixed(1) + ' MB 已缓存）';
           task.abortController = null;
           renderTask(task);
           return;
-        } else if (task.status === 'cancelled') {
-          return;
-        }
+        } else if (task.status === 'cancelled') return;
       }
       console.warn(`镜像 ${host} 失败:`, e);
     }
@@ -1016,7 +1150,7 @@ async function startNetworkTask(task) {
   
   if (task.status !== 'cancelled' && task.status !== 'paused') {
     task.status = 'failed';
-    task.statusText = '所有镜像下载失败';
+    task.statusText = '下载失败';
     renderTask(task);
     updateTaskBadge();
   }
@@ -1024,7 +1158,7 @@ async function startNetworkTask(task) {
 
 async function startLocalOszTask(task) {
   task.status = 'parsing';
-  task.statusText = '读取文件中...';
+  task.statusText = '读取文件...';
   task.progress = 0;
   renderTask(task);
   updateTaskBadge();
@@ -1036,7 +1170,7 @@ async function startLocalOszTask(task) {
       reader.onprogress = (ev) => {
         if (ev.lengthComputable) {
           task.progress = (ev.loaded / ev.total) * 70;
-          task.statusText = `读取文件 ${(ev.loaded/1048576).toFixed(1)}/${(ev.total/1048576).toFixed(1)} MB`;
+          task.statusText = `读取 ${(ev.loaded/1048576).toFixed(1)} / ${(ev.total/1048576).toFixed(1)} MB`;
           renderTask(task);
         }
       };
@@ -1051,20 +1185,18 @@ async function startLocalOszTask(task) {
     await processOszBlob(task, blob);
     
   } catch (err) {
-    if (task.status === 'cancelled') {
-      task.statusText = '已取消';
-    } else {
+    if (task.status !== 'cancelled') {
       task.status = 'failed';
-      task.statusText = '失败: ' + err.message;
+      task.statusText = '解析失败: ' + err.message;
+      renderTask(task);
+      updateTaskBadge();
     }
-    renderTask(task);
-    updateTaskBadge();
   }
 }
 
 async function processOszBlob(task, blob) {
   task.status = 'parsing';
-  task.statusText = '解压中...';
+  task.statusText = '解压文件...';
   task.progress = 70;
   renderTask(task);
   
@@ -1074,9 +1206,9 @@ async function processOszBlob(task, blob) {
     
     const fileNames = Object.keys(zip.files);
     const osuNames = fileNames.filter(n => n.toLowerCase().endsWith('.osu'));
-    if (osuNames.length === 0) throw new Error("未找到 .osu 文件");
+    if (osuNames.length === 0) throw new Error("未找到 .osu 谱面");
     
-    task.statusText = '查找音频...';
+    task.statusText = '提取音频...';
     task.progress = 75;
     renderTask(task);
     
@@ -1092,7 +1224,7 @@ async function processOszBlob(task, blob) {
     }
     
     if (!targetAudioName) targetAudioName = fileNames.find(n => /\.(mp3|ogg)$/i.test(n)) || fileNames.find(n => /\.wav$/i.test(n));
-    if (!targetAudioName) throw new Error("未找到有效音频文件");
+    if (!targetAudioName) throw new Error("未找到有效音频");
 
     const audioBlob = await zip.file(targetAudioName).async('blob');
     const bgUrlCache = new Map();
@@ -1141,7 +1273,7 @@ async function processOszBlob(task, blob) {
 
     if (newSongs.length === 0) throw new Error("无有效谱面");
     task.status = 'completed';
-    task.statusText = `完成 (${newSongs.length} 个难度)`;
+    task.statusText = `完成 (${newSongs.length}个难度)`;
     task.progress = 100;
     renderTask(task);
     updateTaskBadge();
@@ -1150,14 +1282,12 @@ async function processOszBlob(task, blob) {
     fileStatus.innerHTML = `✅ ${task.name} 导入成功！`;
     
   } catch (err) {
-    if (task.status === 'cancelled') {
-      task.statusText = '已取消';
-    } else {
+    if (task.status !== 'cancelled') {
       task.status = 'failed';
-      task.statusText = '失败: ' + err.message;
+      task.statusText = '解析失败: ' + err.message;
+      renderTask(task);
+      updateTaskBadge();
     }
-    renderTask(task);
-    updateTaskBadge();
   }
 }
 
@@ -1180,10 +1310,10 @@ async function startLocalOsuTask(task) {
     renderTask(task);
     
     const result = parseOsuFile(text);
-    if (result.objects.length === 0) throw new Error('谱面内没有音符');
+    if (result.objects.length === 0) throw new Error('谱面为空');
     
     task.progress = 80;
-    task.statusText = '写入库中...';
+    task.statusText = '写入库...';
     renderTask(task);
     
     const song = {
@@ -1205,14 +1335,12 @@ async function startLocalOsuTask(task) {
     uploadPanel.style.display = 'block';
     fileStatus.innerHTML = `✔ 已导入: ${escapeHtml(song.title)}`;
   } catch (err) {
-    if (task.status === 'cancelled') {
-      task.statusText = '已取消';
-    } else {
+    if (task.status !== 'cancelled') {
       task.status = 'failed';
       task.statusText = '失败: ' + err.message;
+      renderTask(task);
+      updateTaskBadge();
     }
-    renderTask(task);
-    updateTaskBadge();
   }
 }
 
@@ -1253,6 +1381,50 @@ function newSongId() { return 's_' + Date.now().toString(36) + '_' + Math.random
 function realTimeOf(songT) { return songStartTime + audioOffset + songT / effectiveSpeed; }
 function getSongTime() { return audioCtx ? (audioCtx.currentTime - songStartTime - audioOffset) * effectiveSpeed : 0; }
 function formatTime(sec) { sec = Math.max(0, sec); return `${Math.floor(sec / 60)}:${Math.floor(sec % 60).toString().padStart(2, '0')}`; }
+
+// 键码转换展示
+function codeToLabel(code) {
+  if (!code) return '';
+  if (code.startsWith('Key')) return code.slice(3);
+  if (code.startsWith('Digit')) return code.slice(5);
+  if (code === 'Space') return 'SPACE';
+  if (code === 'ArrowLeft') return '←';
+  if (code === 'ArrowRight') return '→';
+  if (code === 'ArrowUp') return '↑';
+  if (code === 'ArrowDown') return '↓';
+  if (code === 'Semicolon') return ';';
+  if (code === 'Comma') return ',';
+  if (code === 'Period') return '.';
+  if (code === 'Slash') return '/';
+  if (code === 'Backslash') return '\\';
+  if (code === 'Quote') return "'";
+  if (code === 'BracketLeft') return '[';
+  if (code === 'BracketRight') return ']';
+  if (code === 'Minus') return '-';
+  if (code === 'Equal') return '=';
+  if (code === 'Backquote') return '`';
+  return code.replace('Control', 'Ctrl').replace('Shift', 'Shift').replace('Alt', 'Alt');
+}
+
+// 旧数据兼容字符转码
+function charToCode(c) {
+  const u = c.toUpperCase();
+  if (u === ' ') return 'Space';
+  if (u === ';') return 'Semicolon';
+  if (u === ',') return 'Comma';
+  if (u === '.') return 'Period';
+  if (u === '/') return 'Slash';
+  if (u === '\\') return 'Backslash';
+  if (u === "'") return 'Quote';
+  if (u === '[') return 'BracketLeft';
+  if (u === ']') return 'BracketRight';
+  if (u === '-') return 'Minus';
+  if (u === '=') return 'Equal';
+  if (u === '`') return 'Backquote';
+  if (/^[A-Z]$/.test(u)) return 'Key' + u;
+  if (/^[0-9]$/.test(u)) return 'Digit' + u;
+  return 'Key' + u;
+}
 
 /* ==================== ScoreV1 & 判定窗口 ==================== */
 function calculateScore(judgment) {
@@ -1328,28 +1500,14 @@ function calculateManiaPP(acc, noteCount, modsSet) {
 }
 
 /* ==================== 动态布局 ==================== */
-function charToCode(c) {
-  const u = c.toUpperCase();
-  if (u === ' ') return 'Space';
-  if (u === ';') return 'Semicolon';
-  if (u === ',') return 'Comma';
-  if (u === '.') return 'Period';
-  if (u === '/') return 'Slash';
-  if (u === '\\') return 'Backslash';
-  if (u === "'") return 'Quote';
-  if (u === '[') return 'BracketLeft';
-  if (u === ']') return 'BracketRight';
-  if (u === '-') return 'Minus';
-  if (u === '=') return 'Equal';
-  if (u === '`') return 'Backquote';
-  if (/^[A-Z]$/.test(u)) return 'Key' + u;
-  if (/^[0-9]$/.test(u)) return 'Digit' + u;
-  return 'Key' + u;
-}
-
 function setupGameLayout(count) {
   laneCount = Math.max(1, Math.min(9, count));
-  LANE_W = COL_W_4K;
+  const maxBoardW = Math.min(window.innerWidth - 24, 540);
+  if (laneCount <= 4) {
+    LANE_W = COL_W_4K;
+  } else {
+    LANE_W = Math.max(36, Math.floor(maxBoardW / laneCount));
+  }
   W = LANE_W * laneCount;
   
   const boardEl = document.getElementById('board');
@@ -1373,12 +1531,15 @@ function setupGameLayout(count) {
     9: { keys: ['KeyA', 'KeyS', 'KeyD', 'KeyF', 'Space', 'KeyJ', 'KeyK', 'KeyL', 'Semicolon'], labels: ['A','S','D','F','⌴','J','K','L',';'] }
   };
   
-  let layout = defaultLayouts[laneCount] || defaultLayouts[4];
+  let layout = JSON.parse(JSON.stringify(defaultLayouts[laneCount] || defaultLayouts[4]));
   
   const custom = customKeybinds[laneCount];
   if (custom && custom.length === laneCount) {
-    const newKeys = custom.map(k => charToCode(k));
-    layout = { keys: newKeys, labels: custom.map(k => k.toUpperCase() === ' ' ? '⌴' : k.toUpperCase()) };
+    const newKeys = custom.map(k => {
+      if (k.length === 1) return charToCode(k);
+      return k;
+    });
+    layout = { keys: newKeys, labels: newKeys.map(k => codeToLabel(k)) };
   }
   
   KEY_CODES = {};
@@ -1788,9 +1949,6 @@ function updateNotes() {
         if (songTime > n.time + missWindow) {
           n.headJudged = true; n.judged = true; n.broken = true; n.brokenTime = songTime;
           addMiss();
-          judgedCount++;
-          counts.MISS = (counts.MISS || 0) + 1;
-          totalScore += calculateScore('MISS');
         }
       } else if (n.holding) {
         if (songTime >= n.endTime) finishHoldTail(n, 'PERFECT');
@@ -2072,6 +2230,7 @@ function drawProgress() {
   ctx.shadowColor = '#000'; ctx.shadowBlur = 4;
   ctx.fillText(`-${formatTime(remainT)}`, W / 2, y - 4);
   ctx.shadowBlur = 0;
+  ctx.textBaseline = 'middle';
 }
 
 function draw() {
@@ -2247,7 +2406,7 @@ function addSongToLibrary(song) {
   );
   if (idx >= 0) {
     const old = songLibrary[idx];
-    if (old.bgUrl && old.bgUrl.startsWith('blob:')) {
+    if (old.bgUrl && old.bgUrl.startsWith('blob:') && old.bgUrl !== song.bgUrl) {
       try { URL.revokeObjectURL(old.bgUrl); } catch (_) {}
     }
     songLibrary[idx] = song;
@@ -2316,7 +2475,7 @@ function renderSongList() {
         <div class="song-info">
           <div class="song-title">${escapeHtml(song.title)}</div>
           <div class="song-sub">
-            <span style="max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(song.artist || 'Unknown')}</span> · ${escapeHtml(song.version)}
+            <span style="max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(song.artist || 'Unknown')}</span> · ${escapeHtml(song.version)}
           </div>
           <div class="song-sub" style="margin-top: 6px; gap: 6px;">
             <span class="key-tag">${song.circleSize}K</span>
@@ -2389,6 +2548,102 @@ function showStartMenu() {
 }
 
 /* ==================== 设置面板 ==================== */
+let displayKC = 4;
+
+function renderKeybindButtons() {
+  const selector = document.getElementById('keybind-k-selector');
+  selector.innerHTML = '';
+  for (let k = 1; k <= 9; k++) {
+    const btn = document.createElement('button');
+    btn.className = `keybind-k-btn ${k === displayKC ? 'active' : ''}`;
+    btn.textContent = `${k}K`;
+    btn.addEventListener('click', () => {
+      displayKC = k;
+      renderKeybindButtons();
+    });
+    selector.appendChild(btn);
+  }
+
+  const lanesEl = document.getElementById('keybind-lanes');
+  lanesEl.innerHTML = '';
+
+  const defaultLayouts = {
+    1: ['KeyD'],
+    2: ['KeyF', 'KeyJ'],
+    3: ['KeyD', 'KeyF', 'KeyJ'],
+    4: ['KeyD', 'KeyF', 'KeyJ', 'KeyK'],
+    5: ['KeyD', 'KeyF', 'Space', 'KeyJ', 'KeyK'],
+    6: ['KeyS', 'KeyD', 'KeyF', 'KeyJ', 'KeyK', 'KeyL'],
+    7: ['KeyS', 'KeyD', 'KeyF', 'Space', 'KeyJ', 'KeyK', 'KeyL'],
+    8: ['KeyA', 'KeyS', 'KeyD', 'KeyF', 'KeyJ', 'KeyK', 'KeyL', 'Semicolon'],
+    9: ['KeyA', 'KeyS', 'KeyD', 'KeyF', 'Space', 'KeyJ', 'KeyK', 'KeyL', 'Semicolon']
+  };
+  
+  const currentLayout = customKeybinds[displayKC] || defaultLayouts[displayKC];
+
+  for (let i = 0; i < displayKC; i++) {
+    const btn = document.createElement('div');
+    btn.className = 'keybind-btn';
+    
+    const code = currentLayout[i];
+    btn.innerHTML = `
+      <span class="lane-label">Lane ${i+1}</span>
+      <span class="key-text">${codeToLabel(code)}</span>
+    `;
+    
+    btn.addEventListener('click', () => {
+      if (btn.classList.contains('listening')) return;
+      document.querySelectorAll('.keybind-btn.listening').forEach(b => b.classList.remove('listening'));
+      btn.classList.add('listening');
+      btn.querySelector('.key-text').textContent = '请按键...';
+      
+      const keyHandler = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        if (e.code === 'Escape') {
+          btn.querySelector('.key-text').textContent = codeToLabel(code);
+          btn.classList.remove('listening');
+          window.removeEventListener('keydown', keyHandler, true);
+          return;
+        }
+        
+        if (!customKeybinds[displayKC]) {
+          customKeybinds[displayKC] = [...defaultLayouts[displayKC]];
+        }
+        
+        const existingIdx = customKeybinds[displayKC].indexOf(e.code);
+        if (existingIdx !== -1 && existingIdx !== i) {
+          customKeybinds[displayKC][existingIdx] = customKeybinds[displayKC][i];
+        }
+        
+        customKeybinds[displayKC][i] = e.code;
+        
+        try { localStorage.setItem('mania_keybinds', JSON.stringify(customKeybinds)); } catch(_) {}
+        
+        renderKeybindButtons();
+        btn.classList.remove('listening');
+        window.removeEventListener('keydown', keyHandler, true);
+
+        let notice = document.getElementById('keybind-notice');
+        if (!notice) {
+          notice = document.createElement('p');
+          notice.id = 'keybind-notice';
+          notice.style.cssText = 'font-size:12px; color:var(--gold); margin-top:12px; text-align:center; grid-column: 1 / -1; width: 100%;';
+          lanesEl.parentElement.appendChild(notice);
+        }
+        notice.textContent = '✔ 已保存，下次开始游戏时生效';
+        clearTimeout(notice._t);
+        notice._t = setTimeout(() => { if (notice.parentNode) notice.remove(); }, 3000);
+      };
+      
+      window.addEventListener('keydown', keyHandler, true);
+    });
+    
+    lanesEl.appendChild(btn);
+  }
+}
+
 function openSettings() {
   const folderContainer = document.getElementById('mod-folders-container');
   folderContainer.innerHTML = '';
@@ -2429,9 +2684,20 @@ function openSettings() {
         <div class="mod-mult">${m.mult.toFixed(2)}x</div>
       `;
       div.addEventListener('click', () => {
-        if (activeMods.has(m.id)) activeMods.delete(m.id);
-        else activeMods.add(m.id);
-        div.classList.toggle('active');
+        if (activeMods.has(m.id)) {
+          activeMods.delete(m.id);
+        } else {
+          const group = MOD_EXCLUSIVE_GROUPS.find(g => g.includes(m.id));
+          if (group) {
+            group.forEach(id => {
+              if (id !== m.id) activeMods.delete(id);
+            });
+          }
+          activeMods.add(m.id);
+        }
+        document.querySelectorAll('.mod-item').forEach(item => {
+          item.classList.toggle('active', activeMods.has(item.dataset.id));
+        });
         updateSettingsModMult();
       });
       grid.appendChild(div);
@@ -2441,41 +2707,7 @@ function openSettings() {
     folderContainer.appendChild(details);
   }
   
-  const kbGrid = document.getElementById('keybind-grid');
-  kbGrid.innerHTML = '';
-  for (let k = 1; k <= 9; k++) {
-    const item = document.createElement('div');
-    item.className = 'keybind-item';
-    
-    const label = document.createElement('label');
-    label.textContent = `${k}K`;
-    
-    const input = document.createElement('input');
-    input.type = 'text';
-    input.maxLength = k;
-    
-    if (customKeybinds[k] && Array.isArray(customKeybinds[k])) {
-      input.value = customKeybinds[k].join('');
-    }
-    
-    input.addEventListener('input', (e) => {
-      let val = e.target.value.toUpperCase().replace(/[^A-Z0-9;'\[\],.\/\\\-=` ]/g, '');
-      if (val.length > k) val = val.slice(0, k);
-      e.target.value = val;
-      
-      if (val.length > 0) {
-        customKeybinds[k] = val.split('');
-      } else {
-        delete customKeybinds[k];
-      }
-      
-      try { localStorage.setItem('mania_keybinds', JSON.stringify(customKeybinds)); } catch(_) {}
-    });
-    
-    item.appendChild(label);
-    item.appendChild(input);
-    kbGrid.appendChild(item);
-  }
+  renderKeybindButtons();
   
   updateSettingsModMult();
   document.getElementById('settings-panel').classList.add('show');
@@ -2512,9 +2744,8 @@ const openDownloadBtn = document.getElementById('open-download');
 
 openDownloadBtn.addEventListener('click', () => {
   downloadPanel.style.display = 'flex';
-  searchInput.value = '';
   settingsBtn.style.display = 'none'; 
-  
+  if (!searchInput.value.trim()) searchInput.value = 'featured';
   doSearch(); 
 });
 
@@ -2577,13 +2808,13 @@ async function doSearch() {
   if (/^\d+$/.test(query)) {
     const directDiv = document.createElement('div');
     directDiv.className = 'song-item';
-    directDiv.style.padding = '10px';
+    directDiv.style.padding = '12px';
     directDiv.innerHTML = `
       <div class="song-info">
         <div class="song-title">直接导入 ID: ${query}</div>
         <div class="song-sub">跳过搜索，直接尝试下载该 ID 的谱面</div>
       </div>
-      <div class="btn primary" style="margin:0; padding:6px 12px; font-size:12px;" onclick="downloadBeatmap(${query}, this)">导入</div>
+      <div class="btn primary" style="margin:0; padding:8px 14px; font-size:12px;" onclick="downloadBeatmap(${query}, this)">导入</div>
     `;
     searchResults.appendChild(directDiv);
   }
@@ -2591,8 +2822,9 @@ async function doSearch() {
   const loadingDiv = document.createElement('div');
   loadingDiv.style.textAlign = 'center';
   loadingDiv.style.color = 'var(--text-dim)';
-  loadingDiv.style.marginTop = '20px';
-  loadingDiv.textContent = '搜索中...';
+  loadingDiv.style.marginTop = '40px';
+  /* ✅ 加载圈改为旋转 spinner */
+  loadingDiv.innerHTML = '<div class="spinner"></div>搜索中...';
   searchResults.appendChild(loadingDiv);
 
   const apiEndpoints = [
@@ -2624,14 +2856,14 @@ async function doSearch() {
 
   if (!apiSuccess) {
     if (!/^\d+$/.test(query)) {
-      searchResults.innerHTML = '<p style="text-align:center; color:#ff3355; font-size:12px; padding:20px;">网络请求失败，第三方接口可能不可用。<br><br>请直接输入纯数字 ID 进行导入。</p>';
+      searchResults.innerHTML = '<p style="text-align:center; color:var(--danger); font-size:13px; padding:40px 20px;">网络请求失败，第三方接口可能不可用。<br><br>请直接输入纯数字 ID 进行导入。</p>';
     }
     return;
   }
   
   if (!beatmapsets || beatmapsets.length === 0) {
     if (!/^\d+$/.test(query)) {
-      searchResults.innerHTML = '<p style="text-align:center; color:var(--text-dim);">未找到相关谱面</p>';
+      searchResults.innerHTML = '<p style="text-align:center; color:var(--text-dim); margin-top:40px;">未找到相关谱面</p>';
     }
     return;
   }
@@ -2667,7 +2899,7 @@ async function doSearch() {
   }
 
   if (beatmapsets.length === 0) {
-    searchResults.innerHTML = '<p style="text-align:center; color:var(--text-dim);">当前筛选条件下无结果</p>';
+    searchResults.innerHTML = '<p style="text-align:center; color:var(--text-dim); margin-top:40px;">当前筛选条件下无结果</p>';
     return;
   }
 
@@ -2675,20 +2907,19 @@ async function doSearch() {
     const coverUrl = set.covers ? (set.covers.cover || set.covers.list) : `https://assets.ppy.sh/beatmaps/${set.id}/covers/list.jpg`;
     const itemDiv = document.createElement('div');
     itemDiv.className = 'song-item';
-    itemDiv.style.padding = '10px';
     
     itemDiv.innerHTML = `
-      <img src="${coverUrl}" style="width:60px; height:60px; object-fit:cover; border-radius:4px; margin-right:12px; background:#222;" loading="lazy" onerror="this.src='https://assets.ppy.sh/beatmaps/${set.id}/covers/list.jpg'">
+      <img src="${coverUrl}" style="width:64px; height:64px; object-fit:cover; border-radius:8px; margin-right:16px; background:#222;" loading="lazy" onerror="this.onerror=null; this.src='https://assets.ppy.sh/beatmaps/${set.id}/covers/list.jpg'">
       <div class="song-info">
         <div class="song-title">${escapeHtml(set.title)}</div>
         <div class="song-sub">${escapeHtml(set.artist)}</div>
-        <div class="song-sub" style="margin-top:2px; font-size:10px; color:var(--secondary);">
+        <div class="song-sub" style="margin-top:4px; font-size:10px; color:var(--secondary);">
           ID: ${set.id} · By: ${escapeHtml(set.creator || 'Unknown')}
         </div>
       </div>
-      <div style="display:flex; gap:6px; align-items:center;">
-        <div class="btn" style="margin:0; padding:6px 10px; font-size:12px; border-color:#00f0ff; color:#00f0ff;" onclick="togglePreview(${set.id}, this)">▶ 试听</div>
-        <div class="btn primary" style="margin:0; padding:6px 10px; font-size:12px;" onclick="downloadBeatmap(${set.id}, this)">导入</div>
+      <div style="display:flex; gap:8px; align-items:center;">
+        <div class="btn" style="margin:0; padding:8px 14px; font-size:12px; border-color:#00f0ff; color:#00f0ff; border-radius:8px;" onclick="togglePreview(${set.id}, this)">▶ 试听</div>
+        <div class="btn primary" style="margin:0; padding:8px 14px; font-size:12px; border-radius:8px;" onclick="downloadBeatmap(${set.id}, this)">导入</div>
       </div>
     `;
     searchResults.appendChild(itemDiv);
@@ -2712,12 +2943,18 @@ window.togglePreview = function(setId, btnElement) {
   previewBtn.style.borderColor = '#ff3355';
   previewBtn.style.color = '#ff3355';
 
-  previewAudio.play().catch(err => {
-    console.warn("试听失败 (尝试镜像):", err);
+  previewAudio.play().catch(() => {
+    console.warn("试听失败，尝试镜像");
     previewAudio.src = `https://catboy.best/preview/${setId}`;
-    previewAudio.play().catch(e2 => {
-       downloadStatus.textContent = "试听加载失败，请尝试直接导入。";
-       stopPreview();
+    previewAudio.play().catch(() => {
+      if (previewBtn === btnElement) {
+        btnElement.textContent = '❌ 试听失败';
+        btnElement.style.borderColor = '#ff3355';
+        btnElement.style.color = '#ff3355';
+        setTimeout(() => {
+          if (previewBtn === btnElement) stopPreview();
+        }, 2000);
+      }
     });
   });
 
@@ -2748,7 +2985,9 @@ window.downloadBeatmap = async function(setId, btnElement) {
   downloadPanel.style.display = 'none';
   settingsBtn.style.display = 'flex';
   
+  taskManagerPanel.classList.add('show');
   startNetworkTask(task);
+  scheduleTaskPanelAutoHide();
 }
 
 /* ==================== 文件读取 ==================== */
@@ -2760,7 +2999,9 @@ function handleFiles(files) {
   if (files.length === 1 && files[0].name.toLowerCase().endsWith('.osz')) {
     const task = createTask(files[0].name, 'local-osz');
     task.file = files[0];
+    taskManagerPanel.classList.add('show');
     startLocalOszTask(task);
+    scheduleTaskPanelAutoHide();
     return;
   }
 
@@ -2771,14 +3012,16 @@ function handleFiles(files) {
   }
 
   if (!osuFile || !audioBlob) {
-    fileStatus.innerHTML = `<span style="color:#ff3355">需要同时提供 .osu 谱面 + 音频文件</span>`;
+    fileStatus.innerHTML = `<span style="color:var(--danger)">需要同时提供 .osu 谱面 + 音频文件</span>`;
     return;
   }
   
   const task = createTask(osuFile.name, 'local-osu');
   task.file = osuFile;
   task.audioBlob = audioBlob;
+  taskManagerPanel.classList.add('show');
   startLocalOsuTask(task);
+  scheduleTaskPanelAutoHide();
 }
 
 uploadZone.addEventListener('dragover', (e) => { e.preventDefault(); uploadZone.classList.add('hover'); });
@@ -2789,10 +3032,23 @@ fileInput.addEventListener('change', (e) => handleFiles(e.target.files));
 
 /* ==================== 结算 ==================== */
 function finish(isFailed) {
-  if (!isFailed && judgedCount === 0 && notes.length > 0) return;
   if (!running && !paused) return;
 
-  running = false; paused = false; isReplaying = false;
+  running = false;
+  paused = false; isReplaying = false;
+
+  if (judgedCount === 0 && notes.length > 0) {
+    for (const n of notes) {
+      if (n.judged) continue;
+      if (n.type === 'hold') {
+        if (!n.headJudged) { n.headJudged = true; n.judged = true; n.broken = true; n.brokenTime = songTime; addMiss(); }
+        else if (n.holding) { n.holding = false; n.judged = true; }
+      } else {
+        n.judged = true; addMiss();
+      }
+    }
+  }
+
   if (audioCtx) audioCtx.suspend(); 
   document.getElementById('pause-btn').classList.remove('show');
   document.getElementById('pause-overlay').classList.remove('show');
@@ -2808,12 +3064,12 @@ function finish(isFailed) {
   
   const titleEl = document.getElementById('result-title');
   titleEl.textContent = isFailed ? 'FAILED' : 'RESULT';
-  titleEl.style.color = isFailed ? '#ff3355' : '#ffffff';
+  titleEl.style.color = isFailed ? 'var(--danger)' : '#ffffff';
   
   const rankEl = document.getElementById('result-rank');
   rankEl.textContent = rank;
   rankEl.style.color = silver ? '#c0c0c0' : colorOfRank(rank);
-  rankEl.style.textShadow = `0 0 30px ${silver ? '#c0c0c0' : colorOfRank(rank)}88`;
+  rankEl.style.textShadow = `0 0 40px ${silver ? '#c0c0c0' : colorOfRank(rank)}`;
 
   const finalScore = Math.min(TOTAL_SCORE, Math.round(totalScore));
   const ur = hitErrors.length > 1 ? (Math.sqrt(hitErrors.reduce((s,e) => s + e*e, 0) / hitErrors.length) * 10).toFixed(2) : '---';
@@ -2827,30 +3083,34 @@ function finish(isFailed) {
   if (!isFailed) {
     const hasMiss = (counts.MISS || 0) > 0 || (counts.BREAK || 0) > 0;
     if (!hasMiss) {
-      if (acc >= 99.995) fcTag = ' <span style="color:var(--gold); font-size:14px;">[AP]</span>';
-      else fcTag = ' <span style="color:var(--silver); font-size:14px;">[FC]</span>';
+      if (acc >= 99.995) fcTag = ' <span style="color:var(--gold); font-size:14px; font-weight:bold;">[AP]</span>';
+      else fcTag = ' <span style="color:var(--silver); font-size:14px; font-weight:bold;">[FC]</span>';
     }
   }
 
   document.getElementById('result-stats').innerHTML = `
-    <p style="font-size:40px; color:var(--gold); margin:4px 0; font-weight:900; text-shadow: 0 0 15px rgba(255,215,0,0.6); line-height:1.2;">${ppStr} PP</p>
-    <p style="font-size:24px; color:#fff; margin:4px 0 2px; letter-spacing:2px;">${finalScore.toLocaleString()}</p>
-    <p style="font-size:11px; color:#666; margin:0 0 8px;">/ 1,000,000 · ${modList}${fcTag}</p>
-    <p>准确率 <b style="color:#ff69b4">${acc.toFixed(2)}%</b> · UR <b style="color:#ffd700">${ur}</b></p>
-    <p>最大连击 <b style="color:#8a2be2">${maxCombo}</b></p>
-    <p style="margin-top:10px; line-height:1.8; font-size:12px; color:#a78bcc;">
+    <p style="font-size:48px; color:var(--gold); margin:0; font-weight:900; text-shadow: 0 0 20px rgba(255,215,0,0.6); line-height:1.2;">${ppStr} <span style="font-size:20px;">PP</span></p>
+    <p style="font-size:28px; color:#fff; margin:8px 0 4px; letter-spacing:2px; font-family:'Orbitron',sans-serif;">${finalScore.toLocaleString()}</p>
+    <p style="font-size:12px; color:#888; margin:0 0 16px;">/ 1,000,000 · ${modList}${fcTag}</p>
+    
+    <div style="background:rgba(255,255,255,0.05); padding:16px; border-radius:12px; margin-bottom:16px;">
+      <p style="margin:0 0 8px; font-size:16px;">准确率 <b style="color:var(--secondary); font-size:20px;">${acc.toFixed(2)}%</b></p>
+      <p style="margin:0; font-size:14px; color:var(--text-dim);">UR <b style="color:var(--gold)">${ur}</b> · Max Combo <b style="color:var(--primary)">${maxCombo}</b></p>
+    </div>
+
+    <div style="line-height:2; font-size:13px; color:var(--text-dim); background:rgba(0,0,0,0.3); padding:12px; border-radius:12px;">
       <span style="color:#ff69b4">PERFECT ${counts.PERFECT||0}</span> ·
       <span style="color:#8a2be2">GREAT ${counts.GREAT||0}</span> ·
       <span style="color:#00ff41">GOOD ${counts.GOOD||0}</span> ·
       <span style="color:#a78bcc">OK ${counts.OK||0}</span> ·
       <span style="color:#666">MEH ${counts.MEH||0}</span> ·
-      <span style="color:#ff3355">MISS ${counts.MISS||0}</span><br>
-      <span style="color:#ff3355">BREAK ${counts.BREAK||0}</span>
-    </p>`;
+      <span style="color:var(--danger)">MISS ${counts.MISS||0}</span> ·
+      <span style="color:var(--danger)">BREAK ${counts.BREAK||0}</span>
+    </div>`;
   
   const replayBtn = document.getElementById('result-replay');
   if (currentReplay.length > 0 && !activeMods.has('AT') && !activeMods.has('RX')) {
-    replayBtn.style.display = 'inline-block';
+    replayBtn.style.display = 'inline-flex';
   } else {
     replayBtn.style.display = 'none';
   }
@@ -2901,7 +3161,7 @@ function startCalibration(e) {
       const el = document.getElementById('calib-pulse');
       el.classList.remove('beat'); void el.offsetWidth; el.classList.add('beat');
       if (nextBeat === sampleStart - 1 && !statusUpdated) {
-        document.getElementById('calib-status').textContent = '开始采样 → 跟着节拍敲 D/F/J/K 或点屏幕';
+        document.getElementById('calib-status').textContent = '开始采样 → 跟着节拍敲键';
         statusUpdated = true;
       }
       nextBeat++;
@@ -3035,7 +3295,7 @@ document.addEventListener('visibilitychange', () => {
   if (document.hidden && running && !paused && !failed) togglePause();
 });
 
-/* ==================== DPR 变化监听 ==================== */
+/* ==================== DPR / 尺寸变化监听 ==================== */
 let resizeTimer = 0;
 window.addEventListener('resize', () => {
   clearTimeout(resizeTimer);
@@ -3046,6 +3306,9 @@ window.addEventListener('resize', () => {
       cv.width = W * DPR; cv.height = H * DPR;
       ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
       buildBgCache();
+    }
+    if (laneCount > 4 && !running) {
+      setupGameLayout(laneCount);
     }
   }, 150);
 });
