@@ -1,0 +1,168 @@
+<!-- 行情片段：由 js/home/core/market-loader.js 注入 home.html 的 #market-slot -->
+<div class="mk-layer-top">
+    <button type="button" class="mk-back-btn" id="mk-back" aria-label="Back to home">
+        <i class="fas fa-arrow-left"></i><span data-en="Back" data-zh="返回">Back</span>
+    </button>
+    <span class="mk-layer-tag">MARKET FEED // LIVE FEED</span>
+</div>
+
+<section id="market" class="pb-10 md:pb-16 px-5 sm:px-6 max-w-7xl mx-auto">
+    <div class="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8 md:mb-12 reveal">
+        <div>
+            <h2 class="text-4xl sm:text-5xl font-black text-white mb-2 uppercase italic" data-en="Market Feed" data-zh="行情监控">Market Feed</h2>
+            <div class="w-20 h-1.5" style="background-color:var(--primary); box-shadow:0 0 10px var(--primary);"></div>
+            <p class="mk-kicker mt-4 text-[10px] font-mono uppercase tracking-[0.25em]" style="color:var(--text-muted)"
+               data-en="Gold · Silver · FX — live polling every 30s" data-zh="黄金 · 白银 · 汇率 — 每 30 秒自动轮询">Gold · Silver · FX — live polling every 30s</p>
+        </div>
+        <div class="mk-status" id="mk-status">
+            <span class="mk-dot"></span>
+            <span id="mk-status-text">CONNECTING…</span>
+            <button class="mk-btn" id="mk-toggle" type="button">PAUSE</button>
+            <button class="mk-btn" id="mk-refresh" type="button">SYNC</button>
+        </div>
+    </div>
+
+    <!-- 实时金银 -->
+    <div class="mk-live reveal">
+        <div class="mk-tile">
+            <div class="mk-tile-head"><b>XAU / USD</b><span data-en="Spot Gold" data-zh="黄金现货">Spot Gold</span></div>
+            <div class="mk-price" id="mk-xau">—<small>USD / OZ</small></div>
+            <div class="mk-tile-foot">
+                <div>
+                    <div id="mk-xau-chg"><span class="mk-delta">—</span></div>
+                    <div class="mk-sub" id="mk-xau-cny">≈ — CNY / G</div>
+                </div>
+                <svg class="mk-spark" id="mk-xau-spark" viewBox="0 0 170 46" preserveAspectRatio="none"></svg>
+            </div>
+        </div>
+        <div class="mk-tile">
+            <div class="mk-tile-head"><b>XAG / USD</b><span data-en="Spot Silver" data-zh="白银现货">Spot Silver</span></div>
+            <div class="mk-price" id="mk-xag">—<small>USD / OZ</small></div>
+            <div class="mk-tile-foot">
+                <div>
+                    <div id="mk-xag-chg"><span class="mk-delta">—</span></div>
+                    <div class="mk-sub" id="mk-xag-cny">≈ — CNY / G</div>
+                </div>
+                <svg class="mk-spark" id="mk-xag-spark" viewBox="0 0 170 46" preserveAspectRatio="none"></svg>
+            </div>
+        </div>
+    </div>
+
+    <!-- 金条 / 银条 -->
+    <div class="mk-metals reveal">
+        <div class="mk-metal glass-card">
+            <svg class="mk-ingot" viewBox="0 0 120 90" aria-hidden="true">
+                <defs>
+                    <linearGradient id="mkIngotGold" x1="0" y1="0" x2="1" y2="1">
+                        <stop offset="0%" stop-color="var(--secondary)" stop-opacity=".55"/>
+                        <stop offset="100%" stop-color="var(--primary)" stop-opacity=".16"/>
+                    </linearGradient>
+                </defs>
+                <polygon points="26,12 106,12 96,26 16,26" fill="var(--primary)" fill-opacity=".18" stroke="var(--secondary)" stroke-width="1.1"/>
+                <polygon points="16,26 96,26 108,68 28,68" fill="url(#mkIngotGold)" stroke="var(--secondary)" stroke-width="1.1"/>
+                <line x1="16" y1="26" x2="28" y2="68" stroke="var(--secondary)" stroke-width="1.1" opacity=".6"/>
+                <text x="36" y="49" font-family="Share Tech Mono, monospace" font-size="8" letter-spacing="1.2" fill="var(--text-main)">AU 999.9</text>
+                <text x="36" y="60" font-family="Share Tech Mono, monospace" font-size="7" letter-spacing="1.2" fill="var(--text-muted)">1000G</text>
+            </svg>
+            <div class="mk-metal-info">
+                <div class="mk-metal-name"><span data-en="Gold Bar · bank quote" data-zh="金条 · 银行投资">Gold Bar · bank quote</span><span class="mk-tag mk-tag-est">EST</span></div>
+                <div class="mk-metal-price"><span id="mk-bar-gold">—</span><small>CNY / G</small></div>
+                <span class="mk-delta down" id="mk-bar-gold-chg">—</span>
+                <div class="mk-metal-list">
+                    <div><span data-en="ICBC Gold Bar" data-zh="工行如意金条">ICBC Gold Bar</span><span id="mk-bar-icbc">—</span></div>
+                    <div><span data-en="BOC Gold Bar" data-zh="中行金条">BOC Gold Bar</span><span id="mk-bar-boc">—</span></div>
+                    <div><span data-en="London Gold" data-zh="伦敦金现">London Gold</span><span id="mk-metal-xau">3569.48 · -1.04%</span></div>
+                </div>
+            </div>
+        </div>
+        <div class="mk-metal glass-card">
+            <svg class="mk-ingot" viewBox="0 0 120 90" aria-hidden="true">
+                <defs>
+                    <linearGradient id="mkIngotSilver" x1="0" y1="0" x2="1" y2="1">
+                        <stop offset="0%" stop-color="var(--primary)" stop-opacity=".5"/>
+                        <stop offset="100%" stop-color="var(--primary)" stop-opacity=".12"/>
+                    </linearGradient>
+                </defs>
+                <polygon points="26,12 106,12 96,26 16,26" fill="var(--primary)" fill-opacity=".12" stroke="var(--primary)" stroke-width="1.1"/>
+                <polygon points="16,26 96,26 108,68 28,68" fill="url(#mkIngotSilver)" stroke="var(--primary)" stroke-width="1.1"/>
+                <line x1="16" y1="26" x2="28" y2="68" stroke="var(--primary)" stroke-width="1.1" opacity=".6"/>
+                <text x="36" y="49" font-family="Share Tech Mono, monospace" font-size="8" letter-spacing="1.2" fill="var(--text-main)">AG 999</text>
+                <text x="36" y="60" font-family="Share Tech Mono, monospace" font-size="7" letter-spacing="1.2" fill="var(--text-muted)">500G</text>
+            </svg>
+            <div class="mk-metal-info">
+                <div class="mk-metal-name"><span data-en="Silver Bar · spot" data-zh="银条 · 现货">Silver Bar · spot</span><span class="mk-tag mk-tag-est">EST</span></div>
+                <div class="mk-metal-price"><span id="mk-bar-silver">—</span><small>CNY / KG</small></div>
+                <span class="mk-delta down" id="mk-bar-silver-chg">—</span>
+                <div class="mk-metal-list">
+                    <div><span data-en="SHFE Silver" data-zh="沪银主力">SHFE Silver</span><span id="mk-bar-shfe">—</span></div>
+                    <div><span data-en="Silver T+D" data-zh="白银 T+D">Silver T+D</span><span id="mk-bar-td">—</span></div>
+                    <div><span data-en="London Silver" data-zh="伦敦银现">London Silver</span><span id="mk-metal-xag">42.077 · -1.11%</span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 盘面 -->
+    <div class="mk-panel glass-card reveal">
+        <div class="mk-panel-head">
+            <b data-en="Precious Metals" data-zh="贵金属盘面">Precious Metals</b>
+            <span data-en="spot / futures / bank bars" data-zh="现货 · 期货 · 银行金条">spot / futures / bank bars</span>
+        </div>
+        <div class="mk-table" id="mk-table"></div>
+        <div class="mk-note" data-en="LIVE = api.gold-api.com polled every 30s · EST = bank bar estimated from spot × CNY rate + premium · untagged rows are exchange daily snapshots."
+             data-zh="LIVE = api.gold-api.com 30 秒轮询 · EST = 银行金条按 现货×汇率×溢价 估算 · 无标记为交易所日报快照。">LIVE = api.gold-api.com polled every 30s · EST = bank bar estimated from spot × CNY rate + premium · untagged rows are exchange daily snapshots.</div>
+    </div>
+
+    <!-- 汇率 -->
+    <div class="mk-panel glass-card reveal">
+        <div class="mk-panel-head">
+            <b data-en="FX vs CNY" data-zh="人民币汇率">FX vs CNY</b>
+            <span class="mk-fx-meta"><span data-en="1 unit foreign currency → CNY" data-zh="1 单位外币兑人民币">1 unit foreign currency → CNY</span><em id="mk-fx-ref">REF —</em></span>
+        </div>
+        <div class="mk-fx" id="mk-fx"></div>
+        <div class="mk-note" data-en="Daily reference rates from open.er-api.com; different sources may differ slightly."
+             data-zh="汇率为 open.er-api.com 日参考价；不同数据源存在小幅差异。">Daily reference rates from open.er-api.com; different sources may differ slightly.</div>
+    </div>
+
+    <!-- 排行 -->
+    <div class="mk-rank reveal">
+        <div class="mk-panel glass-card">
+            <div class="mk-panel-head">
+                <b data-en="Metals · change" data-zh="贵金属 · 涨跌幅">Metals · change</b>
+                <span class="mk-legend"><span><i style="background:var(--mkt-up)"></i>UP</span><span><i style="background:var(--mkt-down)"></i>DOWN</span></span>
+            </div>
+            <div id="mk-rank-metal"></div>
+        </div>
+        <div class="mk-panel glass-card">
+            <div class="mk-panel-head">
+                <b data-en="FX · change" data-zh="外汇 · 兑人民币">FX · change</b>
+                <span class="mk-legend"><span><i style="background:var(--mkt-up)"></i>UP</span><span><i style="background:var(--mkt-down)"></i>DOWN</span></span>
+            </div>
+            <div id="mk-rank-fx"></div>
+        </div>
+    </div>
+
+    <!-- 走势 -->
+    <div class="mk-charts reveal">
+        <div class="mk-chart glass-card">
+            <div class="mk-chart-head">
+                <div>
+                    <b data-en="Comex Gold · H1" data-zh="Comex 黄金 · 小时线">Comex Gold · H1</b>
+                    <small data-en="USD / oz · 11-19 18:00 → 11-20 09:00" data-zh="美元/盎司 · 11-19 18:00 → 11-20 09:00">USD / oz · 11-19 18:00 → 11-20 09:00</small>
+                </div>
+                <div class="v">3,574.7<em style="color:var(--mkt-down)">-0.90%</em></div>
+            </div>
+            <svg class="mk-svg" id="mk-chart-xau" viewBox="0 0 560 200" preserveAspectRatio="none"></svg>
+        </div>
+        <div class="mk-chart glass-card">
+            <div class="mk-chart-head">
+                <div>
+                    <b data-en="Comex Silver · H1" data-zh="Comex 白银 · 小时线">Comex Silver · H1</b>
+                    <small data-en="USD / oz · 11-19 18:00 → 11-20 09:00" data-zh="美元/盎司 · 11-19 18:00 → 11-20 09:00">USD / oz · 11-19 18:00 → 11-20 09:00</small>
+                </div>
+                <div class="v">42.03<em style="color:var(--mkt-down)">-1.22%</em></div>
+            </div>
+            <svg class="mk-svg" id="mk-chart-xag" viewBox="0 0 560 200" preserveAspectRatio="none"></svg>
+        </div>
+    </div>
+</section>

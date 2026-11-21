@@ -1,0 +1,230 @@
+<!-- 背景与画布 -->
+<div id="preloader">
+    <div class="text-sm tracking-widest mb-2 font-bold">INITIALIZING_KERNEL...</div>
+    <div class="load-bar"><div class="load-bar-inner" id="load-progress"></div></div>
+    <div class="text-[10px] mt-2 opacity-50" id="load-percent">0%</div>
+</div>
+
+<div class="grid-container"><div class="grid-plane"></div></div>
+<canvas id="matrix-canvas"></canvas>
+<div id="danmaku-container"></div>
+
+<!-- 日志 -->
+<div id="log-window">
+    <div style="font-size:8px;margin-bottom:8px;letter-spacing:2px;display:flex;justify-content:space-between;border-bottom:1px solid var(--glass-border);padding-bottom:6px">
+        <span>KERNEL_V4.4_OS</span><span id="log-mode">STABLE</span>
+    </div>
+    <div id="log-content"></div>
+</div>
+
+<!-- 导航 -->
+<nav class="fixed w-full z-50 px-5 md:px-12" id="main-nav">
+    <div class="max-w-7xl mx-auto flex justify-between items-center gap-4">
+        <a href="#home" class="text-lg sm:text-2xl font-black italic text-white tracking-tighter uppercase shrink-0">
+            <span id="logo-main" style="color:var(--logo-color)">LOOPZLX</span>
+        </a>
+
+        <div class="nav-links hidden xl:flex items-center gap-6 xl:gap-8 text-[11px] font-bold uppercase tracking-widest whitespace-nowrap">
+            <a href="#home"     data-en="Home"     data-zh="主页" class="text-white/60 hover:text-white hover:drop-shadow-[0_0_8px_var(--primary)] transition-all">Home</a>
+            <a href="#about" data-nav-secondary    data-en="About"    data-zh="关于" class="text-white/60 hover:text-white hover:drop-shadow-[0_0_8px_var(--primary)] transition-all">About</a>
+            <a href="#skills" data-nav-secondary   data-en="Matrix"   data-zh="矩阵" class="text-white/60 hover:text-white hover:drop-shadow-[0_0_8px_var(--primary)] transition-all">Matrix</a>
+            <a href="#projects" data-nav-secondary data-en="Projects" data-zh="项目" class="text-white/60 hover:text-white hover:drop-shadow-[0_0_8px_var(--primary)] transition-all">Projects</a>
+            <div class="more-menu" data-nav-secondary>
+                <button type="button" class="more-btn" id="more-btn" aria-expanded="false" aria-controls="more-panel" aria-haspopup="true">
+                    <span data-en="More" data-zh="更多">More</span><i class="fas fa-chevron-down"></i>
+                </button>
+                <div class="more-panel" id="more-panel">
+                    <a href="#market" data-market-open data-en="Market Feed" data-zh="行情监控" class="more-item"><i class="fas fa-chart-line"></i><span>Market Feed</span></a>
+                    <a href="#osu" data-osu-open data-en="osu! Kernel" data-zh="osu! 内核" class="more-item"><i class="fas fa-gamepad"></i><span>osu! Kernel</span></a>
+                    <a href="#gamehub" data-gamehub-open data-en="GameHub" data-zh="游戏中心" class="more-item"><i class="fas fa-dice"></i><span>GameHub</span></a>
+                </div>
+            </div>
+            <div class="lang-switch font-mono">
+                <button type="button" class="lang-btn active" id="btn-en" data-lang="en">EN</button>
+                <span class="text-gray-500 opacity-30">/</span>
+                <button type="button" class="lang-btn" id="btn-zh" data-lang="zh">ZH</button>
+            </div>
+            <button id="theme-toggle" class="theme-toggle" title="Switch Theme"><i class="fas fa-palette"></i></button>
+            <a href="mailto:yq6751@outlook.com" class="px-5 py-2 rounded-full border border-white/20 hover:bg-white hover:text-black transition-all" data-en="Contact" data-zh="联系">Contact</a>
+        </div>
+
+        <div class="flex items-center gap-3 xl:hidden">
+            <button id="mobile-theme-toggle" class="theme-toggle" title="Switch Theme"><i class="fas fa-palette"></i></button>
+            <button id="menu-toggle" class="text-white text-lg w-10 h-10 shrink-0 flex items-center justify-center border border-white/20 rounded-lg hover:border-[var(--primary)] transition-colors" aria-label="Toggle menu" aria-expanded="false">
+                <i class="fas fa-bars"></i>
+            </button>
+        </div>
+    </div>
+
+    <div id="mobile-menu" class="hidden xl:hidden flex-col gap-4 max-w-7xl mx-auto mt-4 p-5 border border-white/10 rounded-2xl backdrop-blur-xl text-[11px] font-bold uppercase tracking-widest">
+        <a href="#home"     data-en="Home"     data-zh="主页" class="text-white/70 hover:text-white py-1">Home</a>
+        <a href="#about"    data-nav-secondary data-en="About"    data-zh="关于" class="text-white/70 hover:text-white py-1">About</a>
+        <a href="#skills"   data-nav-secondary data-en="Matrix"   data-zh="矩阵" class="text-white/70 hover:text-white py-1">Matrix</a>
+        <a href="#projects" data-nav-secondary data-en="Projects" data-zh="项目" class="text-white/70 hover:text-white py-1">Projects</a>
+        <a href="#market" data-market-open data-en="Market" data-zh="行情" class="text-white/70 hover:text-white py-1">Market</a>
+        <a href="#osu" data-osu-open data-en="osu!" data-zh="osu! 音游" class="text-white/70 hover:text-white py-1">osu!</a>
+        <a href="#gamehub" data-gamehub-open data-en="GameHub" data-zh="游戏中心" class="text-white/70 hover:text-white py-1">GameHub</a>
+        <div class="lang-switch font-mono self-start">
+            <button type="button" class="lang-btn active" id="m-btn-en" data-lang="en">EN</button>
+            <span class="text-gray-700">/</span>
+            <button type="button" class="lang-btn" id="m-btn-zh" data-lang="zh">ZH</button>
+        </div>
+        <a href="mailto:yq6751@outlook.com" class="self-start px-6 py-2 rounded-full border border-white/20 hover:bg-white hover:text-black transition-all" data-en="Contact" data-zh="联系">Contact</a>
+    </div>
+</nav>
+
+<!-- 首页大标题 -->
+<section id="home" class="w-full hero-screen flex flex-col items-center justify-center text-center relative px-5 sm:px-6 py-24">
+    <div class="absolute top-20 sm:top-28 left-0 right-0 max-w-7xl mx-auto px-5 sm:px-12 flex justify-between items-start opacity-40 pointer-events-none">
+        <div class="text-[7px] sm:text-[10px] font-mono uppercase tracking-[0.2em] sm:tracking-[0.3em] text-left" style="color:var(--primary)" data-en="Neural Link: Stable" data-zh="神经连接：稳定">Neural Link: Stable</div>
+        <div class="text-right font-mono">
+            <div id="live-clock" class="text-xs sm:text-sm font-bold text-white tracking-widest opacity-80">00:00:00 <span class="text-[9px] font-normal opacity-50">UTC</span></div>
+            <div id="live-date" class="text-[7px] sm:text-[9px] text-gray-500 mt-0.5 uppercase tracking-wider sm:tracking-widest opacity-80">----.--.-- ---</div>
+        </div>
+    </div>
+
+    <div class="z-10 w-full">
+        <img id="hero-avatar" src="avatar.png" alt="loopzlx avatar" class="w-20 h-20 sm:w-28 sm:h-28 rounded-full border-2 border-white/20 p-1 mb-5 sm:mb-6 mx-auto reveal hover:border-[var(--primary)] transition-colors duration-300" onerror="this.style.display='none'">
+        <h1 class="text-4xl sm:text-6xl md:text-8xl font-black mb-5 sm:mb-6 text-white tracking-tighter uppercase reveal glitch-text" data-text="loopzlx">loopzlx</h1>
+        <div class="flex gap-5 sm:gap-8 mb-6 sm:mb-8 justify-center reveal">
+            <a href="https://github.com/loopzlx" target="_blank" rel="noopener" class="social-link text-xl sm:text-2xl" title="GitHub"><i class="fab fa-github"></i></a>
+            <a href="https://youtube.com/@loopelzeta?si=bzGWMIR7JFG1kxIH" target="_blank" rel="noopener" class="social-link text-xl sm:text-2xl" title="YouTube"><i class="fab fa-youtube"></i></a>
+            <a href="https://space.bilibili.com/3546616348806078" target="_blank" rel="noopener" class="social-link text-xl sm:text-2xl" title="Bilibili"><i class="fa-brands fa-bilibili"></i></a>
+            <a href="https://qm.qq.com/q/shpXHNfIpa" target="_blank" rel="noopener" class="social-link text-xl sm:text-2xl" title="QQ Group"><i class="fab fa-qq"></i></a>
+        </div>
+        <p class="text-base sm:text-lg md:text-xl font-mono text-gray-400 h-8 reveal uppercase px-2"><span id="typing-text" class="cursor-blink"></span></p>
+    </div>
+</section>
+
+<!-- About -->
+<section id="about" class="py-20 md:py-32 px-5 sm:px-6 md:px-12 max-w-7xl mx-auto">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-20 items-center">
+        <div class="lg:col-span-7 space-y-6 md:space-y-10 reveal">
+            <h2 class="text-3xl sm:text-5xl md:text-7xl font-black italic text-white uppercase leading-tight" data-en="Kinetic by Design." data-zh="以动塑形，因简而生。">Kinetic by Design.</h2>
+            <div class="glass-card p-6 md:p-10 rounded-2xl border-l-4" style="border-left-color:var(--primary)">
+                <p class="text-lg sm:text-xl md:text-2xl text-gray-200 font-light italic leading-relaxed" id="about-quote">"Code shapes the logic. Movement defies gravity. Design bridges the gap."</p>
+            </div>
+        </div>
+        <div class="lg:col-span-5 reveal">
+            <div class="h-64 sm:h-80 lg:h-auto lg:aspect-[4/5] rounded-3xl lg:rounded-[3rem] glass-card flex flex-col items-center justify-center relative overflow-hidden">
+                <i class="fas fa-fingerprint text-6xl mb-4 opacity-20" style="color:var(--primary)"></i>
+                <div class="text-[10px] font-mono tracking-[0.3em] uppercase opacity-30">BIO_SCAN_ACTIVE</div>
+                <div class="absolute bottom-6 right-6 md:bottom-10 md:right-10 glass-card p-5 md:p-8 rounded-2xl md:rounded-[2rem]">
+                    <div class="text-3xl md:text-5xl font-black" style="color:var(--secondary)">01</div>
+                    <div class="text-[9px] md:text-[10px] font-bold text-gray-400 uppercase tracking-widest">Pure Flow</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Skills -->
+<section id="skills" class="py-20 md:py-32 px-5 sm:px-6 max-w-7xl mx-auto">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 items-center">
+        <div class="reveal">
+            <h2 class="text-4xl sm:text-5xl font-black text-white mb-2 uppercase italic" data-en="Core Stack" data-zh="核心能力">Core Stack</h2>
+            <div class="w-20 h-1.5 mb-6 md:mb-8" style="background-color:var(--primary); box-shadow: 0 0 10px var(--primary);"></div>
+            <div class="space-y-4 md:space-y-6 font-mono text-xs text-gray-400">
+                <p data-en="System capabilities initialized." data-zh="系统能力模块已初始化。">System capabilities initialized.</p>
+                <div class="space-y-3 md:space-y-4" id="skill-list"></div>
+            </div>
+        </div>
+        <div class="flex justify-center items-center reveal min-h-[280px] sm:min-h-[360px] lg:min-h-[400px]">
+            <svg id="radar-svg" viewBox="0 0 400 400" role="img" aria-label="Skill matrix radar chart" class="w-full max-w-[400px] h-auto drop-shadow-[0_0_15px_var(--glass-border)]">
+                <g id="radar-grids"></g>
+                <g id="radar-axes"></g>
+                <polygon id="radar-value-area" points="200,200 200,200 200,200 200,200 200,200,200" fill="var(--radar-fill)" stroke="var(--radar-stroke)" stroke-width="2"/>
+                <g id="radar-labels" class="text-[10px] fill-gray-500 font-mono font-bold uppercase"></g>
+            </svg>
+        </div>
+    </div>
+</section>
+
+<!-- Projects -->
+<section id="projects" class="py-20 md:py-32 px-5 sm:px-6 max-w-7xl mx-auto">
+    <div class="flex flex-col md:flex-row justify-between md:items-end mb-10 md:mb-16 gap-6 reveal">
+        <div>
+            <h2 class="text-4xl sm:text-5xl font-black text-white mb-2 uppercase italic" data-en="Selected Works" data-zh="精选作品">Selected Works</h2>
+            <div class="w-20 h-1.5" style="background-color:var(--primary); box-shadow: 0 0 10px var(--primary);"></div>
+        </div>
+        <div class="flex flex-wrap gap-4 md:gap-8 text-[10px] font-bold uppercase tracking-widest">
+            <button class="filter-btn active" data-filter="all" data-en="All" data-zh="全部" aria-pressed="true">All</button>
+            <button class="filter-btn text-gray-500 hover:text-white" data-filter="dev" data-en="Dev" data-zh="开发" aria-pressed="false">Dev</button>
+            <button class="filter-btn text-gray-500 hover:text-white" data-filter="parkour" data-en="Parkour" data-zh="跑酷" aria-pressed="false">Parkour</button>
+        </div>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8" id="project-grid"></div>
+</section>
+
+<!-- Market 覆盖层（片段 html/market/market.html 由 market-loader.js 懒加载注入） -->
+<div id="market-layer" class="mk-layer" aria-hidden="true" aria-label="Market feed">
+    <div id="market-slot" data-include="html/market/market.html"></div>
+</div>
+
+<!-- osu! 覆盖层（片段 html/osu/osu.html 由 osu-loader.js 懒加载注入，指令栏 warp osu 可拉起） -->
+<div id="osu-layer" class="osu-layer" aria-hidden="true" aria-label="osu! rhythm game">
+    <div id="osu-slot"></div>
+</div>
+
+<!-- GameHub 覆盖层（片段 html/gamehub/gamehub.html 由 gamehub-loader.js 懒加载注入） -->
+<div id="gamehub-layer" aria-hidden="true" aria-label="Game hub">
+    <div id="gamehub-slot"></div>
+</div>
+
+<!-- Contact -->
+<section id="transmission" class="py-20 md:py-32 px-5 sm:px-6 max-w-7xl mx-auto reveal">
+    <h2 class="text-4xl sm:text-5xl font-black text-white mb-2 uppercase italic" data-en="I/O Interface" data-zh="信号接口">I/O Interface</h2>
+    <div class="w-20 h-1.5 mb-8 md:mb-12" style="background-color:var(--primary); box-shadow: 0 0 10px var(--primary);"></div>
+    <div class="glass-card p-5 md:p-8 rounded-2xl md:rounded-3xl flex flex-col md:flex-row gap-4 md:gap-6 items-stretch md:items-center">
+        <div class="terminal-input-wrapper">
+            <span class="terminal-prompt">>_</span>
+            <input type="text" id="danmaku-input" maxlength="30" aria-label="Command input"
+                   data-en-ph="Type /help for command list..." data-zh-ph="输入 /help 查看命令列表..."
+                   placeholder="Type /help for command list..."
+                   class="bg-transparent border-b w-full outline-none px-3 py-2 text-sm font-mono transition-all">
+        </div>
+        <button id="broadcast-btn" class="px-6 md:px-10 py-3 text-white text-[11px] font-bold uppercase rounded-full transition-all whitespace-nowrap" style="background-color:var(--primary); box-shadow: 0 0 10px var(--glass-border);" data-en="Broadcast" data-zh="广播">Broadcast</button>
+    </div>
+</section>
+
+<footer class="py-12 md:py-20 text-center text-[10px] tracking-[0.6em] md:tracking-[1em] uppercase">© 2026 loopzlx</footer>
+
+<!-- 播放器 & 歌单 -->
+<div class="audio-player-wrapper" id="audio-wrapper">
+    <!-- 歌单面板 -->
+    <div class="playlist-panel" id="playlist-panel">
+        <div class="playlist-header">
+            <span>PLAYLIST // <span id="track-count">0</span> TRACKS</span>
+            <i class="fas fa-times" id="close-playlist" style="cursor:pointer; opacity:0.7;"></i>
+        </div>
+        <div class="playlist-scroll-area" id="playlist-list"></div>
+    </div>
+
+    <!-- 播放器胶囊 -->
+    <div class="audio-player" id="audio-container">
+        <div class="player-left">
+            <div class="disc-anim" id="disc-cover"></div>
+            <button id="play-btn" aria-label="Play/Pause"><i class="fas fa-play" id="play-icon"></i></button>
+        </div>
+
+        <div class="player-middle">
+            <div class="player-info-row">
+                <span class="player-label font-mono" id="current-track-name" title="点击打开歌单">STREAM</span>
+                <div class="time-display">
+                    <span id="current-time">00:00</span> / <span id="total-time">00:00</span>
+                </div>
+            </div>
+            <div class="progress-container" id="progress-container">
+                <div class="progress-bar-bg" id="progress-bg">
+                    <div class="progress-bar-fill" id="progress-fill"></div>
+                    <div class="progress-handle" id="progress-handle"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="player-right">
+            <button id="playlist-btn" aria-label="Playlist"><i class="fas fa-list-ul"></i></button>
+        </div>
+        <audio id="bg-audio" preload="metadata"></audio>
+    </div>
+</div>

@@ -1,0 +1,236 @@
+/* gamehub.css —— GameHub 覆盖层样式，全部作用域限定在 #gamehub-app 内 */
+#gamehub-layer {
+  position: fixed; inset: 0; z-index: 68;
+  opacity: 0; visibility: hidden; pointer-events: none;
+  transition: opacity .26s ease, visibility .26s ease;
+}
+#gamehub-layer.is-open { opacity: 1; visibility: visible; pointer-events: auto; }
+
+#gamehub-app {
+  --gh-accent: var(--primary, #8a2be2);
+  --gh-accent2: var(--secondary, #ff69b4);
+  position: absolute; inset: 0;
+  font-family: 'Share Tech Mono', 'SFMono-Regular', Consolas, monospace;
+  color: var(--text-main, #f0f4f8);
+  background: var(--bg-base, #050208);
+  overflow: hidden;
+}
+#gamehub-app * { box-sizing: border-box; }
+#gamehub-app button { font-family: inherit; cursor: pointer; }
+#gamehub-app::before {
+  content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 0;
+  background-image:
+    radial-gradient(120% 80% at 10% 0%, var(--primary, #8a2be2), transparent 58%),
+    linear-gradient(var(--glass-border, rgba(138,43,226,.2)) 1px, transparent 1px),
+    linear-gradient(90deg, var(--glass-border, rgba(138,43,226,.2)) 1px, transparent 1px);
+  background-size: auto, 56px 56px, 56px 56px;
+  opacity: .26;
+}
+
+.gh-shell {
+  position: relative; z-index: 1;
+  height: 100%; display: flex; flex-direction: column;
+  padding: 0 clamp(12px, 2.4vw, 34px) calc(10px + env(safe-area-inset-bottom, 0px));
+}
+
+/* 顶栏 */
+.gh-top {
+  height: 58px; flex: 0 0 auto;
+  display: flex; align-items: center; justify-content: space-between;
+  border-bottom: 1px solid var(--glass-border, rgba(138,43,226,.35));
+}
+.gh-brand { font-size: 19px; font-weight: 700; letter-spacing: .16em; color: var(--text-main, #fff); }
+.gh-brand b { color: var(--gh-accent2, #ff69b4); }
+.gh-sub { margin-left: 12px; font-size: 10px; letter-spacing: .26em; color: var(--text-muted, #a78bcc); }
+.gh-top-actions { display: flex; gap: 8px; }
+
+.gh-btn {
+  padding: 9px 14px; border-radius: 9px;
+  border: 1px solid var(--glass-border, rgba(138,43,226,.4));
+  background: color-mix(in srgb, var(--glass-bg, rgba(15,8,25,.7)) 88%, transparent);
+  color: var(--text-main, #fff);
+  font-size: 11px; font-weight: 700; letter-spacing: .12em;
+  transition: border-color .18s, background .18s, transform .12s;
+}
+.gh-btn:hover { border-color: var(--gh-accent2, #ff69b4); }
+.gh-btn:active { transform: translateY(1px); }
+.gh-btn[disabled] { opacity: .35; pointer-events: none; }
+
+/* 视图 */
+.gh-view {
+  display: none; flex: 1 1 auto; min-height: 0;
+  flex-direction: column; justify-content: center; gap: 14px;
+  padding-top: 12px;
+}
+.gh-view.is-on { display: flex; }
+
+/* Hub 标题 */
+.gh-hero { text-align: center; margin-bottom: 4px; }
+.gh-hero h1 {
+  margin: 0; font-size: clamp(22px, 5vw, 38px); letter-spacing: .3em;
+  font-weight: 800; color: var(--text-main, #fff);
+  text-shadow: 0 0 18px color-mix(in srgb, var(--gh-accent, #8a2be2) 70%, transparent);
+}
+.gh-hero p { margin: 8px 0 0; font-size: 10px; letter-spacing: .3em; color: var(--text-muted, #a78bcc); }
+
+/* Hub 卡片 */
+.gh-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.gh-card {
+  display: flex; flex-direction: column; gap: 8px; align-items: flex-start;
+  padding: 20px; border-radius: 14px; text-align: left;
+  border: 1px solid var(--glass-border, rgba(138,43,226,.4));
+  background: color-mix(in srgb, var(--glass-bg, rgba(15,8,25,.7)) 86%, transparent);
+  color: var(--text-main, #fff);
+  transition: border-color .2s, transform .2s, box-shadow .2s;
+}
+.gh-card:hover {
+  border-color: var(--gh-accent2, #ff69b4);
+  box-shadow: 0 12px 34px rgba(0,0,0,.45);
+  transform: translateY(-2px);
+}
+.gh-card-ico { font-size: 30px; color: var(--gh-accent2, #ff69b4); line-height: 1; }
+.gh-card-name { font-size: 16px; font-weight: 700; letter-spacing: .16em; }
+.gh-card-desc { font-size: 10px; letter-spacing: .1em; color: var(--text-muted, #a78bcc); }
+
+.gh-log {
+  margin-top: auto; padding: 10px 14px; border-radius: 10px; max-height: 120px; overflow: auto;
+  border: 1px solid var(--glass-border, rgba(138,43,226,.25));
+  background: rgba(0,0,0,.22);
+  font-size: 10px; line-height: 1.7; letter-spacing: .06em; color: var(--text-muted, #a78bcc);
+}
+
+/* 计分条 */
+.gh-bar { display: flex; align-items: center; gap: 18px; flex: 0 0 auto; }
+.gh-score { display: flex; flex-direction: column; gap: 2px; }
+.gh-score span { font-size: 9px; letter-spacing: .26em; color: var(--text-muted, #a78bcc); }
+.gh-score b { font-size: 22px; color: var(--text-main, #fff); }
+.gh-bar-actions { margin-left: auto; display: flex; gap: 8px; }
+
+/* 2048 */
+.gh-2048-wrap, .gh-mines-wrap, .gh-snake-wrap { display: flex; justify-content: center; }
+.gh-stage { position: relative; display: grid; place-items: center; max-width: 100%; }
+.gh-stage-2048 { width: min(100%, 420px); }
+.gh-stage-snake { width: min(100%, 640px); }
+.gh-stage-mines { width: max-content; }
+.gh-2048-board {
+  width: 100%; aspect-ratio: 1 / 1;
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
+  padding: 8px; border-radius: 12px;
+  border: 1px solid var(--glass-border, rgba(138,43,226,.4));
+  background: color-mix(in srgb, var(--glass-bg, rgba(15,8,25,.72)) 88%, transparent);
+  touch-action: none;
+}
+.gh-cell {
+  display: grid; place-items: center; border-radius: 8px;
+  font-size: clamp(15px, 4.6vw, 26px); font-weight: 700;
+  background: color-mix(in srgb, var(--text-main, #fff) 8%, transparent);
+  color: var(--text-main, #fff);
+  transition: background .12s ease, color .12s ease;
+}
+.gh-cell.t2 { background: rgba(255, 105, 180, .16); }
+.gh-cell.t4 { background: rgba(255, 105, 180, .28); }
+.gh-cell.t8 { background: rgba(255, 160, 90, .34); }
+.gh-cell.t16 { background: rgba(255, 160, 90, .5); }
+.gh-cell.t32 { background: rgba(255, 205, 70, .5); }
+.gh-cell.t64 { background: rgba(255, 205, 70, .68); }
+.gh-cell.t128 { background: rgba(200, 90, 255, .58); color: #fff; }
+.gh-cell.t256 { background: rgba(160, 90, 255, .72); color: #fff; }
+.gh-cell.t512 { background: rgba(90, 160, 255, .72); color: #fff; }
+.gh-cell.t1024 { background: rgba(70, 210, 160, .72); color: #fff; }
+.gh-cell.t2048plus { background: rgba(255,255,255,.9); color: #14101f; }
+
+/* 扫雷 */
+.gh-diff { display: flex; gap: 8px; flex-wrap: wrap; flex: 0 0 auto; }
+.gh-chip {
+  padding: 7px 12px; border-radius: 8px; font-size: 10px; letter-spacing: .1em;
+  border: 1px solid var(--glass-border, rgba(138,43,226,.35));
+  background: transparent; color: var(--text-muted, #a78bcc);
+}
+.gh-chip.is-on { border-color: var(--gh-accent2, #ff69b4); color: var(--text-main, #fff); background: rgba(255,105,180,.12); }
+
+.gh-mines-board {
+  display: grid; gap: 3px; padding: 6px; border-radius: 10px;
+  border: 1px solid var(--glass-border, rgba(138,43,226,.4));
+  background: color-mix(in srgb, var(--glass-bg, rgba(15,8,25,.72)) 90%, transparent);
+  touch-action: manipulation;
+}
+.gh-mine {
+  width: var(--gh-mine, 28px); height: var(--gh-mine, 28px);
+  display: grid; place-items: center; border-radius: 4px;
+  font-size: calc(var(--gh-mine, 28px) * 0.42); font-weight: 700;
+  border: 1px solid color-mix(in srgb, var(--text-main, #fff) 20%, transparent);
+  background: color-mix(in srgb, var(--text-main, #fff) 10%, transparent);
+  color: var(--text-main, #fff);
+  user-select: none;
+}
+.gh-mine.is-open { background: color-mix(in srgb, var(--text-main, #fff) 4%, transparent); border-color: color-mix(in srgb, var(--text-main, #fff) 10%, transparent); }
+.gh-mine.is-flag { color: var(--gh-accent2, #ff69b4); }
+.gh-mine.is-boom { background: rgba(255,60,80,.55); }
+.n1 { color: #6fd3ff; } .n2 { color: #8bff9e; } .n3 { color: #ffd95e; }
+.n4 { color: #ffa76e; } .n5 { color: #ff7d7d; } .n6 { color: #c99bff; }
+.n7 { color: #9fd0ff; } .n8 { color: #ffffff; }
+.gh-hint { font-size: 10px; letter-spacing: .08em; color: var(--text-muted, #a78bcc); text-align: center; flex: 0 0 auto; }
+
+/* 贪吃蛇 */
+.gh-snake-wrap { flex: 1 1 auto; min-height: 0; align-items: center; }
+#gh-snake-cv {
+  display: block; width: 100%; height: auto;
+  border-radius: 12px; border: 1px solid var(--glass-border, rgba(138,43,226,.4));
+  background: rgba(0,0,0,.4);
+  touch-action: none;
+}
+
+/* 结算遮罩 */
+.gh-over {
+  position: absolute; inset: 0; display: none; place-items: center; gap: 14px;
+  border-radius: 12px; background: rgba(0,0,0,.62);
+  backdrop-filter: blur(3px); z-index: 3;
+}
+.gh-over.is-on { display: grid; }
+.gh-over p { font-size: 22px; font-weight: 700; letter-spacing: .22em; color: var(--text-main, #fff); }
+.gh-over-actions { display: flex; gap: 8px; }
+
+/* 移动 pads */
+.gh-pads { display: none; gap: 8px; flex: 0 0 auto; }
+.gh-pads-4 { display: grid; grid-template-columns: repeat(4, 1fr); }
+.gh-pad {
+  padding: 10px 0; border-radius: 10px; font-size: 16px;
+  border: 1px solid var(--glass-border, rgba(138,43,226,.4));
+  background: color-mix(in srgb, var(--text-main, #fff) 8%, transparent); color: var(--text-main, #fff);
+}
+.gh-pad:active { background: rgba(255,105,180,.2); }
+
+.gh-toast {
+  position: absolute; left: 50%; bottom: 22px; transform: translate(-50%, 8px);
+  padding: 8px 16px; border-radius: 999px; font-size: 11px; letter-spacing: .12em;
+  border: 1px solid var(--glass-border, rgba(138,43,226,.5));
+  background: var(--glass-bg, rgba(15,8,25,.9)); color: var(--text-main, #fff);
+  opacity: 0; pointer-events: none; transition: .2s ease; z-index: 9;
+}
+.gh-toast.is-on { opacity: 1; transform: translate(-50%, 0); }
+
+/* 打开 GameHub 时让主页底层停止绘制（与 osu 相同做法） */
+body.gamehub-open #main-nav { display: none; }
+body.gamehub-open #app > :not(#gamehub-layer) { content-visibility: hidden; }
+body.gamehub-open #audio-wrapper,
+body.gamehub-open #log-window { opacity: 0; pointer-events: none; }
+
+@media (max-width: 860px) {
+  .gh-cards { grid-template-columns: 1fr; gap: 10px; }
+  .gh-card { flex-direction: row; align-items: center; padding: 14px 16px; }
+  .gh-card-ico { font-size: 22px; }
+  .gh-sub { display: none; }
+  .gh-top { height: 52px; }
+  .gh-view { justify-content: flex-start; gap: 10px; }
+  .gh-bar { flex-wrap: wrap; gap: 10px; }
+  .gh-bar-actions { margin-left: 0; }
+  .gh-mines-board { --gh-mine: 24px; }
+  .gh-pads-4 { display: grid; margin-top: auto; }
+  .gh-hero { margin-bottom: 8px; }
+  #gh-hub { justify-content: center; }
+  .gh-bar-actions { width: 100%; justify-content: flex-end; }
+}
+@media (max-width: 420px) {
+  .gh-mines-board { --gh-mine: 21px; }
+  .gh-log { display: none; }
+}

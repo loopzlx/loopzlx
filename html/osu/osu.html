@@ -1,0 +1,214 @@
+<!-- osu 模式片段：由 js/home/core/osu-loader.js 注入 #osu-layer，不跳转页面 -->
+<div id="osu-app" aria-hidden="true">
+
+  <div class="osu-shell">
+
+    <!-- 顶栏 -->
+    <header class="osu-top">
+      <div class="osu-brand">
+        <span class="osu-logo">osu!</span>
+        <span class="osu-edition">LOOPZLX / RHYTHM CORE</span>
+      </div>
+      <div class="osu-top-actions">
+        <button id="osu-top-home" class="osu-btn ghost">← HOME</button>
+        <button id="osu-top-back" class="osu-btn ghost">← MENU</button>
+        <button id="osu-sound-btn" class="osu-icon-btn" title="音效开关">♪</button>
+      </div>
+    </header>
+
+    <!-- 主菜单 -->
+    <section id="osu-menu" class="osu-view is-on">
+      <div class="osu-menu-hero">
+        <h1>osu<span>!</span></h1>
+        <p>four modes · one kernel</p>
+      </div>
+
+      <div class="osu-mode-cards" id="osu-mode-cards">
+        <button class="osu-mode-card" data-mode="std">
+          <i class="mc-icon">◯</i>
+          <b>osu!</b>
+          <span>点击圆圈 · 滑条</span>
+        </button>
+        <button class="osu-mode-card" data-mode="taiko">
+          <i class="mc-icon">◐</i>
+          <b>taiko</b>
+          <span>鼓点 · 红蓝节奏</span>
+        </button>
+        <button class="osu-mode-card" data-mode="catch">
+          <i class="mc-icon">❥</i>
+          <b>catch</b>
+          <span>接水果 · 左右移动</span>
+        </button>
+        <button class="osu-mode-card" data-mode="mania">
+          <i class="mc-icon">▤</i>
+          <b>mania</b>
+          <span>4K–9K 下落</span>
+        </button>
+      </div>
+
+      <div class="osu-menu-actions">
+        <button id="osu-btn-play" class="osu-btn primary">PLAY</button>
+        <button id="osu-btn-import" class="osu-btn">IMPORT .OSZ</button>
+        <button id="osu-btn-download" class="osu-btn">DOWNLOAD</button>
+        <button id="osu-btn-settings" class="osu-btn">SETTINGS</button>
+      </div>
+
+      <div class="osu-nowplaying" id="osu-nowplaying">
+        <div class="np-cover"></div>
+        <div class="np-text">
+          <div class="np-title">—</div>
+          <div class="np-sub">—</div>
+        </div>
+        <div class="np-hint">选择模式卡进入选曲 · 演示谱可直接玩</div>
+      </div>
+
+      <div id="osu-log" class="osu-log" aria-live="polite"></div>
+    </section>
+
+    <!-- 选曲 -->
+    <section id="osu-select" class="osu-view">
+      <div class="osu-select-head">
+        <div id="osu-mode-row-select" class="osu-mode-row">
+          <button data-mode="std">osu!</button>
+          <button data-mode="taiko">taiko</button>
+          <button data-mode="catch">catch</button>
+          <button data-mode="mania">mania</button>
+        </div>
+        <div class="osu-select-tip">选一张谱面 → START</div>
+      </div>
+
+      <div class="osu-select-body">
+        <div id="osu-song-list" class="osu-song-list" role="list"></div>
+
+        <div id="osu-detail" class="osu-detail">
+          <div class="osu-detail-cover">◯</div>
+          <div class="osu-detail-main">
+            <div class="detail-title" data-d="title">—</div>
+            <div class="detail-artist" data-d="artist">—</div>
+            <div class="detail-mapper" data-d="mapper">—</div>
+            <div class="detail-grid">
+              <div><span>STARS</span><b data-d="stars">—</b></div>
+              <div><span>LENGTH</span><b data-d="len">—</b></div>
+              <div><span>BPM</span><b data-d="bpm">—</b></div>
+              <div><span>OBJECTS</span><b data-d="objects">—</b></div>
+              <div><span>MODE</span><b data-d="mode">—</b></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="osu-select-foot">
+        <div id="osu-mods" class="osu-mods"></div>
+        <div class="osu-foot-right">
+          <div class="osu-mult">mult <b id="osu-mod-mult">1.00×</b></div>
+          <button id="osu-btn-start" class="osu-btn primary big">START ▶</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 游戏 -->
+    <section id="osu-play" class="osu-view">
+      <div class="osu-play-top">
+        <button id="osu-btn-quit" class="osu-btn ghost small">✕ QUIT</button>
+        <div class="osu-play-mode" id="osu-play-mode">mania</div>
+        <button id="osu-btn-pause" class="osu-btn ghost small">❚❚ PAUSE</button>
+      </div>
+
+      <div id="osu-board-wrap" class="osu-board-wrap">
+        <canvas id="osu-cv"></canvas>
+      </div>
+
+      <div id="osu-hud" class="osu-hud">
+        <div class="hud-score"><span data-hud="score">0</span><small>SCORE</small></div>
+        <div class="hud-combo"><span data-hud="combo">0x</span><small>COMBO</small></div>
+        <div class="hud-acc"><span data-hud="acc">100.00%</span><small>ACC</small></div>
+        <div class="hud-bars">
+          <div class="hud-hp"><i data-hud="hp"></i></div>
+          <div class="hud-prog"><i data-hud="prog"></i></div>
+        </div>
+      </div>
+
+      <div id="osu-pads" class="osu-pads"></div>
+    </section>
+
+    <!-- 结算 -->
+    <section id="osu-result" class="osu-view">
+      <div class="osu-result-head">
+        <div id="osu-result-rank">S</div>
+        <div class="osu-result-title" id="osu-result-title">RESULT</div>
+      </div>
+      <div id="osu-result-stats" class="osu-result-stats"></div>
+      <div class="osu-result-actions">
+        <button id="osu-btn-retry" class="osu-btn primary">RETRY</button>
+        <button id="osu-btn-tomenu" class="osu-btn">MENU</button>
+      </div>
+    </section>
+
+    <!-- 设置 -->
+    <section id="osu-settings" class="osu-view">
+      <h2 class="osu-section-title">SETTINGS</h2>
+
+      <div class="osu-set-block">
+        <h3>自定义按键 · mania 4K</h3>
+        <div id="osu-keybinds" class="osu-keybinds"></div>
+        <p class="osu-set-tip">点一下按钮，再按键盘按键即可重新绑定。</p>
+      </div>
+
+      <div class="osu-set-block">
+        <h3>判定 / 延迟</h3>
+        <button id="osu-btn-calib" class="osu-btn">打开延迟校准</button>
+      </div>
+
+      <div class="osu-set-block">
+        <h3>数据来源</h3>
+        <p class="osu-set-tip">谱面格式：osu! .osu / .osz · 在线下载走社区镜像（nerinyan / catboy / osu.direct）。<br>
+        导入的曲目音频只在本次会话内保存，刷新后需重新导入。</p>
+      </div>
+
+      <button id="osu-settings-back" class="osu-btn primary">BACK</button>
+    </section>
+
+    <!-- 在线下载 -->
+    <section id="osu-download" class="osu-view">
+      <h2 class="osu-section-title">DOWNLOAD</h2>
+      <div class="osu-dl-search">
+        <input id="osu-search-input" type="text" placeholder="歌名 / 谱师 / 谱面集 ID（纯数字直接下载）">
+        <button id="osu-search-btn" class="osu-btn primary">SEARCH</button>
+      </div>
+      <div id="osu-download-status" class="osu-dl-status"></div>
+      <div id="osu-search-results" class="osu-search-results"></div>
+      <button id="osu-download-back" class="osu-btn">BACK</button>
+    </section>
+
+    <!-- 暂停 -->
+    <div id="osu-pause" class="osu-pause">
+      <div class="osu-pause-card">
+        <div class="osu-pause-title">PAUSED</div>
+        <div class="osu-pause-btns">
+          <button id="osu-pause-resume" class="osu-btn primary">RESUME</button>
+          <button id="osu-pause-retry" class="osu-btn">RETRY</button>
+          <button id="osu-pause-menu" class="osu-btn danger">QUIT</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 加载 -->
+    <div id="osu-loading" class="osu-loading">
+      <div class="osu-loading-text">LOADING…</div>
+    </div>
+
+    <!-- 校准 -->
+    <div id="osu-calib" class="osu-calib">
+      <div class="osu-calib-card">
+        <h3>DELAY CALIBRATION</h3>
+        <p>跟着节拍敲空格或点击此处</p>
+        <div class="calib-pulse"></div>
+        <p class="calib-status">准备中…</p>
+        <button id="osu-btn-calib-close" class="osu-btn">CLOSE</button>
+      </div>
+    </div>
+
+    <div id="osu-toast" class="osu-toast"></div>
+    <input type="file" id="osu-file" multiple accept=".osz,.osu,audio/*" hidden>
+  </div>
+</div>

@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>loopzlx | Cyber Nexus Terminal</title>
+<script>const t=localStorage.getItem('theme')||'theme-cyber';document.documentElement.classList.add(t);</script>
+<link rel="stylesheet" href="css/style.css">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Share+Tech+Mono&family=Noto+Sans+SC:wght@400;700;900&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+<div id="app"></div>
+<script>
+function showError(msg) {
+    document.body.innerHTML = `
+        <style>
+            .err-body { margin: 0; padding: 0; background: #050505; color: #ff69b4; font-family: 'Share Tech Mono', monospace; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; position: relative; }
+            .err-grid { position: absolute; inset: 0; background-image: linear-gradient(rgba(138,43,226,.15) 1px, transparent 1px), linear-gradient(90deg, rgba(138,43,226,.15) 1px, transparent 1px); background-size: 40px 40px; perspective: 500px; transform: rotateX(60deg) scale(2); z-index: 0; pointer-events: none; opacity: 0.5; }
+            .err-container { position: relative; width: 90%; max-width: 550px; padding: 40px; background: rgba(20, 10, 30, 0.8); border: 1px solid #8a2be2; border-radius: 12px; backdrop-filter: blur(10px); box-shadow: 0 0 40px rgba(138,43,226,0.2); z-index: 10; text-align: center; }
+            .err-title { font-family: 'Orbitron', sans-serif; font-size: 32px; font-weight: 900; color: #fff; text-shadow: 2px 0 #ff69b4, -2px 0 #8a2be2; animation: glitch 0.8s infinite alternate-reverse; margin-bottom: 20px; letter-spacing: 2px; }
+            @keyframes glitch { 0% { transform: translate(0); } 20% { transform: translate(-2px, 2px); } 40% { transform: translate(-2px, -2px); } 60% { transform: translate(2px, 2px); } 80% { transform: translate(2px, -2px); } 100% { transform: translate(0); } }
+            .err-terminal { background: #000; border-left: 3px solid #ff69b4; padding: 20px; text-align: left; margin: 20px 0; font-size: 13px; color: #e2e8f0; line-height: 1.6; box-shadow: inset 0 0 20px rgba(0,0,0,0.8); }
+            .err-solution { color: #00ff41; margin-top: 20px; font-size: 12px; background: rgba(0,255,65,0.05); padding: 15px; border-radius: 8px; border: 1px dashed #00ff41; text-align: left; line-height: 1.8; }
+            .err-solution code { background: #111; padding: 2px 6px; border-radius: 4px; color: #fff; }
+            .err-scanline { position: absolute; inset: 0; background: linear-gradient(transparent 50%, rgba(0,0,0,0.3) 50%); background-size: 100% 4px; z-index: 20; pointer-events: none; opacity: 0.3; }
+        </style>
+        <div class="err-body">
+            <div class="err-grid"></div>
+            <div class="err-scanline"></div>
+            <div class="err-container">
+                <div class="err-title">KERNEL PANIC</div>
+                <div class="err-terminal">
+                    <span style="color:#8a2be2; font-weight:bold;">[SYS_LOG]</span> CRITICAL_FAILURE.<br>
+                    <span style="color:#ff69b4; font-weight:bold;">[ERROR]</span> ${msg}
+                </div>
+                <div class="err-solution">
+                    <strong style="color:#fff;">>> 修复指南 / HOW TO FIX:</strong><br>
+                    1. 请勿直接双击打开 index.html (浏览器拦截了本地请求)。<br>
+                    2. 请使用 VSCode 的 <b>Live Server</b> 插件运行。<br>
+                    3. 检查你的文件路径是否存在：<code>html/home/home.html</code>
+                </div>
+            </div>
+        </div>
+    `;
+    document.body.className = '';
+}
+
+fetch('html/home/home.html')
+  .then(r => {
+      if(!r.ok) throw new Error(`文件没找到！状态码: ${r.status}`);
+      return r.text();
+  })
+  .then(html => {
+      document.getElementById('app').innerHTML = html;
+      
+      const audioScript = document.createElement('script');
+      audioScript.src = 'js/home/core/audio-player.js';
+      audioScript.onload = () => {
+          const mainScript = document.createElement('script');
+          mainScript.src = 'js/home/core/main.js';
+          mainScript.onerror = () => showError('main.js 加载失败');
+          mainScript.onload = () => {
+              const loaderScript = document.createElement('script');
+              loaderScript.src = 'js/home/core/market-loader.js';
+              loaderScript.onerror = () => console.warn('[market] loader 加载失败，行情片段跳过');
+              loaderScript.onload = () => {
+                  const osuScript = document.createElement('script');
+                  osuScript.src = 'js/home/core/osu-loader.js';
+                  osuScript.onerror = () => console.warn('[osu] loader 加载失败，音游模块跳过');
+                  osuScript.onload = () => {
+                      const ghScript = document.createElement('script');
+                      ghScript.src = 'js/home/core/gamehub-loader.js';
+                      ghScript.onerror = () => console.warn('[gamehub] loader 加载失败，游戏中心跳过');
+                      document.body.appendChild(ghScript);
+                  };
+                  document.body.appendChild(osuScript);
+              };
+              document.body.appendChild(loaderScript);
+          };
+          document.body.appendChild(mainScript);
+      };
+      audioScript.onerror = () => showError('audio-player.js 加载失败');
+      document.body.appendChild(audioScript);
+  })
+  .catch(err => {
+      console.error(err);
+      showError(err.message);
+  });
+</script>
+</body>
+</html>

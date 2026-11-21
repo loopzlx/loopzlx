@@ -1,0 +1,125 @@
+<!-- gamehub.html —— 小游戏合集片段（由 gamehub-loader.js 以覆盖层注入，不跳转页面） -->
+<div id="gamehub-app" aria-label="GameHub">
+  <div class="gh-shell">
+
+    <!-- 顶栏 -->
+    <header class="gh-top">
+      <div class="gh-brand"><b>GAME</b>HUB<span class="gh-sub">LOOPZLX · MINI ARCADE</span></div>
+      <div class="gh-top-actions">
+        <button type="button" class="gh-btn" id="gh-top-home">← HOME</button>
+        <button type="button" class="gh-btn" id="gh-top-back">← MENU</button>
+      </div>
+    </header>
+
+    <!-- 游戏选择 -->
+    <section class="gh-view is-on" id="gh-hub">
+      <div class="gh-hero">
+        <h1>ARCADE</h1>
+        <p>SELECT A CABINET · 选择一台街机</p>
+      </div>
+      <div class="gh-cards">
+        <button type="button" class="gh-card" data-game="g2048">
+          <span class="gh-card-ico">２</span>
+          <span class="gh-card-name">2048</span>
+          <span class="gh-card-desc">滑动合并数字 · 支持撤销</span>
+        </button>
+        <button type="button" class="gh-card" data-game="mines">
+          <span class="gh-card-ico">✹</span>
+          <span class="gh-card-name">MINESWEEPER</span>
+          <span class="gh-card-desc">三种难度 · 左键揭 / 右键旗</span>
+        </button>
+        <button type="button" class="gh-card" data-game="snake">
+          <span class="gh-card-ico">➜</span>
+          <span class="gh-card-name">SNAKE</span>
+          <span class="gh-card-desc">经典贪吃蛇 · 越吃越快</span>
+        </button>
+      </div>
+      <div class="gh-log" id="gh-log"></div>
+    </section>
+
+    <!-- 2048 -->
+    <section class="gh-view" id="gh-g2048">
+      <div class="gh-bar">
+        <div class="gh-score"><span>SCORE</span><b id="gh-2048-score">0</b></div>
+        <div class="gh-score"><span>BEST</span><b id="gh-2048-best">0</b></div>
+        <div class="gh-bar-actions">
+          <button type="button" class="gh-btn" id="gh-2048-undo">↺ UNDO</button>
+          <button type="button" class="gh-btn" id="gh-2048-new">NEW</button>
+        </div>
+      </div>
+      <div class="gh-2048-wrap">
+        <div class="gh-stage gh-stage-2048">
+          <div class="gh-2048-board" id="gh-2048-board"></div>
+          <div class="gh-over" id="gh-2048-over">
+            <p id="gh-2048-over-text">NO MORE MOVES</p>
+            <div class="gh-over-actions">
+              <button type="button" class="gh-btn" id="gh-2048-over-undo">↺ UNDO</button>
+              <button type="button" class="gh-btn" id="gh-2048-over-new">NEW GAME</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="gh-pads gh-pads-4" id="gh-2048-pads">
+        <button type="button" class="gh-pad" data-dir="up">↑</button>
+        <button type="button" class="gh-pad" data-dir="left">←</button>
+        <button type="button" class="gh-pad" data-dir="down">↓</button>
+        <button type="button" class="gh-pad" data-dir="right">→</button>
+      </div>
+    </section>
+
+    <!-- 扫雷 -->
+    <section class="gh-view" id="gh-mines">
+      <div class="gh-bar">
+        <div class="gh-score"><span>MINES</span><b id="gh-mines-left">0</b></div>
+        <div class="gh-score"><span>TIME</span><b id="gh-mines-time">0</b></div>
+        <div class="gh-bar-actions">
+          <button type="button" class="gh-btn" id="gh-mines-restart">RESTART</button>
+        </div>
+      </div>
+      <div class="gh-diff" id="gh-mines-diff">
+        <button type="button" class="gh-chip is-on" data-diff="easy">初级 9×9 · 10</button>
+        <button type="button" class="gh-chip" data-diff="medium">中级 16×16 · 40</button>
+        <button type="button" class="gh-chip" data-diff="hard">高级 16×30 · 99</button>
+      </div>
+      <div class="gh-mines-wrap">
+        <div class="gh-stage gh-stage-mines">
+          <div class="gh-mines-board" id="gh-mines-board"></div>
+          <div class="gh-over" id="gh-mines-over">
+            <p id="gh-mines-over-text">BOOM</p>
+            <button type="button" class="gh-btn" id="gh-mines-over-restart">PLAY AGAIN</button>
+          </div>
+        </div>
+      </div>
+      <p class="gh-hint">左键揭开 · 右键或长按插旗 · 数字为周围雷数</p>
+    </section>
+
+    <!-- 贪吃蛇 -->
+    <section class="gh-view" id="gh-snake">
+      <div class="gh-bar">
+        <div class="gh-score"><span>SCORE</span><b id="gh-snake-score">0</b></div>
+        <div class="gh-score"><span>BEST</span><b id="gh-snake-best">0</b></div>
+        <div class="gh-bar-actions">
+          <button type="button" class="gh-btn" id="gh-snake-pause">PAUSE</button>
+          <button type="button" class="gh-btn" id="gh-snake-new">NEW</button>
+        </div>
+      </div>
+      <div class="gh-snake-wrap">
+        <div class="gh-stage gh-stage-snake">
+          <canvas id="gh-snake-cv"></canvas>
+          <div class="gh-over" id="gh-snake-over">
+            <p id="gh-snake-over-text">GAME OVER</p>
+            <button type="button" class="gh-btn" id="gh-snake-over-new">PLAY AGAIN</button>
+          </div>
+        </div>
+      </div>
+      <div class="gh-pads gh-pads-4" id="gh-snake-pads">
+        <button type="button" class="gh-pad" data-dir="up">↑</button>
+        <button type="button" class="gh-pad" data-dir="left">←</button>
+        <button type="button" class="gh-pad" data-dir="down">↓</button>
+        <button type="button" class="gh-pad" data-dir="right">→</button>
+      </div>
+    </section>
+
+    <div class="gh-toast" id="gh-toast"></div>
+  </div>
+</div>
