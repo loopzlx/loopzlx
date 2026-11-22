@@ -6,7 +6,7 @@
     var APP_ROOT = 'html/gamehub/gamehub.html';
     var CSS_PATH = 'css/gamehub.css';
     var JS_PATH = 'js/gamehub/';
-    var SCRIPTS = ['gamehub-core.js', 'game-2048.js', 'game-minesweeper.js', 'game-snake.js'];
+    var SCRIPTS = ['gamehub-i18n.js', 'gamehub-core.js', 'game-2048.js', 'game-minesweeper.js', 'game-snake.js'];
 
     var loaded = false;
     var busy = false;
@@ -17,7 +17,7 @@
     function loadScript(src) {
         return new Promise(function (resolve, reject) {
             var s = document.createElement('script');
-            s.src = src;
+            s.src = src + '?v=1.4';  /* 版本号：避免浏览器拿旧的缓存脚本 */
             s.async = false;
             s.onload = function () { resolve(); };
             s.onerror = function () { reject(new Error('script fail: ' + src)); };
@@ -67,8 +67,8 @@
     function onOpen() {
         if (window.GH) {
             window.GH.isOpen = true;
+            if (window.GH.onOpen) window.GH.onOpen();
             if (window.GH.log) window.GH.log('MOUNTED · overlay');
-            if (window.GH.view === 'snake' && window.GH.Snake && window.GH.Snake.onShow) window.GH.Snake.onShow(true);
         }
     }
 

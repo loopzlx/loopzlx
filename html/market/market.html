@@ -4,6 +4,7 @@
         <i class="fas fa-arrow-left"></i><span data-en="Back" data-zh="返回">Back</span>
     </button>
     <span class="mk-layer-tag">MARKET FEED // LIVE FEED</span>
+    <button type="button" class="mk-btn mk-theme-btn" id="mk-theme" title="Switch theme"><i class="fas fa-palette"></i><span>THEME</span></button>
 </div>
 
 <section id="market" class="pb-10 md:pb-16 px-5 sm:px-6 max-w-7xl mx-auto">
@@ -12,7 +13,7 @@
             <h2 class="text-4xl sm:text-5xl font-black text-white mb-2 uppercase italic" data-en="Market Feed" data-zh="行情监控">Market Feed</h2>
             <div class="w-20 h-1.5" style="background-color:var(--primary); box-shadow:0 0 10px var(--primary);"></div>
             <p class="mk-kicker mt-4 text-[10px] font-mono uppercase tracking-[0.25em]" style="color:var(--text-muted)"
-               data-en="Gold · Silver · FX — live polling every 30s" data-zh="黄金 · 白银 · 汇率 — 每 30 秒自动轮询">Gold · Silver · FX — live polling every 30s</p>
+               data-en="Gold · Silver · BTC · Platinum · FX — live polling every 30s" data-zh="黄金 · 白银 · 比特币 · 铂金 · 汇率 — 每 30 秒自动轮询">Gold · Silver · BTC · Platinum · FX — live polling every 30s</p>
         </div>
         <div class="mk-status" id="mk-status">
             <span class="mk-dot"></span>
@@ -25,7 +26,8 @@
     <!-- 实时金银 -->
     <div class="mk-live reveal">
         <div class="mk-tile">
-            <div class="mk-tile-head"><b>XAU / USD</b><span data-en="Spot Gold" data-zh="黄金现货">Spot Gold</span></div>
+            <div class="mk-tile-head"><b>XAU / USD</b><span data-en="Spot Gold" data-zh="黄金现货">Spot Gold</span>
+                <button type="button" class="mk-alert" data-alert="XAU" title="设置价格提醒">◔</button></div>
             <div class="mk-price" id="mk-xau">—<small>USD / OZ</small></div>
             <div class="mk-tile-foot">
                 <div>
@@ -36,7 +38,8 @@
             </div>
         </div>
         <div class="mk-tile">
-            <div class="mk-tile-head"><b>XAG / USD</b><span data-en="Spot Silver" data-zh="白银现货">Spot Silver</span></div>
+            <div class="mk-tile-head"><b>XAG / USD</b><span data-en="Spot Silver" data-zh="白银现货">Spot Silver</span>
+                <button type="button" class="mk-alert" data-alert="XAG" title="设置价格提醒">◔</button></div>
             <div class="mk-price" id="mk-xag">—<small>USD / OZ</small></div>
             <div class="mk-tile-foot">
                 <div>
@@ -48,6 +51,88 @@
         </div>
     </div>
 
+    <!-- 加密与铂金（数据源 gold-api，与本页金银同一个接口，公开只读） -->
+    <div class="mk-live mk-crypto reveal">
+        <div class="mk-tile">
+            <div class="mk-tile-head"><b>BTC / USD</b><span data-en="Bitcoin" data-zh="比特币">Bitcoin</span>
+                <button type="button" class="mk-alert" data-alert="BTC" title="设置价格提醒">◔</button></div>
+            <div class="mk-price" id="mk-btc">—<small>USD</small></div>
+            <div class="mk-tile-foot">
+                <div>
+                    <div id="mk-btc-chg"><span class="mk-delta">—</span></div>
+                    <div class="mk-sub" id="mk-btc-sub">—</div>
+                </div>
+                <svg class="mk-spark" id="mk-btc-spark" viewBox="0 0 170 46" preserveAspectRatio="none"></svg>
+            </div>
+        </div>
+        <div class="mk-tile">
+            <div class="mk-tile-head"><b>ETH / USD</b><span data-en="Ethereum" data-zh="以太坊">Ethereum</span>
+                <button type="button" class="mk-alert" data-alert="ETH" title="设置价格提醒">◔</button></div>
+            <div class="mk-price" id="mk-eth">—<small>USD</small></div>
+            <div class="mk-tile-foot">
+                <div>
+                    <div id="mk-eth-chg"><span class="mk-delta">—</span></div>
+                    <div class="mk-sub" id="mk-eth-sub">—</div>
+                </div>
+                <svg class="mk-spark" id="mk-eth-spark" viewBox="0 0 170 46" preserveAspectRatio="none"></svg>
+            </div>
+        </div>
+        <div class="mk-tile">
+            <div class="mk-tile-head"><b>XPT / USD</b><span data-en="Platinum" data-zh="铂金现货">Platinum</span>
+                <button type="button" class="mk-alert" data-alert="XPT" title="设置价格提醒">◔</button></div>
+            <div class="mk-price" id="mk-xpt">—<small>USD</small></div>
+            <div class="mk-tile-foot">
+                <div>
+                    <div id="mk-xpt-chg"><span class="mk-delta">—</span></div>
+                    <div class="mk-sub" id="mk-xpt-sub">—</div>
+                </div>
+                <svg class="mk-spark" id="mk-xpt-spark" viewBox="0 0 170 46" preserveAspectRatio="none"></svg>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- 金银比 & 换算器 -->
+    <div class="mk-tools reveal">
+        <div class="mk-tool glass-card">
+            <div class="mk-tool-head">
+                <span data-en="GOLD / SILVER RATIO" data-zh="金银比">GOLD / SILVER RATIO</span>
+                <span class="mk-tag mk-tag-est">SPOT</span>
+            </div>
+            <div class="mk-ratio"><b id="mk-ratio">—</b><small id="mk-ratio-state">—</small></div>
+            <div class="mk-ratio-bar"><span id="mk-ratio-bar"></span></div>
+            <p class="mk-tool-note" data-en="Troy-ounce gold divided by silver. Historically 70–90 means silver is cheap relative to gold."
+               data-zh="一盎司金价 ÷ 一盎司银价。长期区间大致 70–90，偏低说明银相对金便宜。">Troy-ounce gold divided by silver.</p>
+        </div>
+
+        <div class="mk-tool glass-card">
+            <div class="mk-tool-head">
+                <span data-en="CONVERTER" data-zh="汇率换算">CONVERTER</span>
+                <span class="mk-tag mk-tag-est" id="mk-conv-note">REF</span>
+            </div>
+            <div class="mk-conv">
+                <input type="number" id="mk-conv-in" value="100" min="0" step="any" inputmode="decimal" aria-label="amount">
+                <select id="mk-conv-from" aria-label="from currency"></select>
+                <span class="mk-conv-arrow">→</span>
+                <select id="mk-conv-to" aria-label="to currency"></select>
+            </div>
+            <div class="mk-conv-out" id="mk-conv-out">—</div>
+            <div class="mk-conv-quick">
+                <button type="button" data-swap="1" data-en="SWAP" data-zh="对调">SWAP</button>
+                <button type="button" data-quick="100" data-en="100" data-zh="100">100</button>
+                <button type="button" data-quick="1000" data-en="1K" data-zh="1K">1K</button>
+                <button type="button" data-quick="10000" data-en="10K" data-zh="10K">10K</button>
+            </div>
+        </div>
+
+        <div class="mk-tool glass-card">
+            <div class="mk-tool-head">
+                <span data-en="ALERT HISTORY" data-zh="提醒历史">ALERT HISTORY</span>
+                <button type="button" class="mk-alert-clear" id="mk-alert-clear" data-en="CLEAR" data-zh="清空">CLEAR</button>
+            </div>
+            <div class="mk-alog" id="mk-alog"><div class="mk-alog-empty" data-en="No alerts fired yet." data-zh="还没有触发过提醒。">No alerts fired yet.</div></div>
+        </div>
+    </div>
     <!-- 金条 / 银条 -->
     <div class="mk-metals reveal">
         <div class="mk-metal glass-card">
@@ -91,8 +176,9 @@
             </svg>
             <div class="mk-metal-info">
                 <div class="mk-metal-name"><span data-en="Silver Bar · spot" data-zh="银条 · 现货">Silver Bar · spot</span><span class="mk-tag mk-tag-est">EST</span></div>
-                <div class="mk-metal-price"><span id="mk-bar-silver">—</span><small>CNY / KG</small></div>
+                <div class="mk-metal-price"><span id="mk-bar-silver">—</span><small>CNY / G</small></div>
                 <span class="mk-delta down" id="mk-bar-silver-chg">—</span>
+                <div class="mk-sub" id="mk-bar-silver-kg">≈ — CNY / KG</div>
                 <div class="mk-metal-list">
                     <div><span data-en="SHFE Silver" data-zh="沪银主力">SHFE Silver</span><span id="mk-bar-shfe">—</span></div>
                     <div><span data-en="Silver T+D" data-zh="白银 T+D">Silver T+D</span><span id="mk-bar-td">—</span></div>

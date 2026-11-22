@@ -13,13 +13,22 @@ var OSU = window.Osu = window.Osu || {};
     MODE_ICON: { std: '◯', taiko: '◐', catch: '❥', mania: '▤' },
     MODE_COLOR: { std: '#ff66aa', taiko: '#ffcc22', catch: '#66ccff', mania: '#b066ff' },
     /* 五档判定（基于 OD=5），随 OD 缩放 */
+    /* v = ScoreV2 的判定数值（300 / 100 / 50 体系），与 osu! 一致 */
     JUDGE: [
-      { key: 'PERFECT', ms: 40, color: '#ff66aa', hp: 1.2, score: 320 },
-      { key: 'GREAT', ms: 80, color: '#b066ff', hp: 0.8, score: 300 },
-      { key: 'GOOD', ms: 130, color: '#33ff66', hp: 0.3, score: 200 },
-      { key: 'OK', ms: 190, color: '#a78bcc', hp: 0.0, score: 100 },
-      { key: 'MEH', ms: 240, color: '#888888', hp: -1.2, score: 50 }
+      { key: 'PERFECT', ms: 40, color: '#ff66aa', hp: 1.2, v: 300 },
+      { key: 'GREAT', ms: 80, color: '#b066ff', hp: 0.8, v: 300 },
+      { key: 'GOOD', ms: 130, color: '#33ff66', hp: 0.3, v: 100 },
+      { key: 'OK', ms: 190, color: '#a78bcc', hp: 0.0, v: 50 },
+      { key: 'MEH', ms: 240, color: '#888888', hp: -1.2, v: 25 }
     ],
+    /* std / catch 用 3 档判定（对应 osu! 的 300 / 100 / 50）：最高是 GREAT，没有 PERFECT */
+    JUDGE_STD: [
+      { key: 'GREAT', ms: 40, color: '#ff66aa', hp: 1.2, v: 300 },
+      { key: 'OK', ms: 130, color: '#ffd166', hp: 0.3, v: 100 },
+      { key: 'MEH', ms: 200, color: '#8a8a8a', hp: 0.0, v: 50 }
+    ],
+    /* 模式内部档位 → std 判定名的映射（std/catch 的 addHit 传的是老档名） */
+    STD_MAP: { PERFECT: 'GREAT', GREAT: 'OK', GOOD: 'MEH' },
     MISS_COLOR: '#ff3355',
     ICON: { PERFECT: '★', GREAT: '◆', GOOD: '●', OK: '▲', MEH: '·', MISS: '×', BREAK: '⨯' },
     TOTAL_SCORE: 1000000,
@@ -57,26 +66,100 @@ var OSU = window.Osu = window.Osu || {};
   /* ---------- 主题色：读取站点 CSS 变量，让 osu 界面跟随 loopzlx 主题 ---------- */
   function cssVar(name, fb) {
     try {
-      var v = getComputedStyle(document.documentElement).getPropertyValue(name);
+      var v = getComputedStyle(document.body || document.documentElement).getPropertyValue(name);
       v = (v || '').trim();
       return v || fb;
     } catch (e) { return fb; }
   }
-  var paletteCache = null;
+  /* 每个模式自己的主题色：std 紫、taiko 橙、catch 青、mania 蓝（游玩画面按模式换色） */
+  var MODE_ACCENT = {
+    std: ['#ff66aa', '#ff2e88'],
+    taiko: ['#ffcc22', '#ff9d00'],
+    catch: ['#66ccff', '#00a8e8'],
+    mania: ['#b066ff', '#8a3dff']
+  };
+  /* ---------- 皮肤包：覆盖强调色与判定色，不随站点主题漂移 ---------- */
+  var DEFAULT_JUDGE = C.JUDGE.map(function (j) { return j.color; });
+  var SKINS = OSU.SKINS = {
+    auto: { id: 'auto', name: 'AUTO', cn: '跟随主题', accent: null, judge: null },
+    frost: {
+      id: 'frost', name: 'FROST', cn: '霜蓝', accent: ['#5ec8ff', '#2b8dff'],
+      judge: { PERFECT: '#d6f7ff', GREAT: '#5ec8ff', GOOD: '#3fd0a5', OK: '#8fb8ce', MEH: '#6d8595' }
+    },
+    ember: {
+      id: 'ember', name: 'EMBER', cn: '余烬', accent: ['#ffa53d', '#ff4b2b'],
+      judge: { PERFECT: '#ffd9a8', GREAT: '#ffa53d', GOOD: '#ff7a59', OK: '#c8956a', MEH: '#8a6a5a' }
+    },
+    neon: {
+      id: 'neon', name: 'NEON', cn: '霓虹', accent: ['#7dffb0', '#18e0a8'],
+      judge: { PERFECT: '#eaffd6', GREAT: '#7dffb0', GOOD: '#4fe3ff', OK: '#66d9c2', MEH: '#5c8a80' }
+    },
+    mono: {
+      id: 'mono', name: 'MONO', cn: '单色', accent: ['#e8e8e8', '#8a8a8a'],
+      judge: { PERFECT: '#ffffff', GREAT: '#dcdcdc', GOOD: '#b8b8b8', OK: '#909090', MEH: '#6a6a6a' }
+    }
+  };
+  var SKIN_KEY = 'osu.skin';
+
+  OSU.skinId = function () {
+    try {
+      var id = localStorage.getItem(SKIN_KEY) || 'auto';
+      return SKINS[id] ? id : 'auto';
+    } catch (e) { return 'auto'; }
+  };
+  OSU.skin = function () { return SKINS[OSU.skinId()] || SKINS.auto; };
+  OSU.setSkin = function (id) {
+    if (!SKINS[id]) id = 'auto';
+    try { localStorage.setItem(SKIN_KEY, id); } catch (e) {}
+    OSU.applySkin();
+    paletteCache = {};
+    OSU.log && OSU.log('SKIN // ' + (SKINS[id].name || id));
+  };
+  OSU.applySkin = function () {
+    var sk = OSU.skin();
+    C.JUDGE.forEach(function (j, i) {
+      j.color = (sk.judge && sk.judge[j.key]) || DEFAULT_JUDGE[i];
+    });
+    var app = document.getElementById('osu-app');
+    if (app) app.setAttribute('data-skin', sk.id);
+  };
+
+  var paletteCache = {};
+
+  OSU.isLight = function () {
+    var cl = (document.documentElement.className || '') + ' ' + ((document.body && document.body.className) || '');
+    return /theme-paper|theme-sneaker/.test(cl);
+  };
+
   OSU.pal = function (force) {
-    if (paletteCache && !force) return paletteCache;
-    paletteCache = {
+    var mode = (OSU.S && OSU.S.running) ? OSU.S.mode : '';
+    var light = OSU.isLight();
+    var key = (mode || '-') + (light ? '|L' : '|D');
+    if (paletteCache[key] && !force) return paletteCache[key];
+    var base = {
       primary: cssVar('--primary', '#8a2be2'),
       secondary: cssVar('--secondary', '#ff69b4'),
       bg: cssVar('--bg-base', '#050208'),
       text: cssVar('--text-main', '#f0f4f8'),
       dim: cssVar('--text-muted', '#a78bcc'),
       glass: cssVar('--glass-bg', 'rgba(15,8,25,.75)'),
-      line: cssVar('--glass-border', 'rgba(138,43,226,.35)')
+      line: cssVar('--glass-border', 'rgba(138,43,226,.35)'),
+      light: light
     };
-    return paletteCache;
+    var acc = MODE_ACCENT[mode];
+    if (acc) { base.primary = acc[0]; base.secondary = acc[1]; }
+    var skin = OSU.skin();
+    if (skin && skin.accent) { base.primary = skin.accent[0]; base.secondary = skin.accent[1]; }
+    /* 浅色主题：游玩底色走主题亮底，文字/描边用深色，避免"白字压在米白上" */
+    if (light) {
+      base.text = cssVar('--text-main', '#2c1e12');
+      base.dim = cssVar('--text-muted', '#8c6a4f');
+      base.bg = cssVar('--bg-base', '#f4ebd9');
+    }
+    paletteCache[key] = base;
+    return base;
   };
-  OSU.resetPal = function () { paletteCache = null; };
+  OSU.resetPal = function () { paletteCache = {}; };
 
   /* ---------- 工具 ---------- */
   var U = OSU.util = {
@@ -113,18 +196,45 @@ var OSU = window.Osu = window.Osu || {};
       }
       return ans;
     },
-    /** 判定窗口（毫秒），随 OD 缩放 */
+    /** 判定窗口（毫秒，单边），按 osu! 原版公式推导：
+        std   300 总宽 79.5-3.5*OD、100 139.5-8*OD、50 199.5-10*OD
+        mania 320 64-3*OD、100 97-3*OD、50 127-3*OD
+        taiko 用比 std 略宽的同形公式（和 taiko 手感接近）
+        EZ 让 OD 减半、HR 让 OD ×1.4（封顶 10）；DT/HT 不改变真实毫秒窗口。 */
     win: function (res) {
-      var base = 0;
-      for (var i = 0; i < C.JUDGE.length; i++) if (C.JUDGE[i].key === res) { base = C.JUDGE[i].ms; break; }
-      if (res === 'MISS') base = 260;
-      var scale = 1 + (5 - S.od) * 0.075;          // OD 高窗口小
-      if (S.mods.EZ) scale *= 1.4;
-      if (S.mods.HR) scale *= 0.8;
-      if (S.mods.DT) scale *= 0.85;
-      return base * scale;
+      var od = S.od || 5;
+      if (S.mods.EZ) od = od * 0.5;
+      if (S.mods.HR) od = Math.min(10, od * 1.4);
+      var a, b, c, d;
+      if (S.mode === 'mania') {
+        /* osu!mania 官方窗口（值是「半径」，判定用 |diff| ≤ win 比较，不要再除 2）：
+           GREAT 64-3OD / GOOD 97-3OD / OK 127-3OD / MEH 151-3OD，PERFECT 固定 ±16ms 不随 OD 变。
+           旧版 PERFECT 取 a*0.55（OD5 只有 13.5ms）+ 这里又除 2，等于把窗口砍一半，
+           踩得很准也只给 GREAT —— 现已按官方半径恢复。 */
+        a = 64 - 3 * od; b = 97 - 3 * od; c = 127 - 3 * od; d = 151 - 3 * od;
+      } else if (S.mode === 'taiko') {
+        a = (58 - 3.5 * od) / 2; b = (130 - 8 * od) / 2; c = (190 - 10 * od) / 2;
+        d = c;
+      } else {
+        a = (79.5 - 3.5 * od) / 2; b = (139.5 - 8 * od) / 2; c = (199.5 - 10 * od) / 2;
+        d = c;
+      }
+      a = Math.max(6, a); b = Math.max(a + 3, b); c = Math.max(b + 4, c); d = Math.max(c + 2, d);
+      var w = {
+        PERFECT: S.mode === 'mania' ? 16 : a,   /* mania 固定 16ms，其余模式最高档就是 a */
+        GREAT: a,
+        GOOD: b,
+        OK: c,
+        MEH: d,
+        MISS: d
+      };
+      var v = w[res];
+      return v != null ? v : d;
     },
     judge: function (diffMs) {
+      /* 校准偏移：玩家整体偏早/偏晚多少 ms，判定前统一补偿（设置 → 音频 → 校准） */
+      var off = (OSU.settings && OSU.settings.num) ? OSU.settings.num('hitOffset', 0) : 0;
+      if (off) diffMs = diffMs - off;
       var a = Math.abs(diffMs);
       for (var i = 0; i < C.JUDGE.length; i++) {
         if (a <= OSU.util.win(C.JUDGE[i].key)) return C.JUDGE[i].key;
@@ -132,38 +242,158 @@ var OSU = window.Osu = window.Osu || {};
       return 'MISS';
     },
     judgeOf: function (res) {
-      for (var i = 0; i < C.JUDGE.length; i++) if (C.JUDGE[i].key === res) return C.JUDGE[i];
+      var table = U.judgeTable();
+      for (var i = 0; i < table.length; i++) if (table[i].key === res) return table[i];
       return null;
+    },
+    judgeTable: function () {
+      return OSU.usesStdJudge() ? C.JUDGE_STD : C.JUDGE;
     }
   };
 
-  /* ---------- 计分 / 血条 / 弹窗 / 粒子 ---------- */
+  /* ---------- 计分（osu! ScoreV2）/ 血条 / 弹窗 / 粒子 ---------- */
+
+  /* ScoreV2：单条的连击参数 = 判定值 × f(combo)
+     f: combo<=1 → .5；2..400 → log4(combo)；>400 → log4(400)。满分里 combo 部分占 20%，acc 占 80%。 */
+  /* 判定档位的得分权重（0–1，以 320 为基准）：分数与 acc 共用这一张表，
+     全 PERFECT 时 comboPart/accPart 都正好吃满，总分 = 1,000,000 */
+  OSU.weightOf = function (key) {
+    var w = OSU.usesStdJudge()
+      ? { GREAT: 1, OK: 1 / 3, MEH: 1 / 6 }
+      : { PERFECT: 1, GREAT: 300 / 320, GOOD: 200 / 320, OK: 100 / 320, MEH: 50 / 320 };
+    var v = w[key];
+    return v == null ? 0 : v;
+  };
+
+  function comboF(c) {
+    if (c <= 1) return 0.5;
+    var v = Math.log(Math.min(c, 400)) / Math.log(4);
+    return v;
+  }
+  OSU.comboF = comboF;
+
+  OSU.maxComboParams = function (n) {
+    var sum = 0;
+    for (var i = 1; i <= n; i++) sum += comboF(i);
+    return Math.max(1, 320 * sum);
+  };
+
+  var MOD_MULT = { HR: 1.10, DT: 1.20, FL: 1.12, HD: 1.06, EZ: 0.5, HT: 0.5 };
+
+  OSU.modMult = function () {
+    var m = 1;
+    for (var k in S.mods) if (S.mods[k] && MOD_MULT[k]) m *= MOD_MULT[k];
+    return m;
+  };
+
+  /* ScoreV2 当前总分 = 20% 连击分 + 80% 准度分，再乘模组倍率。
+     两个分量都按「全谱」归一，所以分数从 0 随判定累积，SS 恰好 1,000,000。
+     之前的 accPart 用「已判定部分的准确率」（开局就是 100%），一进图分数直接 80 万、
+     打一个 miss 又断崖式掉，和官方行为不符。 */
+  OSU.scoreNow = function () {
+    var total = OSU.totalObjects ? Math.max(1, OSU.totalObjects()) : 1;
+    var cSum = S.comboParams || 0;
+    var maxCP = S.maxComboParams || 1;
+    var comboPart = 200000 * Math.min(1, cSum / maxCP);
+    var accPart = 800000 * Math.min(1, (S.accSum || 0) / total);
+    return Math.round((comboPart + accPart) * OSU.modMult());
+  };
+
+  /* 星级：没有真实的 strain 计算，用密度/od/长度做近似（也用于 pp 基准） */
+  /* 星级：按模式各自的难度模型估算（之前四个模式共用一条密度公式，内置演示谱被算成 ★5.5 明显偏高）
+     - mania：NPS × 键数系数（键越多越难读）
+     - taiko：纯 NPS（节奏密度）
+     - catch：NPS + 少量 OD
+     - std：NPS × 滑条占比 + OD */
+  OSU.starRating = function (chart) {
+    if (!chart || !chart.objects) return 1;
+    var objs = chart.objects, n = objs.length || 1;
+    var dur = Math.max(1, chart.length || 30);
+    var nps = n / dur;
+    var od = chart.od || 5;
+    var mode = chart.mode || 'std';
+    var stars;
+    if (mode === 'mania') {
+      var cols = Math.max(1, chart.cs || 4);
+      stars = 0.55 + 0.85 * Math.pow(nps, 0.92) * Math.pow(cols / 4, 0.28) + od * 0.055;
+    } else if (mode === 'taiko') {
+      stars = 0.55 + 1.05 * Math.pow(nps, 0.82) + od * 0.06;
+    } else if (mode === 'catch') {
+      stars = 0.55 + 0.95 * Math.pow(nps, 0.80) + od * 0.06;
+    } else {
+      var sl = 0;
+      for (var i = 0; i < objs.length; i++) if (objs[i].type === 'slider' || objs[i].type === 'hold') sl++;
+      var slFrac = n ? sl / n : 0;
+      stars = 0.95 + 0.90 * Math.pow(nps, 0.80) * (1 + slFrac * 0.55) + od * 0.06;
+    }
+    return U.clamp(Math.round(stars * 100) / 100, 1, 9.9);
+  };
+
+  /* pp 估算：官方公式需要 aim / speed strain，这里用星级 + 长度 + acc + combo + mods 近似，
+     数值对齐社区经验（5★ 2 分钟全连约 200–250pp）。结果页标注 EST。 */
+  OSU.pp = function (chart) {
+    var stars = OSU.starRating(chart);
+    var lenSec = Math.min(420, Math.max(20, (chart && chart.length) || 60));
+    var acc = OSU.acc() / 100;
+    var total = Math.max(1, Math.round(OSU.totalObjects()));
+    var comboFrac = Math.min(1, (S.maxCombo || 0) / total);
+    var base = 2.6 * Math.pow(stars, 2.5) * (1 + 0.004 * lenSec);
+    var pp = base * Math.pow(acc, 5.6) * (0.6 + 0.4 * comboFrac) * OSU.modMult();
+    if (S.failed) pp = 0;
+    return Math.max(0, Math.round(pp));
+  };
+
+  /* std / catch：把 PERFECT→GREAT、GREAT→OK、GOOD→MEH，让最高档就叫 GREAT */
+  OSU.usesStdJudge = function () {
+    return S.mode === 'std' || S.mode === 'catch';
+  };
+  OSU.normJudge = function (res) {
+    if (!OSU.usesStdJudge()) return res;
+    return C.STD_MAP[res] || res;
+  };
+
   OSU.addHit = function (res, x, y) {
+    res = OSU.normJudge(res);
     var j = U.judgeOf(res);
     if (!j) return;
     S.combo++; if (S.combo > S.maxCombo) S.maxCombo = S.combo;
     S.counts[res] = (S.counts[res] || 0) + 1;
     S.judged++;
-    S.score += j.score * (1 + Math.min(S.combo, 60) / 60 * 0.6);
+    var hwv = OSU.weightOf(j.key);
+    S.comboParams = (S.comboParams || 0) + hwv * 320 * comboF(S.combo);
+    S.accSum = (S.accSum || 0) + hwv;
+    S.score = OSU.scoreNow();
     S.health = U.clamp(S.health + j.hp, 0, 100);
     OSU.popup(res, j.color, x, y);
     OSU.spark(x, y, j.color);
     OSU.audio.hitSfx(res);
+    if (OSU.replay && OSU.replay.active()) {
+      var ji = C.JUDGE.indexOf(j);
+      OSU.replay.record(ji < 0 ? 0 : ji, x, y, S.songTime);
+    }
   };
 
   OSU.addMiss = function (x, y, isBreak) {
     S.combo = 0;
     S.counts[isBreak ? 'BREAK' : 'MISS'] = (S.counts[isBreak ? 'BREAK' : 'MISS'] || 0) + 1;
     S.judged++;
-    S.health = U.clamp(S.health - (isBreak ? 6 : 4.5), 0, 100);
+    /* 扣血量随谱面的 HP drain 走：HP5 约 -5，HP10 约 -8 */
+    var drain = 2.4 + (S.hp || 5) * 0.55;
+    S.health = U.clamp(S.health - (isBreak ? 2 : drain), 0, 100);
+    S.score = OSU.scoreNow();
     OSU.popup(isBreak ? 'BREAK' : 'MISS', C.MISS_COLOR, x, y);
     OSU.spark(x, y, C.MISS_COLOR);
     if (S.mods.SD && !S.mods.NF) S.failed = true;
+    if (S.health <= 0 && !S.mods.NF) S.failed = true;   /* 血条见底 → 判定失败 */
+    if (OSU.replay && OSU.replay.active()) OSU.replay.record(isBreak ? 6 : 5, x, y, S.songTime);
   };
 
+  /* 准确率按 osu! 的 300/100/50 权重：300=1、100=1/3、50=1/6、25=1/12，Miss=0 */
   OSU.acc = function () {
     var num = 0;
-    var w = { PERFECT: 1, GREAT: 0.92, GOOD: 0.6, OK: 0.32, MEH: 0.1 };
+    var w = OSU.usesStdJudge()
+      ? { GREAT: 1, OK: 1 / 3, MEH: 1 / 6 }
+      : { PERFECT: 1, GREAT: 300 / 320, GOOD: 200 / 320, OK: 100 / 320, MEH: 50 / 320 };
     for (var k in S.counts) if (w[k] && S.counts[k]) num += S.counts[k] * w[k];
     return S.judged > 0 ? num / S.judged * 100 : 100;
   };
@@ -198,6 +428,7 @@ var OSU = window.Osu = window.Osu || {};
     }
   };
   OSU.spark = function (x, y, color) {
+    if (OSU.settings && !OSU.settings.on('hitLight')) return;
     for (var i = 0; i < 5; i++) {
       sparks.push({ x: x, y: y, vx: (Math.random() - .5) * 300, vy: -Math.random() * 200 - 60, life: 1, color: color });
     }
@@ -220,7 +451,11 @@ var OSU = window.Osu = window.Osu || {};
   };
 
   /* 记录点（用于 replay / UR） */
-  OSU.recordHit = function (diffMs) { if (isFinite(diffMs)) S.hitErrors.push(diffMs); };
+  OSU.recordHit = function (diffMs) {
+    if (!isFinite(diffMs)) return;
+    S.hitErrors.push(diffMs);
+    if (S.hitErrors.length > 60) S.hitErrors.shift();
+  };
 
   /* 曲库存储 */
   OSU.store = {
@@ -256,7 +491,8 @@ var OSU = window.Osu = window.Osu || {};
         taiko.push({ time: LIMIT + b2 * BAR + s2 * BEAT, kat: row[s2] === 1, type: 'circle', x: 256, y: 192, hitSound: row[s2] === 1 ? 2 : 0 });
       }
       if (b2 % 4 === 3) {
-        taiko.push({ time: LIMIT + b2 * BAR + 3 * BEAT + BEAT * 0.5, endTime: LIMIT + b2 * BAR + 4 * BEAT, kat: false, type: 'slider', x: 256, y: 192, hitSound: 0 });
+        /* 鼓奏（drumroll）：1.25 秒长条，按住即可连续出货 */
+        taiko.push({ time: LIMIT + b2 * BAR + 3 * BEAT + BEAT * 0.5, endTime: LIMIT + b2 * BAR + 6 * BEAT, kat: false, type: 'slider', x: 256, y: 192, hitSound: 0 });
       }
     }
 

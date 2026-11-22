@@ -106,11 +106,13 @@ var OSU = window.Osu = window.Osu || {};
         best.headJudged = true;
         best.ticks = Math.max(2, Math.round((best.endTime - best.time) / 0.2));
         best.ticksDone = 0;
+        best.hitAt = t;
         OSU.addHit(res, p.x, p.y);
         OSU.recordHit(diffMs);
         M.ring(p.x, p.y);
       } else {
         best.judged = true;
+        best.hitAt = t;
         OSU.addHit(res, p.x, p.y);
         OSU.recordHit(diffMs);
         M.ring(p.x, p.y);
@@ -132,6 +134,8 @@ var OSU = window.Osu = window.Osu || {};
       n.judged = true;
       var rad = M.radius();
       var ex = M.mx(n.ex), ey = M.my(n.ey);
+      /* Auto：滑条尾判直接满档，不按光标距离降级 */
+      if (S.mods.AT) { OSU.addHit('PERFECT', ex, ey); M.ring(ex, ey); return; }
       var db = Math.hypot(S.cursor.x - ex, S.cursor.y - ey);
       if (db < rad * 1.0) { OSU.addHit('PERFECT', ex, ey); M.ring(ex, ey); }
       else if (db < rad * 2.2) OSU.addHit('GREAT', ex, ey);
@@ -192,7 +196,8 @@ var OSU = window.Osu = window.Osu || {};
             while (n.ticksDone < need) {
               n.ticksDone++;
               var dd = Math.hypot(S.cursor.x - cx, S.cursor.y - cy);
-              if (dd < rad) { OSU.addHit('GREAT', cx, cy); OSU.audio.sliderTick(); }
+              /* Auto 模式下滑条 tick 一律满档（与 autoPlay 的 PERFECT 对齐），不按距离降级 */
+              if (S.mods.AT || dd < rad) { OSU.addHit(S.mods.AT ? 'PERFECT' : 'GREAT', cx, cy); OSU.audio.sliderTick(); }
               else OSU.addMiss(cx, cy);
             }
             if (t >= n.endTime) M.endSlider(n);
@@ -200,7 +205,7 @@ var OSU = window.Osu = window.Osu || {};
         } else if (n.type === 'spinner') {
           if (t > n.endTime) {
             n.judged = true;
-            if (n.spins >= 4) OSU.addHit('PERFECT', p.x, p.y);
+            if (S.mods.AT || n.spins >= 4) OSU.addHit('PERFECT', p.x, p.y);
             else if (n.spins >= 1) OSU.addHit('GOOD', p.x, p.y);
             else OSU.addMiss(p.x, p.y);
           }
@@ -212,7 +217,10 @@ var OSU = window.Osu = window.Osu || {};
       M.layout(l);
       var pal = OSU.pal();
       var rad = M.radius();
-      var ar = APPROACH;
+      var ar = APPROACH * (100 / Math.max(60, (OSU.settings ? OSU.settings.num('scroll', 100) : 100)));
+      /* osu 皮肤的描边都是"白圈打底"，浅色主题反过来用深墨 */
+      var ring = 'rgba(255,255,255,.95)';
+      var ringDark = 'rgba(0,0,0,.34)';
 
       /* 只画时间窗内的音符（import 大谱面时避免每帧遍历几千个） */
       var from = OSU.util.bisect(S.notes, t - 0.45);
@@ -222,15 +230,29 @@ var OSU = window.Osu = window.Osu || {};
         if (dt > ar) break;
 
         if (n.type === 'circle') {
-          if (n.judged || dt < -0.35) continue;
+          /* 命中后 0.2s 内做一个放大 + 淡出的收尾（原版点了就是"啪"地消失） */
+          if (n.judged) {
+            if (!n.hitAt || t - n.hitAt > .2) continue;
+            var kk = U.clamp((t - n.hitAt) / .2, 0, 1);
+            var hx = M.mx(n.x), hy = M.my(n.y);
+            ctx.globalAlpha = 1 - kk;
+            ctx.beginPath(); ctx.arc(hx, hy, rad * (1 + .45 * kk), 0, 6.283);
+            ctx.fillStyle = U.rgba(pal.primary, .35); ctx.fill();
+            ctx.strokeStyle = U.rgba(pal.text, .8); ctx.lineWidth = 2; ctx.stroke();
+            ctx.globalAlpha = 1;
+            continue;
+          }
+          if (dt < -0.35) continue;
           var x = M.mx(n.x), y = M.my(n.y);
           var a = U.clamp(1 - dt / ar, 0.18, 1);
           /* 外圈：从 3 倍半径向内收到圆边缘（osu 的 approach circle 行为） */
           var cr = rad * (1 + 2 * U.clamp(dt / ar, 0, 1));
 
           ctx.beginPath(); ctx.arc(x, y, rad, 0, 6.283);
-          ctx.fillStyle = U.rgba(pal.primary, .52); ctx.fill();
-          ctx.strokeStyle = U.rgba(pal.text, .85); ctx.lineWidth = 3; ctx.stroke();
+          ctx.fillStyle = U.rgba(pal.primary, .58); ctx.fill();
+          /* osu 的 hitcircle 是"白圈 + 一点暗底"，两个主题下都能看清 */
+          ctx.strokeStyle = ringDark; ctx.lineWidth = 5; ctx.stroke();
+          ctx.strokeStyle = ring; ctx.lineWidth = 3; ctx.stroke();
 
           ctx.beginPath(); ctx.arc(x, y, rad * .62, 0, 6.283);
           ctx.strokeStyle = U.rgba(pal.secondary, .55); ctx.lineWidth = 1.5; ctx.stroke();
@@ -240,35 +262,48 @@ var OSU = window.Osu = window.Osu || {};
           ctx.strokeStyle = pal.text; ctx.lineWidth = 2.5; ctx.stroke();
           ctx.globalAlpha = 1;
 
-          ctx.fillStyle = U.rgba(pal.text, .92);
-          ctx.font = '700 ' + Math.round(rad * .78) + 'px "Share Tech Mono", monospace';
-          ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-          ctx.fillText(String(n.idx || 1), x, y + 1);
+          /* 原版圆圈里不放编号，这里只留一个淡淡的中心点 */
+          ctx.beginPath(); ctx.arc(x, y, rad * .16, 0, 6.283);
+          ctx.fillStyle = U.rgba(pal.text, .55); ctx.fill();
         } else if (n.type === 'slider') {
           if (n.judged || dt < -0.35) continue;
           var x1 = M.mx(n.x), y1 = M.my(n.y), x2 = M.mx(n.ex), y2 = M.my(n.ey);
           var ang = Math.atan2(y2 - y1, x2 - x1);
           var tr = rad * 0.46;
           /* 轨道：外描边 + 内层，接近 osu 的细长滑条 */
-          ctx.strokeStyle = U.rgba(pal.secondary, .85); ctx.lineWidth = tr * 2.1;
+          ctx.strokeStyle = ringDark; ctx.lineWidth = tr * 2.5;
           ctx.lineCap = 'round';
+          ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+          ctx.strokeStyle = ring; ctx.lineWidth = tr * 2.2;
+          ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+          ctx.strokeStyle = U.rgba(pal.secondary, .9); ctx.lineWidth = tr * 1.9;
           ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
           ctx.strokeStyle = U.rgba(pal.primary, n.holding ? .8 : .6); ctx.lineWidth = tr * 1.4;
           ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+          /* 已跟随的进度用亮色盖一层，滑条走到哪儿一眼能看出来 */
+          if (n.holding) {
+            var pr = U.clamp((t - n.time) / Math.max(.001, n.endTime - n.time), 0, 1);
+            ctx.strokeStyle = U.rgba('#ffffff', .55); ctx.lineWidth = tr * .9;
+            ctx.beginPath(); ctx.moveTo(x1, y1);
+            ctx.lineTo(U.lerp(x1, x2, pr), U.lerp(y1, y2, pr)); ctx.stroke();
+          }
 
           /* 头 */
-          ctx.beginPath(); ctx.arc(x1, y1, rad * .78, 0, 6.283);
-          ctx.fillStyle = U.rgba(pal.primary, .45); ctx.fill();
-          ctx.strokeStyle = U.rgba(pal.text, .9); ctx.lineWidth = 2.5; ctx.stroke();
-          /* 尾 */
-          ctx.beginPath(); ctx.arc(x2, y2, rad * .6, 0, 6.283);
-          ctx.strokeStyle = U.rgba(pal.text, .7); ctx.lineWidth = 2.5; ctx.stroke();
+          ctx.beginPath(); ctx.arc(x1, y1, rad * .8, 0, 6.283);
+          ctx.fillStyle = U.rgba(pal.primary, .5); ctx.fill();
+          ctx.strokeStyle = ringDark; ctx.lineWidth = 4.4; ctx.stroke();
+          ctx.strokeStyle = ring; ctx.lineWidth = 2.6; ctx.stroke();
+          /* 尾：同色描边，收成一个圆头 */
+          ctx.beginPath(); ctx.arc(x2, y2, rad * .62, 0, 6.283);
+          ctx.fillStyle = U.rgba(pal.secondary, .55); ctx.fill();
+          ctx.strokeStyle = ringDark; ctx.lineWidth = 4; ctx.stroke();
+          ctx.strokeStyle = ring; ctx.lineWidth = 2.4; ctx.stroke();
 
           /* 接近环也画在滑条头 */
           if (!n.holding) {
             ctx.globalAlpha = U.clamp(1 - dt / ar, .2, 1);
             ctx.beginPath(); ctx.arc(x1, y1, rad * (1 + 2 * U.clamp(dt / ar, 0, 1)), 0, 6.283);
-            ctx.strokeStyle = pal.text; ctx.lineWidth = 2; ctx.stroke();
+            ctx.strokeStyle = ring; ctx.lineWidth = 2.2; ctx.stroke();
             ctx.globalAlpha = 1;
           }
 
@@ -297,6 +332,24 @@ var OSU = window.Osu = window.Osu || {};
             ctx.fillStyle = pal.text;
             ctx.font = '700 15px "Share Tech Mono", monospace';
             ctx.textAlign = 'center';
+            /* 旋转进度：按需要圈数（4 圈算满）画一段填充弧，跟上手了会有反馈 */
+            var spinProg = U.clamp((n.spins || 0) / 4, 0, 1);
+            if (spinProg > 0.02) {
+              ctx.save();
+              ctx.beginPath();
+              ctx.arc(cx, cy, rad * 2.1, -Math.PI / 2, -Math.PI / 2 + 6.283 * spinProg);
+              ctx.strokeStyle = U.rgba(pal.primary, .95);
+              ctx.lineWidth = 6;
+              ctx.stroke();
+              /* 剩余时间：外圈随结束时间收缩 */
+              var rem = U.clamp((n.endTime - t) / Math.max(.001, n.endTime - n.time), 0, 1);
+              ctx.beginPath();
+              ctx.arc(cx, cy, rad * (2.4 + 0.5 * rem), 0, 6.283);
+              ctx.strokeStyle = U.rgba(pal.secondary, .45);
+              ctx.lineWidth = 2;
+              ctx.stroke();
+              ctx.restore();
+            }
             ctx.fillText('SPIN  ' + n.spins, cx, cy - rad * 2.7);
         }
       }
@@ -316,7 +369,7 @@ var OSU = window.Osu = window.Osu || {};
       }
 
       /* combo 数字跟随光标（osu 的观感） */
-      if (S.combo >= 2) {
+      if (S.combo >= 2 && (!OSU.settings || OSU.settings.on('comboNum'))) {
         ctx.fillStyle = U.rgba(pal.text, .55);
         ctx.font = '700 18px "Share Tech Mono", monospace';
         ctx.textAlign = 'center';

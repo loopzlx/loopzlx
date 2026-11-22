@@ -1,0 +1,152 @@
+<!-- celeste.html —— 蔚蓝（Celeste）手感复刻覆盖层片段，由 celeste-loader.js 注入 #celeste-slot -->
+<div id="celeste-app" aria-label="Celeste">
+  <div class="cl-shell">
+
+    <header class="cl-top">
+      <div class="cl-brand">
+        <span class="cl-label">CELESTE</span>
+        <span class="cl-sub">FORSAKEN CITY 1A · 手感复刻</span>
+      </div>
+
+      <div class="cl-stats">
+        <div class="cl-stat"><b id="cl-time">0:00.000</b><i>TIME</i></div>
+        <div class="cl-stat"><b id="cl-deaths">0</b><i>DEATHS</i></div>
+        <div class="cl-stat"><b id="cl-berries">0/3</b><i>STRAWBERRIES</i></div>
+        <div class="cl-dashes" id="cl-dashes" title="剩余冲刺">
+          <span class="cl-dash-dot on"></span>
+        </div>
+      </div>
+
+      <div class="cl-top-actions">
+        <button type="button" class="cl-btn" id="cl-set" title="设置 / 键位 / 布局 / MOD">⚙</button>
+        <button type="button" class="cl-btn" id="cl-theme" title="切换主题"><i class="fas fa-palette"></i></button>
+        <button type="button" class="cl-btn" id="cl-pause" title="暂停">❚❚ PAUSE</button>
+        <button type="button" class="cl-btn" id="cl-restart" title="从头开始">⟲ RESET</button>
+        <button type="button" class="cl-btn" id="cl-full" title="全屏">⛶ FULL</button>
+        <button type="button" class="cl-btn" id="cl-home" title="回到主页">← HOME</button>
+      </div>
+    </header>
+
+    <div class="cl-stage" id="cl-stage">
+      <div class="cl-frame">
+        <canvas id="cl-canvas" width="320" height="180"></canvas>
+        <div class="cl-vignette"></div>
+
+        <div class="cl-keys" id="cl-keys-hint">
+          <span><b>← →</b> 移动</span>
+          <span><b>SPACE</b> 跳</span>
+          <span><b>Z</b> 冲刺</span>
+          <span><b>SHIFT</b> 抓墙</span>
+          <span><b>X</b> 蹲冲</span>
+        </div>
+
+        <div class="cl-paused" id="cl-paused" hidden>
+          <div class="cl-paused-card">
+            <p class="cl-paused-title">PAUSED</p>
+            <p class="cl-paused-hint">按 PAUSE 或 ESC 继续</p>
+          </div>
+        </div>
+
+        <div class="cl-over" id="cl-over" hidden>
+          <div class="cl-over-card">
+            <p class="cl-over-kicker">SUMMIT</p>
+            <h3>通关了</h3>
+            <div class="cl-over-stats">
+              <div><b id="cl-over-time">-</b><span>TIME</span></div>
+              <div><b id="cl-over-deaths">-</b><span>DEATHS</span></div>
+              <div><b id="cl-over-berries">-</b><span>STRAWBERRY</span></div>
+              <div><b id="cl-over-pb">-</b><span>BEST</span></div>
+            </div>
+            <div class="cl-over-splits" id="cl-over-splits"></div>
+            <div class="cl-over-actions">
+              <button type="button" class="cl-btn primary" id="cl-over-again">再来一次</button>
+              <button type="button" class="cl-btn" id="cl-over-home">回到主页</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 设置面板：按键 / 触屏布局 / MOD -->
+        <div class="cl-sheet" id="cl-sheet" hidden>
+          <div class="cl-sheet-box">
+            <div class="cl-sheet-head">
+              <span class="cl-sheet-title">SETTINGS</span>
+              <div class="cl-sheet-tabs">
+                <button type="button" data-tab="keys" class="on">按键</button>
+                <button type="button" data-tab="pad">触屏布局</button>
+                <button type="button" data-tab="mods">MOD</button>
+                <button type="button" data-tab="level">关卡</button>
+              </div>
+              <button type="button" class="cl-btn" id="cl-sheet-close">✕</button>
+            </div>
+
+            <div class="cl-sheet-body">
+              <div class="cl-pane" data-pane="keys">
+                <div class="cl-kv" id="cl-keys-list"></div>
+                <p class="cl-note">点「绑定」后按任意键即改键；主键与副键都生效。异变模式不影响原版运动常量。</p>
+              </div>
+
+              <div class="cl-pane" data-pane="pad" hidden>
+                <div class="cl-pad-tools">
+                  <select id="cl-pad-add">
+                    <option value="left">左移</option><option value="right">右移</option>
+                    <option value="up">上</option><option value="down">下 / 蹲</option>
+                    <option value="jump">跳跃</option><option value="dash">冲刺</option>
+                    <option value="grab">抓墙</option><option value="demo">蹲冲</option>
+                  </select>
+                  <button type="button" class="cl-btn" id="cl-pad-add-btn">添加按键</button>
+                  <button type="button" class="cl-btn" id="cl-pad-edit">编辑布局</button>
+                  <button type="button" class="cl-btn" id="cl-pad-save">保存布局</button>
+                  <button type="button" class="cl-btn" id="cl-pad-reset">恢复默认</button>
+                  <button type="button" class="cl-btn" id="cl-pad-export">导出 .js</button>
+                  <label class="cl-btn" id="cl-pad-import-label">导入布局<input type="file" id="cl-pad-import" accept=".js,.json,application/json" hidden></label>
+                </div>
+                <label class="cl-row"><span>虚拟摇杆（左下，一个手指管方向）</span><input type="checkbox" id="cl-pad-stick"></label>
+                <label class="cl-row"><span>摇杆死区 <b id="cl-pad-dead-v">0.26</b></span>
+                  <input type="range" id="cl-pad-dead" min="0.10" max="0.55" step="0.02" value="0.26"></label>
+                <p class="cl-note">进入编辑后拖动方块改位置，拖右下角小方块改尺寸；摇杆同样可拖、可改大小。坐标按画面比例存（摇杆尺寸按短边百分比），换设备不会错位。桌面端默认不显示虚拟键，需要时用下面的开关强制显示。</p>
+                <label class="cl-row"><span>强制显示触屏按键</span>
+                  <select id="cl-pad-on">
+                    <option value="auto">自动（触屏设备才显示）</option>
+                    <option value="on">总是显示</option>
+                    <option value="off">总是隐藏</option>
+                  </select>
+                </label>
+              </div>
+
+              <div class="cl-pane" data-pane="mods" hidden>
+                <div class="cl-mods">
+                  <label class="cl-row"><span>速度计 · 横向速度（白字黑边）</span><input type="checkbox" id="cl-mod-speedX"></label>
+                  <label class="cl-row"><span>速度计 · 纵向速度（白字黑边）</span><input type="checkbox" id="cl-mod-speedY"></label>
+                  <label class="cl-row"><span>体力条（头顶，爬墙体力）</span><input type="checkbox" id="cl-mod-stamina"></label>
+                  <label class="cl-row"><span>异变 · 无限冲刺</span><input type="checkbox" id="cl-mod-infDash"></label>
+                  <label class="cl-row"><span>异变 · 尖刺免疫</span><input type="checkbox" id="cl-mod-invincible"></label>
+                  <label class="cl-row"><span>异变 · 冰面（加速与摩擦变慢）</span><input type="checkbox" id="cl-mod-ice"></label>
+                  <label class="cl-row"><span>异变 · 弹簧腿（起跳初速 ×1.35）</span><input type="checkbox" id="cl-mod-springy"></label>
+                  <label class="cl-row"><span>速通 · 按键显示叠层（右下角）</span><input type="checkbox" id="cl-mod-keyOverlay"></label>
+                  <label class="cl-row"><span>调试 · 玩家碰撞框</span><input type="checkbox" id="cl-mod-debugHit"></label>
+                  <label class="cl-row"><span>异变 · 重力倍率 <b id="cl-mod-gravity-v">1.00</b></span>
+                    <input type="range" id="cl-mod-gravity" min="0" max="2" step="0.05" value="1"></label>
+                  <label class="cl-row"><span>异变 · 跑速倍率 <b id="cl-mod-run-v">1.00</b></span>
+                    <input type="range" id="cl-mod-runMult" min="0.5" max="2" step="0.05" value="1"></label>
+                  <div class="cl-row"><span>全部关闭即回到原版手感</span>
+                    <button type="button" class="cl-btn" id="cl-mod-reset">重置 MOD</button></div>
+                </div>
+              </div>
+
+              <div class="cl-pane" data-pane="level" hidden>
+                <div class="cl-pad-tools">
+                  <button type="button" class="cl-btn primary" id="cl-level-edit">打开关卡编辑器</button>
+                  <button type="button" class="cl-btn" id="cl-level-1a">载入内置 1A</button>
+                  <button type="button" class="cl-btn" id="cl-level-custom">载入自定义图</button>
+                  <button type="button" class="cl-btn" id="cl-level-clear">清空自定义图</button>
+                </div>
+                <div class="cl-kv" id="cl-level-list"></div>
+                <p class="cl-note">编辑器在覆盖层里就地画地形与实体，关掉面板后「试玩」会立刻把图装载进游戏。图存在浏览器本地，换设备不跟随。PB 按关卡名分开记，只记最快那一次。</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -7,11 +7,11 @@
     var CSS_PATH = 'css/osu.css';
     var JS_PATH = 'js/osu/';
     var SCRIPTS = [
-        'osu-core.js', 'osu-audio.js', 'osu-beatmap.js',
+        'osu-core.js', 'osu-audio.js', 'osu-beatmap.js', 'osu-settings.js', 'osu-i18n.js',
         'osu-mode-mania.js', 'osu-mode-taiko.js', 'osu-mode-catch.js', 'osu-mode-standard.js',
-        'osu-game.js', 'osu-ui.js', 'osu-boot.js'
+        'osu-replay.js', 'osu-game.js', 'osu-ui.js', 'osu-boot.js'
     ];
-    var JSZIP = 'https://fastly.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js';
+    var JSZIP = ['https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js', 'https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js', 'https://fastly.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js'];
 
     var loaded = false;     // 片段 + 脚本是否已就绪
     var busy = false;       // 正在加载
@@ -22,10 +22,13 @@
     function loadScript(src) {
         return new Promise(function (resolve, reject) {
             var s = document.createElement('script');
-            s.src = src;
+            s.src = src + '?v=3.6';  /* 版本号：避免浏览器拿旧的缓存脚本 */
             s.async = false;
             s.onload = function () { resolve(); };
             s.onerror = function () { reject(new Error('script fail: ' + src)); };
+            var timer = setTimeout(function(){ s.onload = s.onerror = null; s.remove(); reject(new Error('script timeout: '+src)); }, 12000);
+            s.onload = function () { clearTimeout(timer); resolve(); };
+            s.onerror = function () { clearTimeout(timer); reject(new Error('script fail: ' + src)); };
             document.head.appendChild(s);
         });
     }
@@ -34,23 +37,35 @@
         if (document.querySelector('link[data-osu-css]')) return;
         var l = document.createElement('link');
         l.rel = 'stylesheet';
-        l.href = CSS_PATH;
+        l.href = CSS_PATH + '?v=3.6';
         l.setAttribute('data-osu-css', '1');
         document.head.appendChild(l);
     }
 
-    function bootChain() {
-        var chain = Promise.resolve();
-        if (!window.JSZip) {
-            chain = chain.then(function () { return loadScript(JSZIP).catch(function () { console.warn('[osu] JSZip 加载失败，.osz 导入不可用'); }); });
+    /* JSZip 只在导入 .osz 时才拉（3MB 远程包曾把 osu 启动拖到 4s+） */
+    var zipPromise = null;
+    function ensureZip() {
+        if (window.JSZip) return Promise.resolve(window.JSZip);
+        if (!zipPromise) {
+            zipPromise = (function tryMirror(i){ if(i>=JSZIP.length) return Promise.reject(new Error('所有 JSZip CDN 均失败')); return loadScript(JSZIP[i]).then(function(){ if(window.JSZip) return window.JSZip; throw new Error('JSZip not exposed'); }).catch(function(){ return tryMirror(i+1); }); })(0)
+              .catch(function (e) { zipPromise = null; console.warn('[osu] JSZip 加载失败，.osz 导入暂不可用'); throw e; });
         }
-        SCRIPTS.forEach(function (f) {
-            chain = chain.then(function () { return loadScript(JS_PATH + f); });
-        });
-        return chain.then(function () {
-            if (window.OsuApp && window.OsuApp.boot) window.OsuApp.boot();
-            loaded = true;
-        });
+        return zipPromise;
+    }
+    window.OsuLoadZip = ensureZip;
+
+    function bootChain() {
+        /* 先加载核心命名空间，其余模块并行（省 2s+ 启动时间） */
+        return loadScript(JS_PATH + 'osu-core.js')
+          .then(function () {
+              var rest = SCRIPTS.filter(function (f) { return f !== 'osu-core.js' && f !== 'osu-boot.js'; });
+              return Promise.all(rest.map(function (f) { return loadScript(JS_PATH + f); }));
+          })
+          .then(function () { return loadScript(JS_PATH + 'osu-boot.js'); })
+          .then(function () {
+              if (window.OsuApp && window.OsuApp.boot) window.OsuApp.boot();
+              loaded = true;
+          });
     }
 
     function build() {
@@ -84,6 +99,11 @@
         if (!layer) return;
 
         isOpen = true;
+        /* 进 osu 就把主页背景音乐停掉，别和谱面音频打架 */
+        if (window.pauseSiteAudio) {
+            var stopped = window.pauseSiteAudio();
+            if (stopped) siteLog('Audio: 主页音乐已暂停（进入 osu!）');
+        }
         document.body.classList.add('osu-open');
         document.body.style.overflow = 'hidden';
         var cmd = document.getElementById('danmaku-input');
@@ -102,10 +122,19 @@
         layer.setAttribute('aria-hidden', 'false');
         var loading = document.createElement('div');
         loading.className = 'osu-boot-hint';
-        loading.style.cssText = 'position:fixed;inset:0;display:flex;align-items:center;justify-content:center;' +
-            'font:700 13px/1.6 monospace;letter-spacing:.24em;color:var(--secondary,#ff69b4);background:rgba(0,0,0,.82);z-index:71';
-        loading.textContent = 'BOOTING osu! KERNEL…';
+        loading.style.cssText = 'position:fixed;inset:60px 0 0 0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;' +
+            'font:700 13px/1.6 monospace;letter-spacing:.24em;color:var(--secondary,#ff69b4);' +
+            'background:rgba(0,0,0,.82);z-index:71;pointer-events:none;transition:opacity .3s';
+        loading.innerHTML = 'BOOTING osu! KERNEL…' +
+            '<small style="font-size:9px;opacity:.55;letter-spacing:.2em">顶栏 ← HOME 可随时退出</small>';
         layer.appendChild(loading);
+        /* 兜底：任何异常都别让提示板永久挡住界面（顶栏也不再被盖住） */
+        setTimeout(function () {
+            if (loading.parentNode && !loaded) {
+                try { if (window.OsuApp && window.OsuApp.boot) window.OsuApp.boot(); loaded = true; } catch (e) {}
+                loading.parentNode.removeChild(loading);
+            }
+        }, 7000);
 
         build().then(function () {
             busy = false;

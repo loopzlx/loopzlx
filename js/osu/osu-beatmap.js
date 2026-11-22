@@ -8,7 +8,7 @@ var OSU = window.Osu = window.Osu || {};
   var B = OSU.bm = {};
 
   /* ---------------- .osu 文本解析 ---------------- */
-  B.parseOsu = function (text) {
+  B.parseOsu = function (text, fallbackVersion) {
     function meta(key) {
       var m = text.match(new RegExp('^\\s*' + key + '\\s*:\\s*(.+?)\\s*$', 'm'));
       return m ? m[1].trim() : '';
@@ -103,8 +103,9 @@ var OSU = window.Osu = window.Osu || {};
       title: meta('Title') || 'Untitled',
       artist: meta('Artist') || 'Unknown',
       creator: meta('Creator') || '—',
-      version: meta('Version') || 'Normal',
+      version: meta('Version') || fallbackVersion || 'Normal',
       audioName: meta('AudioFilename'),
+      previewTime: Math.max(0, num('PreviewTime', 0) / 1000),
       bgName: bgName,
       objects: objects,
       length: objects.length ? objects[objects.length - 1].time + 2 : 0
@@ -119,7 +120,7 @@ var OSU = window.Osu = window.Osu || {};
         /* 单个 .osu：直接读文本 */
         if (/\.osu$/i.test(file.name)) {
           var fr = new FileReader();
-          fr.onload = function () { resolve({ osuText: String(fr.result), audioBlob: null, bgBlob: null }); };
+          fr.onload = function () { resolve({ osuText: String(fr.result), osuTexts: [String(fr.result)], audioBlob: null, bgBlob: null }); };
           fr.onerror = reject;
           fr.readAsText(file);
           return;
@@ -127,26 +128,94 @@ var OSU = window.Osu = window.Osu || {};
         reject(new Error('不支持的文件类型'));
         return;
       }
-      if (!window.JSZip) { reject(new Error('JSZip 未加载')); return; }
+      /* JSZip 现在是按需拉取：没有就先把它取回来，再走一遍解包 */
+      if (!window.JSZip) {
+        if (!window.OsuLoadZip) { reject(new Error('JSZip 未加载')); return; }
+        window.OsuLoadZip().then(function () {
+          window.OsuBeatmap.readOsz(file, onProgress).then(resolve, reject);
+        }, function () { reject(new Error('JSZip 加载失败')); });
+        return;
+      }
       JSZip.loadAsync(file).then(function (zip) {
-        var osuEntry = null, audioEntry = null, bgEntry = null;
+        var osuEntries = [], audioEntry = null, bgEntry = null;
         var names = Object.keys(zip.files);
         for (var i = 0; i < names.length; i++) {
           var n = names[i];
-          if (/\.osu$/i.test(n) && (!osuEntry || /\[(NM|HD|MX|SC)\]/i.test(n))) osuEntry = zip.files[n];
+          if (/\.osu$/i.test(n) && !zip.files[n].dir) osuEntries.push(zip.files[n]);
           if (/\.(mp3|ogg|wav)$/i.test(n)) audioEntry = audioEntry || zip.files[n];
           if (/\.(jpg|jpeg|png)$/i.test(n)) bgEntry = bgEntry || zip.files[n];
         }
-        if (!osuEntry) { reject(new Error('.osz 内没有 .osu 文件')); return; }
+        if (!osuEntries.length) { reject(new Error('.osz 内没有 .osu 文件')); return; }
+        /* 一个 .osz 里常有多张难度（Easy/Normal/Hard…），全部读出来 */
         return Promise.all([
-          osuEntry.async('text'),
+          Promise.all(osuEntries.map(function (e) {
+            return e.async('text').then(function (txt) { return { text: txt, name: e.name }; });
+          })),
           audioEntry ? audioEntry.async('blob') : Promise.resolve(null),
           bgEntry ? bgEntry.async('blob') : Promise.resolve(null)
         ]).then(function (arr) {
-          resolve({ osuText: arr[0], audioBlob: arr[1], bgBlob: arr[2], zipName: file.name });
+          resolve({
+            osuText: arr[0][0] ? arr[0][0].text : '',
+            osuTexts: arr[0].map(function (x) { return x.text; }),
+            osuNames: arr[0].map(function (x) { return x.name; }),
+            audioBlob: arr[1], bgBlob: arr[2], zipName: file.name
+          });
         });
       }).catch(reject);
     });
+  };
+
+  /* ---------------- 曲库存档（IndexedDB：刷新后导入的歌还在） ---------------- */
+  var DB_NAME = 'loopzlx-osu', DB_STORE = 'library', dbPromise = null;
+
+  function db() {
+    if (dbPromise) return dbPromise;
+    dbPromise = new Promise(function (resolve, reject) {
+      if (!('indexedDB' in window)) { reject(new Error('no indexedDB')); return; }
+      var req = indexedDB.open(DB_NAME, 1);
+      req.onupgradeneeded = function () {
+        var d = req.result;
+        if (!d.objectStoreNames.contains(DB_STORE)) d.createObjectStore(DB_STORE, { keyPath: 'id' });
+      };
+      req.onsuccess = function () { resolve(req.result); };
+      req.onerror = function () { reject(req.error || new Error('idb error')); };
+    });
+    return dbPromise;
+  }
+
+  function tx(mode, fn) {
+    return db().then(function (d) {
+      return new Promise(function (resolve, reject) {
+        var t = d.transaction(DB_STORE, mode);
+        var store = t.objectStore(DB_STORE);
+        var out = fn(store);
+        t.oncomplete = function () { resolve(out && out.result !== undefined ? out.result : out); };
+        t.onerror = function () { reject(t.error); };
+        t.onabort = function () { reject(t.error); };
+      });
+    });
+  }
+
+  B.storeItem = function (item) {
+    var rec = {
+      id: item.id, mode: item.mode, title: item.title, artist: item.artist,
+      creator: item.creator, charts: item.charts, dl: item.dl || 0,
+      audioBlob: item.audioBlob || null, bgBlob: item.bgBlob || null, zipName: item.zipName || '',
+      savedAt: Date.now()
+    };
+    return tx('readwrite', function (s) { return s.put(rec); }).catch(function () { return null; });
+  };
+
+  B.allItems = function () {
+    return tx('readonly', function (s) { return s.getAll(); }).catch(function () { return []; });
+  };
+
+  B.deleteItem = function (id) {
+    return tx('readwrite', function (s) { return s.delete(id); }).catch(function () { return null; });
+  };
+
+  B.clearItems = function () {
+    return tx('readwrite', function (s) { return s.clear(); }).catch(function () { return null; });
   };
 
   /* ---------------- 构建游戏音符 ---------------- */
@@ -163,7 +232,7 @@ var OSU = window.Osu = window.Osu || {};
     var d = OSU.DEMO[modeKey];
     return {
       mode: modeKey, title: d.title, artist: d.artist, version: d.version,
-      creator: 'LOOPZLX', cs: modeKey === 'mania' ? 4 : 4,
+      creator: 'LOOPZLX', cs: modeKey === 'mania' ? (OSU.settings ? OSU.settings.maniaK() : 4) : 4,
       od: 5, hp: 5, bpm: OSU.DEMO.bpm,
       objects: d.objects, length: d.length, demo: true
     };

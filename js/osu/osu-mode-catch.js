@@ -122,9 +122,15 @@ var OSU = window.Osu = window.Osu || {};
       var jy = l.h * TRAVEL;
       var pps = (jy + 40) / APPROACH;
 
-      /* 判定带 */
-      ctx.fillStyle = U.rgba(pal.secondary, .12);
-      ctx.fillRect(0, jy - 3, l.w, 6);
+      /* 判定带：osu!catch 就是接盘上沿一条细亮线，不要整条厚色块 */
+      var bandG = ctx.createLinearGradient(0, jy - 10, 0, jy + 2);
+      bandG.addColorStop(0, U.rgba(pal.secondary, 0));
+      bandG.addColorStop(1, U.rgba(pal.secondary, pal.light ? .16 : .22));
+      ctx.fillStyle = bandG;
+      ctx.fillRect(0, jy - 10, l.w, 12);
+      ctx.strokeStyle = pal.light ? 'rgba(30,20,12,.45)' : 'rgba(255,255,255,.55)';
+      ctx.lineWidth = 1.6;
+      ctx.beginPath(); ctx.moveTo(0, jy); ctx.lineTo(l.w, jy); ctx.stroke();
 
       /* 水果（只画进入屏幕的） */
       var from = OSU.util.bisect(S.notes, t - 0.6);
@@ -143,6 +149,8 @@ var OSU = window.Osu = window.Osu || {};
         ctx.beginPath(); ctx.arc(x, y, rad, 0, 6.283);
         ctx.fillStyle = hue; ctx.fill();
         ctx.shadowBlur = 0;
+        ctx.strokeStyle = pal.light ? 'rgba(0,0,0,.28)' : 'rgba(255,255,255,.75)';
+        ctx.lineWidth = 1.8; ctx.stroke();
         ctx.beginPath(); ctx.arc(x - rad * .3, y - rad * .32, rad * .28, 0, 6.283);
         ctx.fillStyle = 'rgba(255,255,255,.75)'; ctx.fill();
         ctx.restore();
@@ -151,7 +159,7 @@ var OSU = window.Osu = window.Osu || {};
       /* 接盘 */
       var pw = l.w * PLATE_W;
       var px = S.plateX * l.w;
-      var py = l.h * 0.93;
+      var py = jy + 24;   /* 接盘上沿贴在判定带上，水果落到带子正好进碗 */
       ctx.save();
       var missAge = (performance.now() - (M.missAt || 0)) / 380;
       var hot = missAge >= 0 && missAge < 1;
@@ -168,6 +176,14 @@ var OSU = window.Osu = window.Osu || {};
       ctx.strokeStyle = 'rgba(255,255,255,.5)';
       ctx.lineWidth = 2;
       ctx.beginPath(); M.platePath(ctx, px, py, pw); ctx.stroke();
+
+      /* combo 数字（设置里的「连击数字跟随光标」对 catch 也生效） */
+      if (S.combo >= 2 && (!OSU.settings || OSU.settings.on('comboNum'))) {
+        ctx.textAlign = 'center';
+        ctx.font = '700 20px "Share Tech Mono", monospace';
+        ctx.fillStyle = U.rgba(pal.text, pal.light ? .7 : .55);
+        ctx.fillText(S.combo + 'x', px, py - 32);
+      }
 
       ctx.textAlign = 'center';
       ctx.font = '600 12px "Share Tech Mono", monospace';

@@ -16,6 +16,8 @@
   overflow: hidden;
 }
 #gamehub-app * { box-sizing: border-box; }
+/* 整屏手势：滑动交给 gamehub-core，避免浏览器接管成滚动；文本不可选中 */
+#gamehub-app { touch-action: none; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; }
 #gamehub-app button { font-family: inherit; cursor: pointer; }
 #gamehub-app::before {
   content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 0;
@@ -74,7 +76,7 @@
 .gh-hero p { margin: 8px 0 0; font-size: 10px; letter-spacing: .3em; color: var(--text-muted, #a78bcc); }
 
 /* Hub 卡片 */
-.gh-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.gh-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px; }
 .gh-card {
   display: flex; flex-direction: column; gap: 8px; align-items: flex-start;
   padding: 20px; border-radius: 14px; text-align: left;
@@ -113,31 +115,55 @@
 .gh-stage-snake { width: min(100%, 640px); }
 .gh-stage-mines { width: max-content; }
 .gh-2048-board {
+  position: relative;
   width: 100%; aspect-ratio: 1 / 1;
-  display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
-  padding: 8px; border-radius: 12px;
+  padding: 8px; border-radius: 14px;
   border: 1px solid var(--glass-border, rgba(138,43,226,.4));
   background: color-mix(in srgb, var(--glass-bg, rgba(15,8,25,.72)) 88%, transparent);
   touch-action: none;
+  overflow: hidden;
 }
+.gh-2048-bg {
+  position: absolute; inset: 8px;
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
+}
+.gh-2048-tiles { position: absolute; inset: 8px; }
+
 .gh-cell {
-  display: grid; place-items: center; border-radius: 8px;
+  display: grid; place-items: center; border-radius: 9px;
+  background: color-mix(in srgb, var(--text-main, #fff) 8%, transparent);
+}
+
+/* 方块：绝对定位 + transform 过渡（滑动跟手又有惯性感） */
+.gh-tile {
+  position: absolute; left: 0; top: 0; width: 25%; height: 25%;
+  transform: translate(0%, 0%);
+  transition: transform .11s cubic-bezier(.25,.8,.3,1);
+  will-change: transform;
+}
+.gh-tile-face {
+  position: absolute; inset: 4px; border-radius: 9px;
+  display: grid; place-items: center;
   font-size: clamp(15px, 4.6vw, 26px); font-weight: 700;
   background: color-mix(in srgb, var(--text-main, #fff) 8%, transparent);
   color: var(--text-main, #fff);
-  transition: background .12s ease, color .12s ease;
+  transform: scale(1);
 }
-.gh-cell.t2 { background: rgba(255, 105, 180, .16); }
-.gh-cell.t4 { background: rgba(255, 105, 180, .28); }
-.gh-cell.t8 { background: rgba(255, 160, 90, .34); }
-.gh-cell.t16 { background: rgba(255, 160, 90, .5); }
-.gh-cell.t32 { background: rgba(255, 205, 70, .5); }
-.gh-cell.t64 { background: rgba(255, 205, 70, .68); }
-.gh-cell.t128 { background: rgba(200, 90, 255, .58); color: #fff; }
-.gh-cell.t256 { background: rgba(160, 90, 255, .72); color: #fff; }
-.gh-cell.t512 { background: rgba(90, 160, 255, .72); color: #fff; }
-.gh-cell.t1024 { background: rgba(70, 210, 160, .72); color: #fff; }
-.gh-cell.t2048plus { background: rgba(255,255,255,.9); color: #14101f; }
+.gh-tile.is-new .gh-tile-face { animation: gh-tile-appear .16s ease-out; }
+.gh-tile.is-merged .gh-tile-face { animation: gh-tile-pop .17s ease-out; }
+@keyframes gh-tile-appear { from { transform: scale(.35); opacity: .3; } to { transform: scale(1); opacity: 1; } }
+@keyframes gh-tile-pop { 0% { transform: scale(1); } 45% { transform: scale(1.16); } 100% { transform: scale(1); } }
+.gh-tile-face.t2, .gh-cell.t2 { background: color-mix(in srgb, var(--gh-accent2, #ff69b4) 20%, transparent); }
+.gh-tile-face.t4, .gh-cell.t4 { background: color-mix(in srgb, var(--gh-accent2, #ff69b4) 34%, transparent); }
+.gh-tile-face.t8, .gh-cell.t8 { background: color-mix(in srgb, var(--gh-accent2, #ff69b4) 50%, transparent); }
+.gh-tile-face.t16, .gh-cell.t16 { background: color-mix(in srgb, var(--gh-accent, #8a2be2) 40%, transparent); }
+.gh-tile-face.t32, .gh-cell.t32 { background: color-mix(in srgb, var(--gh-accent, #8a2be2) 56%, transparent); }
+.gh-tile-face.t64, .gh-cell.t64 { background: color-mix(in srgb, var(--gh-accent, #8a2be2) 72%, transparent); }
+.gh-tile-face.t128, .gh-cell.t128 { background: color-mix(in srgb, var(--gh-accent2, #ff69b4) 82%, transparent); }
+.gh-tile-face.t256, .gh-cell.t256 { background: color-mix(in srgb, var(--gh-accent, #8a2be2) 86%, transparent); }
+.gh-tile-face.t512, .gh-cell.t512 { background: color-mix(in srgb, var(--gh-accent2, #ff69b4) 94%, transparent); }
+.gh-tile-face.t1024, .gh-cell.t1024 { background: var(--gh-accent2, #ff69b4); color: var(--bg-base, #050208); }
+.gh-tile-face.t2048plus, .gh-cell.t2048plus { background: var(--text-main, #fff); color: var(--bg-base, #050208); }
 
 /* 扫雷 */
 .gh-diff { display: flex; gap: 8px; flex-wrap: wrap; flex: 0 0 auto; }
@@ -174,31 +200,21 @@
 /* 贪吃蛇 */
 .gh-snake-wrap { flex: 1 1 auto; min-height: 0; align-items: center; }
 #gh-snake-cv {
-  display: block; width: 100%; height: auto;
+  display: block; width: 100%; aspect-ratio: 1 / 1; height: auto;
   border-radius: 12px; border: 1px solid var(--glass-border, rgba(138,43,226,.4));
-  background: rgba(0,0,0,.4);
+  background: color-mix(in srgb, var(--bg-base, #050208) 55%, rgba(0,0,0,.35));
   touch-action: none;
 }
 
 /* 结算遮罩 */
 .gh-over {
   position: absolute; inset: 0; display: none; place-items: center; gap: 14px;
-  border-radius: 12px; background: rgba(0,0,0,.62);
+  border-radius: 12px; background: color-mix(in srgb, var(--bg-base, #050208) 82%, rgba(0,0,0,.55));
   backdrop-filter: blur(3px); z-index: 3;
 }
 .gh-over.is-on { display: grid; }
 .gh-over p { font-size: 22px; font-weight: 700; letter-spacing: .22em; color: var(--text-main, #fff); }
 .gh-over-actions { display: flex; gap: 8px; }
-
-/* 移动 pads */
-.gh-pads { display: none; gap: 8px; flex: 0 0 auto; }
-.gh-pads-4 { display: grid; grid-template-columns: repeat(4, 1fr); }
-.gh-pad {
-  padding: 10px 0; border-radius: 10px; font-size: 16px;
-  border: 1px solid var(--glass-border, rgba(138,43,226,.4));
-  background: color-mix(in srgb, var(--text-main, #fff) 8%, transparent); color: var(--text-main, #fff);
-}
-.gh-pad:active { background: rgba(255,105,180,.2); }
 
 .gh-toast {
   position: absolute; left: 50%; bottom: 22px; transform: translate(-50%, 8px);
@@ -225,8 +241,7 @@ body.gamehub-open #log-window { opacity: 0; pointer-events: none; }
   .gh-bar { flex-wrap: wrap; gap: 10px; }
   .gh-bar-actions { margin-left: 0; }
   .gh-mines-board { --gh-mine: 24px; }
-  .gh-pads-4 { display: grid; margin-top: auto; }
-  .gh-hero { margin-bottom: 8px; }
+    .gh-hero { margin-bottom: 8px; }
   #gh-hub { justify-content: center; }
   .gh-bar-actions { width: 100%; justify-content: flex-end; }
 }
@@ -234,3 +249,14 @@ body.gamehub-open #log-window { opacity: 0; pointer-events: none; }
   .gh-mines-board { --gh-mine: 21px; }
   .gh-log { display: none; }
 }
+
+/* 浅色主题（paper / sneaker）下加深描边，避免浅底上看不清棋盘 */
+.theme-paper .gh-2048-board,
+.theme-sneaker .gh-2048-board,
+.theme-paper .gh-mines-board,
+.theme-sneaker .gh-mines-board,
+.theme-paper #gh-snake-cv,
+.theme-sneaker #gh-snake-cv { border-color: color-mix(in srgb, var(--text-main, #000) 28%, transparent); }
+.theme-paper .gh-mine,
+.theme-sneaker .gh-mine { border-color: color-mix(in srgb, var(--text-main, #000) 22%, transparent); }
+.theme-paper #gh-snake-cv, .theme-sneaker #gh-snake-cv { background: color-mix(in srgb, var(--bg-base, #f4ebd9) 88%, #fff); }

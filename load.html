@@ -1,17 +1,41 @@
 <!DOCTYPE html>
 <html lang="en" class="scroll-smooth">
 <head>
+<meta name="theme-color" content="#a78bfa">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" sizes="192x192" href="assets/icon-192.png">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>loopzlx | Cyber Nexus Terminal</title>
 <script>const t=localStorage.getItem('theme')||'theme-cyber';document.documentElement.classList.add(t);</script>
-<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/style.css?v=6.9.2">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="css/style.css?v=6.9.2">
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Share+Tech+Mono&family=Noto+Sans+SC:wght@400;700;900&display=swap" rel="stylesheet">
 <script src="https://cdn.tailwindcss.com"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
+<style>
+.lzx-skel { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 10px; background: var(--bg-base, #050507); z-index: 9999; }
+.lzx-skel-logo { font-family: Orbitron, sans-serif; font-size: clamp(28px,7vw,46px); letter-spacing: .22em; color: var(--text-main, #fff);
+  text-shadow: 2px 0 var(--secondary, #ff69b4), -2px 0 var(--primary, #8a2be2); animation: lzxSkelPulse 1.6s ease-in-out infinite; }
+.lzx-skel-sub { font-family: 'Share Tech Mono', monospace; font-size: 10px; letter-spacing: .34em; color: var(--primary, #8a2be2); }
+.lzx-skel-bar { width: min(240px, 60vw); height: 2px; background: color-mix(in srgb, var(--primary, #8a2be2) 22%, transparent); overflow: hidden; margin-top: 6px; }
+.lzx-skel-bar i { display: block; height: 100%; width: 40%; background: linear-gradient(90deg, var(--primary, #8a2be2), var(--secondary, #ff69b4));
+  animation: lzxSkelBar 1.1s ease-in-out infinite; }
+.lzx-skel-hint { font-family: 'Share Tech Mono', monospace; font-size: 10px; letter-spacing: .2em; color: var(--text-muted, rgba(255,255,255,.4)); }
+@keyframes lzxSkelPulse { 0%,100%{opacity:1} 50%{opacity:.6} }
+@keyframes lzxSkelBar { 0%{transform:translateX(-100%)} 100%{transform:translateX(250%)} }
+</style>
 <body>
-<div id="app"></div>
+<div id="app"><div class="lzx-skel">
+  <div class="lzx-skel-logo">LOOPZLX</div>
+  <div class="lzx-skel-sub">CYBER NEXUS TERMINAL</div>
+  <div class="lzx-skel-bar"><i></i></div>
+  <div class="lzx-skel-hint">booting kernel…</div>
+</div></div>
 <script>
 function showError(msg) {
     document.body.innerHTML = `
@@ -55,24 +79,45 @@ fetch('html/home/home.html')
   .then(html => {
       document.getElementById('app').innerHTML = html;
       
+      const achScript = document.createElement('script');
+      achScript.src = 'js/home/core/achievements.js?v=6.9.2';
+      achScript.onerror = () => console.warn('[ach] 成就模块跳过');
+      document.body.appendChild(achScript);
+
+      const extrasScript = document.createElement('script');
+      extrasScript.src = 'js/home/core/ui-extras.js?v=6.9.2';
+      extrasScript.onerror = () => console.warn('[ui] 增强模块跳过');
+      document.body.appendChild(extrasScript);
+
+      const toolScript = document.createElement('script');
+      toolScript.src = 'js/home/core/toolkit.js?v=6.9.3';
+      toolScript.onerror = () => console.warn('[tool] 工具箱跳过');
+      document.body.appendChild(toolScript);
+
       const audioScript = document.createElement('script');
-      audioScript.src = 'js/home/core/audio-player.js';
+      audioScript.src = 'js/home/core/audio-player.js?v=6.9.2';
       audioScript.onload = () => {
           const mainScript = document.createElement('script');
-          mainScript.src = 'js/home/core/main.js';
+          mainScript.src = 'js/home/core/main.js?v=6.9.2';
           mainScript.onerror = () => showError('main.js 加载失败');
           mainScript.onload = () => {
               const loaderScript = document.createElement('script');
-              loaderScript.src = 'js/home/core/market-loader.js';
+              loaderScript.src = 'js/home/core/market-loader.js?v=6.9.2';
               loaderScript.onerror = () => console.warn('[market] loader 加载失败，行情片段跳过');
               loaderScript.onload = () => {
                   const osuScript = document.createElement('script');
-                  osuScript.src = 'js/home/core/osu-loader.js';
+                  osuScript.src = 'js/home/core/osu-loader.js?v=6.9.2';
                   osuScript.onerror = () => console.warn('[osu] loader 加载失败，音游模块跳过');
                   osuScript.onload = () => {
                       const ghScript = document.createElement('script');
-                      ghScript.src = 'js/home/core/gamehub-loader.js';
+                      ghScript.src = 'js/home/core/gamehub-loader.js?v=6.9.2';
                       ghScript.onerror = () => console.warn('[gamehub] loader 加载失败，游戏中心跳过');
+                      ghScript.onload = () => {
+                          const celScript = document.createElement('script');
+                          celScript.src = 'js/home/core/celeste-loader.js?v=6.9.2';
+                          celScript.onerror = () => console.warn('[celeste] loader 加载失败，蔚蓝模块跳过');
+                          document.body.appendChild(celScript);
+                      };
                       document.body.appendChild(ghScript);
                   };
                   document.body.appendChild(osuScript);

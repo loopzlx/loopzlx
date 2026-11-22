@@ -1,0 +1,42 @@
+import asyncio
+from playwright.async_api import async_playwright
+async def main():
+    async with async_playwright() as p:
+        b = await p.chromium.launch(executable_path="/usr/local/bin/chromium", args=["--no-sandbox"])
+        # 1) 移动端 celeste 按键叠层
+        pg = await b.new_page(viewport={"width":390,"height":844})
+        errs=[]; pg.on("pageerror", lambda e: errs.append("E:"+str(e)))
+        await pg.goto("http://localhost:8770/load.html"); await pg.wait_for_timeout(6500)
+        await pg.evaluate("window.CelesteWarp.open()")
+        await pg.wait_for_function("()=>window.Celeste && CelesteWarp.app()", timeout=25000)
+        await pg.wait_for_timeout(1200)
+        await pg.evaluate("()=>{const a=CelesteWarp.app();Celeste.settings.mods.keyOverlay=true;a.ui.buildKeyOverlay&&a.ui.buildKeyOverlay();}")
+        await pg.wait_for_timeout(600)
+        print("keys:", await pg.evaluate("()=>{const k=document.getElementById('cl-keys');if(!k)return null;const r=k.getBoundingClientRect();return [getComputedStyle(k).display, Math.round(r.width), Math.round(r.height), Math.round(r.right), Math.round(r.bottom)];}"))
+        print("num keys:", await pg.evaluate("()=>document.querySelectorAll('#cl-keys i').length"))
+        await pg.screenshot(path="/tmp/v52-mcel.png")
+        # 2) market 提醒历史卡
+        pg2 = await b.new_page(viewport={"width":1280,"height":900})
+        pg2.on("pageerror", lambda e: errs.append("E2:"+str(e)))
+        await pg2.goto("http://localhost:8770/load.html"); await pg2.wait_for_timeout(7000)
+        await pg2.evaluate("()=>{document.getElementById('more-btn').click()}")
+        await pg2.wait_for_timeout(300)
+        await pg2.evaluate("()=>document.querySelector('[data-market-open]').click()")
+        await pg2.wait_for_timeout(2500)
+        print("alog box:", await pg2.evaluate("()=>{const b=document.getElementById('mk-alog');return b?[b.children.length,b.innerText.slice(0,40)]:null;}"))
+        print("clear btn:", await pg2.evaluate("()=>!!document.getElementById('mk-alert-clear')"))
+        # 造一条提醒记录
+        await pg2.evaluate("()=>{localStorage.setItem('mk.alertlog.v1',JSON.stringify([{t:Date.now(),sym:'XAU',v:4100,a:4090,d:'up'}]));}")
+        await pg2.evaluate("()=>{window.MarketFeed?0:0;}")
+        await pg2.evaluate("()=>{const ev=document.querySelector('[data-market-open]');}")
+        await pg2.evaluate("()=>{location.reload()}")
+        await pg2.wait_for_timeout(7500)
+        await pg2.evaluate("()=>{document.getElementById('more-btn').click()}")
+        await pg2.wait_for_timeout(300)
+        await pg2.evaluate("()=>document.querySelector('[data-market-open]').click()")
+        await pg2.wait_for_timeout(2500)
+        print("alog rows:", await pg2.evaluate("()=>document.querySelectorAll('.mk-alog-row').length"))
+        await pg2.screenshot(path="/tmp/v52-alog.png")
+        print("errs:", [e for e in errs][:5])
+        await b.close()
+asyncio.run(main())

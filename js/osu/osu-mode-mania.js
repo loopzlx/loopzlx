@@ -7,20 +7,32 @@ var OSU = window.Osu = window.Osu || {};
   var U = OSU.util;
 
   var KEYMAP = {
-    1: ['KeyD'], 2: ['KeyF', 'KeyJ'], 3: ['KeyD', 'KeyF', 'KeyJ'],
+    1: ['Space'],
+    2: ['KeyF', 'KeyJ'],
+    3: ['KeyD', 'KeyF', 'KeyJ'],
     4: ['KeyD', 'KeyF', 'KeyJ', 'KeyK'],
     5: ['KeyD', 'KeyF', 'Space', 'KeyJ', 'KeyK'],
     6: ['KeyS', 'KeyD', 'KeyF', 'KeyJ', 'KeyK', 'KeyL'],
     7: ['KeyS', 'KeyD', 'KeyF', 'Space', 'KeyJ', 'KeyK', 'KeyL'],
     8: ['KeyA', 'KeyS', 'KeyD', 'KeyF', 'KeyJ', 'KeyK', 'KeyL', 'Semicolon'],
-    9: ['KeyA', 'KeyS', 'KeyD', 'KeyF', 'Space', 'KeyJ', 'KeyK', 'KeyL', 'Semicolon']
+    9: ['KeyA', 'KeyS', 'KeyD', 'KeyF', 'Space', 'KeyJ', 'KeyK', 'KeyL', 'Semicolon'],
+    10: ['KeyA', 'KeyS', 'KeyD', 'KeyF', 'KeyG', 'KeyH', 'KeyJ', 'KeyK', 'KeyL', 'Semicolon']
   };
   var LABELS = {
-    1: ['D'], 2: ['F', 'J'], 3: ['D', 'F', 'J'], 4: ['D', 'F', 'J', 'K'],
+    1: ['⌴'], 2: ['F', 'J'], 3: ['D', 'F', 'J'], 4: ['D', 'F', 'J', 'K'],
     5: ['D', 'F', '⌴', 'J', 'K'], 6: ['S', 'D', 'F', 'J', 'K', 'L'],
     7: ['S', 'D', 'F', '⌴', 'J', 'K', 'L'], 8: ['A', 'S', 'D', 'F', 'J', 'K', 'L', ';'],
-    9: ['A', 'S', 'D', 'F', '⌴', 'J', 'K', 'L', ';']
+    9: ['A', 'S', 'D', 'F', '⌴', 'J', 'K', 'L', ';'],
+    10: ['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L', ';']
   };
+
+  function labelOf(k) {
+    if (!k) return '?';
+    if (k === 'Space') return '⌴';
+    if (/^Digit/.test(k)) return k.replace('Digit', '');
+    if (/^Numpad/.test(k)) return 'N' + k.replace('Numpad', '');
+    return k.replace('Key', '').replace('Semicolon', ';').replace('Comma', ',').replace('Period', '.');
+  }
 
   var JUDGE_Y_RATE = 0.86;
   var APPROACH = 1.15;      // 秒：音符走完全屏的时间
@@ -35,18 +47,20 @@ var OSU = window.Osu = window.Osu || {};
     labels: LABELS[4],
 
     setCols: function (cols, custom) {
-      var c = U.clamp(Math.round(cols || 4), 1, 9);
+      var c = U.clamp(Math.round(cols || 4), 1, 10);
       M.cols = c;
       M.keys = (custom && custom[c] && custom[c].length === c) ? custom[c] : KEYMAP[c].slice();
-      M.labels = M.keys.map(function (k) { return k === 'Space' ? '⌴' : k.replace('Key', '').replace('Semicolon', ';'); });
-      M.canvas.w = c <= 4 ? 512 : Math.max(40, Math.floor(560 / c)) * c;
+      M.labels = M.keys.map(function (k) { return labelOf(k); });
+      /* 1–4K 保持窄屏友好宽度，5K 以上按每列约 118px 放宽 */
+      M.canvas.w = c <= 4 ? 512 : c * 118;
       S.keys = M.keys; S.labels = M.labels; S.held = new Array(c).fill(false);
       holds = new Array(c).fill(null).map(function () { return []; });
       return M;
     },
 
     build: function (chart) {
-      M.setCols(chart.cs || 4, OSU.store.load('osu_keybinds', {}));
+      var want = chart.mode === 'mania' && chart.cs ? chart.cs : (OSU.settings ? OSU.settings.num('maniaKeys', 4) : 4);
+      M.setCols(want, OSU.store.load('osu_keybinds', {}));
       var w = 512 / M.cols;
       var out = [];
       for (var i = 0; i < chart.objects.length; i++) {
@@ -170,11 +184,12 @@ var OSU = window.Osu = window.Osu || {};
       M.lastLayout = l;
       var lw = l.w / M.cols, jy = l.h * JUDGE_Y_RATE;
       var pal = OSU.pal();
-      var pps = (jy - 0) / APPROACH;
+      var ap = APPROACH * (100 / Math.max(60, (OSU.settings ? OSU.settings.num('scroll', 100) : 100)));
+      var pps = (jy - 0) / ap;
 
       /* 轨道 */
       for (var c = 0; c < M.cols; c++) {
-        ctx.fillStyle = c % 2 ? U.rgba(pal.primary, .07) : 'rgba(255,255,255,.02)';
+        ctx.fillStyle = c % 2 ? U.rgba(pal.primary, .07) : (pal.light ? U.rgba(pal.text, .03) : 'rgba(255,255,255,.02)');
         ctx.fillRect(c * lw, 0, lw, l.h);
       }
       /* 按下高亮 */
@@ -194,7 +209,7 @@ var OSU = window.Osu = window.Osu || {};
       }
       /* 判定线 */
       ctx.save();
-      ctx.shadowColor = pal.primary; ctx.shadowBlur = 18;
+      ctx.shadowColor = pal.primary; ctx.shadowBlur = pal.light ? 0 : 10;
       var jg = ctx.createLinearGradient(0, 0, l.w, 0);
       jg.addColorStop(0, U.rgba(pal.secondary, .5));
       jg.addColorStop(.5, pal.primary);
@@ -204,11 +219,11 @@ var OSU = window.Osu = window.Osu || {};
       ctx.restore();
 
       /* 音符（只画进入视野的，import 大谱面时省掉大量绘制） */
-      var nh = Math.min(26, Math.max(14, (jy / APPROACH) * 0.11));
+      var nh = Math.min(26, Math.max(14, (jy / ap) * 0.11));
       var from = OSU.util.bisect(S.notes, t - 0.35);
       for (var i = from; i < S.notes.length; i++) {
         var n = S.notes[i];
-        if (n.time - t > APPROACH + 0.6) break;
+        if (n.time - t > ap + 0.6) break;
         if (n.judged && n.fadeOut == null && n.broken == null) continue;
         var yHead = jy - (n.time - t) * pps;
         var x0 = n.lane * lw + 2, w0 = lw - 4;
@@ -222,32 +237,41 @@ var OSU = window.Osu = window.Osu || {};
           hg.addColorStop(1, U.rgba(pal.primary, .85));
           ctx.fillStyle = n.broken ? 'rgba(90,30,50,.8)' : hg;
           M.roundRect(ctx, x0, top, w0, Math.max(4, bot - top), 6);
-          ctx.fillStyle = n.holding ? '#fff' : pal.secondary;
-          M.roundRect(ctx, x0, yHead - nh / 2, w0, nh, 5);
+          ctx.fill();
+          ctx.fillStyle = n.holding ? '#ffffff' : pal.secondary;
+          M.roundRect(ctx, x0, yHead - nh, w0, nh, 5);
+          ctx.fill();
           /* 尾端 */
           ctx.fillStyle = pal.primary;
           M.roundRect(ctx, x0, yEnd - 3, w0, 6, 3);
+          ctx.fill();
         } else {
           if (yHead < -nh || yHead > l.h + nh) continue;
           var ng = ctx.createLinearGradient(0, yHead - nh / 2, 0, yHead + nh / 2);
-          ng.addColorStop(0, '#ffffff');
-          ng.addColorStop(1, pal.secondary);
+          if (pal.light) {
+            /* 浅色主题下白→紫会整块发白，改成模式色深 → 亮，并压一圈深边 */
+            ng.addColorStop(0, pal.primary);
+            ng.addColorStop(1, pal.secondary);
+          } else {
+            ng.addColorStop(0, '#ffffff');
+            ng.addColorStop(1, pal.secondary);
+          }
           ctx.fillStyle = ng;
-          ctx.shadowColor = pal.secondary; ctx.shadowBlur = 12;
-          M.roundRect(ctx, x0, yHead - nh / 2, w0, nh, 5);
-          ctx.shadowBlur = 0;
+          /* 之前每个音符都带 shadowBlur=12 + 判定线拖尾，一堆音符同时掉落时会互相叠成"重影"；
+             这里改成只用一条高光边，不加阴影、不画拖尾 */
+          M.roundRect(ctx, x0, yHead - nh, w0, nh, 5);
+          ctx.fill();
+          ctx.strokeStyle = pal.light ? U.rgba(pal.text, .5) : 'rgba(255,255,255,.55)';
+          ctx.lineWidth = 1.4;
+          ctx.stroke();
+          ctx.globalAlpha = .9;
+          ctx.fillStyle = pal.light ? U.rgba('#ffffff', .35) : 'rgba(255,255,255,.5)';
+          ctx.fillRect(x0 + 1, yHead - nh + 1, w0 - 2, 2);
+          ctx.globalAlpha = 1;
         }
       }
 
-      /* 底部按键提示 */
-      var labelY = l.h - 22;
-      ctx.font = '600 12px "Share Tech Mono", monospace';
-      ctx.textAlign = 'center';
-      for (var c4 = 0; c4 < M.cols; c4++) {
-        ctx.fillStyle = S.held[c4] ? pal.secondary : U.rgba(pal.text, .35);
-        ctx.fillText(M.labels[c4] || '', c4 * lw + lw / 2, labelY);
-      }
-      ctx.textAlign = 'left';
+      /* 画布内不再画键位字母：页脚下方的 pad 已经标了键，画布里重复一层会跟 FPS 计数叠在一起 */
     }
   };
 

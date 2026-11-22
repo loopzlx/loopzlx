@@ -63,6 +63,87 @@
     var tickId = null, fxId = null, hiddenByHost = false;
     var LIVE = { on: true, interval: 30, left: 30, err: 0, at: null, xau: null, xag: null, hist: { XAU: [], XAG: [] }, usdcny: 6.6710, fxAt: null };
 
+    /* 加密：数据源 CoinGecko 公开接口，读不到就显示 —（不编假数） */
+    var CRYPTO = [
+        { sym: 'BTC', n: { en: 'Bitcoin', zh: '比特币' } },
+        { sym: 'ETH', n: { en: 'Ethereum', zh: '以太坊' } },
+        { sym: 'XPT', n: { en: 'Platinum', zh: '铂金现货' } }
+    ];
+    var ALERT_KEY = 'mk.alerts.v1';
+    var ALOG_KEY = 'mk.alertlog.v1';
+    var HIST_KEY = 'mk.hist.v1';
+    var ALL_SYMS = ['XAU', 'XAG', 'BTC', 'ETH', 'XPT'];
+
+    function valOf(sym) {
+        if (sym === 'XAU') return LIVE.xau;
+        if (sym === 'XAG') return LIVE.xag;
+        var c = CRYPTO.filter(function (k) { return k.sym === sym; })[0];
+        return c ? c.v : null;
+    }
+    var CACHE_KEY = 'mk.cache.v1';
+    function saveCache() {
+        try {
+            var o = {};
+            ALL_SYMS.forEach(function (k) {
+                var v = valOf(k);
+                if (isFinite(v)) o[k] = { v: v, at: Date.now() };
+            });
+            localStorage.setItem(CACHE_KEY, JSON.stringify(o));
+        } catch (e) {}
+    }
+    function restoreCache() {
+        try {
+            var o = JSON.parse(localStorage.getItem(CACHE_KEY) || '{}') || {};
+            ALL_SYMS.forEach(function (k) {
+                if (!o[k] || !isFinite(o[k].v)) return;
+                if (k === 'XAU') { if (LIVE.xau === null) LIVE.xau = o[k].v; }
+                else if (k === 'XAG') { if (LIVE.xag === null) LIVE.xag = o[k].v; }
+                else {
+                    var c = CRYPTO.filter(function (x) { return x.sym === k; })[0];
+                    if (c && !isFinite(c.v)) { c.v = o[k].v; c.cached = true; c.at = o[k].at || null; }
+                }
+            });
+        } catch (e) {}
+    }
+
+    function nameOf(sym) {
+        if (sym === 'XAU') return { en: 'Gold', zh: '黄金' };
+        if (sym === 'XAG') return { en: 'Silver', zh: '白银' };
+        var c = CRYPTO.filter(function (k) { return k.sym === sym; })[0];
+        return c ? c.n : { en: sym, zh: sym };
+    }
+    function fmtAny(sym, v) {
+        if (!isFinite(v)) return '—';
+        return fmt(v, v >= 1000 ? 0 : (v >= 10 ? 2 : 4));
+    }
+
+    /* 走势历史落盘：刷新不丢，最多保留 120 点 */
+    function saveHist() {
+        try {
+            var o = {};
+            ALL_SYMS.forEach(function (k) {
+                var h = LIVE.hist[k];
+                if (h && h.length) o[k] = h.slice(-120);
+            });
+            localStorage.setItem(HIST_KEY, JSON.stringify(o));
+        } catch (e) {}
+    }
+    function loadHist() {
+        try {
+            var o = JSON.parse(localStorage.getItem(HIST_KEY) || '{}') || {};
+            ALL_SYMS.forEach(function (k) {
+                if (Array.isArray(o[k]) && o[k].length) LIVE.hist[k] = o[k].slice(-120);
+            });
+        } catch (e) {}
+    }
+    function pushHist(sym, v) {
+        var h = LIVE.hist[sym] = LIVE.hist[sym] || [];
+        h.push(v);
+        if (h.length > 120) h.shift();
+    }
+    function loadAlerts() { try { return JSON.parse(localStorage.getItem(ALERT_KEY) || '{}') || {}; } catch (e) { return {}; } }
+    function saveAlerts(o) { try { localStorage.setItem(ALERT_KEY, JSON.stringify(o)); } catch (e) {} }
+
     /* ---------- 通用 ---------- */
     function deltaEl(v, text) {
         var cls = v > 0 ? 'up' : (v < 0 ? 'down' : '');
@@ -193,7 +274,7 @@
 
     /* ---------- 银行金条 / 银条：由现货折算推算（EST） ---------- */
     var PREV_XAU = 3607.14, PREV_XAG = 42.551;
-    var PREM_CCB = 1.0198, PREM_ICBC = 1.0261, PREM_BOC = 1.0204, PREM_SILVER = 1.10;
+    var PREM_CCB = 1.0198, PREM_ICBC = 1.0261, PREM_BOC = 1.0204, PREM_SILVER = 1.06;
 
     function cnyGold(xau) { return xau * LIVE.usdcny / 31.1035; }        // CNY / g
     function cnySilver(xag) { return xag * LIVE.usdcny / 31.1035 * 1000; }  // CNY / kg
@@ -224,10 +305,14 @@
         if (bocEl) bocEl.textContent = fmt(boc, 2) + ' · ' + sgn((boc / (prevG * PREM_BOC) - 1) * 100, 2) + '%';
 
         if (LIVE.xag == null) return;
-        var nowS = cnySilver(LIVE.xag), prevS = cnySilver(PREV_XAG);
-        var sv = nowS * PREM_SILVER, sc = (sv / (prevS * PREM_SILVER) - 1) * 100;
+        /* 银条和金条统一按「元/克」报价，公斤价只作为副标展示（原来主数字是 /KG，
+           和金条的 /G 并排时容易被误读成"银条比金条还贵"） */
+        var nowG2 = cnyGold(LIVE.xag), prevG2 = cnyGold(PREV_XAG);
+        var sv = nowG2 * PREM_SILVER, sc = (sv / (prevG2 * PREM_SILVER) - 1) * 100;
         var se = $('mk-bar-silver');
-        if (se) se.textContent = fmt(sv, 0);
+        if (se) se.textContent = fmt(sv, 2);
+        var skg = $('mk-bar-silver-kg');
+        if (skg) skg.textContent = '≈ ' + fmt(sv * 1000, 0) + ' CNY / KG';
         var sce = $('mk-bar-silver-chg');
         if (sce) {
             sce.className = 'mk-delta ' + (sc > 0 ? 'up' : 'down');
@@ -308,12 +393,245 @@
             pushHist('XAU', LIVE.xau);
             pushHist('XAG', LIVE.xag);
             LIVE.err = 0;
+            LIVE.okAt = Date.now();
+            saveHist();
+            saveCache();
             renderLive();
+            renderRatio();
             renderStatus();
         }).catch(function () {
             LIVE.err++;
             renderStatus();
         });
+    }
+
+    function fmtCoin(v) {
+        if (!isFinite(v)) return '—';
+        return v >= 1000 ? fmt(v, 0) : (v >= 1 ? fmt(v, 2) : fmt(v, 4));
+    }
+
+    function renderCrypto() {
+        CRYPTO.forEach(function (c) {
+            /* 只有超过 90s 没拿到新值才算过期，偶发一次失败不显示 LAST */
+            var stale = c.cached || !c.at || (Date.now() - c.at > 90000);
+            var priceEl = $('mk-' + c.sym.toLowerCase());
+            if (!priceEl) return;
+            priceEl.innerHTML = isFinite(c.v)
+                ? fmtCoin(c.v) + '<small>USD</small>'
+                : '<span class="mk-pending">SYNCING<span>…</span></span>';
+            var chg = $('mk-' + c.sym.toLowerCase() + '-chg');
+            if (chg) {
+                chg.innerHTML = stale
+                    ? '<span class="mk-delta">LAST' + (c.at ? ' ' + clock(new Date(c.at)) : '') + '</span>'
+                    : (typeof c.c === 'number' && isFinite(c.c))
+                    ? deltaEl(c.c, (c.c > 0 ? '+' : '') + c.c.toFixed(2) + '% CHG')
+                    : '';
+            }
+            var sub = $('mk-' + c.sym.toLowerCase() + '-sub');
+            if (sub) {
+                sub.textContent = isFinite(c.v) && LIVE.usdcny
+                    ? '≈ ' + fmt(c.v * LIVE.usdcny, 0) + ' CNY'
+                    : 'WAITING FOR FEED';
+            }
+            drawSpark($('mk-' + c.sym.toLowerCase() + '-spark'), LIVE.hist[c.sym] || []);
+        });
+        renderRatio();
+    }
+
+    function notify(text) {
+        try {
+            var el = document.createElement('div');
+            el.className = 'lzx-ach in';
+            el.innerHTML = '<b>!</b><div><span>价格提醒</span><em>PRICE ALERT</em><p>' + text + '</p></div>';
+            var holder = document.getElementById('lzx-ach-stack');
+            if (!holder) {
+                holder = document.createElement('div');
+                holder.id = 'lzx-ach-stack';
+                holder.className = 'lzx-ach-stack';
+                document.body.appendChild(holder);
+            }
+            holder.appendChild(el);
+            setTimeout(function () {
+                el.classList.remove('in');
+                setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 420);
+            }, 4000);
+        } catch (e) {}
+    }
+
+    function loadAlog() { try { return JSON.parse(localStorage.getItem(ALOG_KEY) || '[]') || []; } catch (e) { return []; } }
+    function saveAlog(a) { try { localStorage.setItem(ALOG_KEY, JSON.stringify(a.slice(0, 20))); } catch (e) {} }
+    function pushAlog(sym, price, target, dir) {
+        var a = loadAlog();
+        a.unshift({ t: Date.now(), sym: sym, v: price, a: target, d: dir });
+        saveAlog(a);
+    }
+    function renderAlog() {
+        var box = document.getElementById('mk-alog');
+        if (!box) return;
+        var a = loadAlog();
+        if (!a.length) {
+            box.innerHTML = '<div class="mk-alog-empty">' + (L() === 'zh' ? '还没有触发过提醒。' : 'No alerts fired yet.') + '</div>';
+            return;
+        }
+        box.innerHTML = a.slice(0, 6).map(function (row) {
+            var d = new Date(row.t);
+            var hh = ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2);
+            var date = (d.getMonth() + 1) + '/' + d.getDate();
+            return '<div class="mk-alog-row"><span class="mk-alog-t">' + date + ' ' + hh + '</span>' +
+                   '<b class="' + (row.d === 'up' ? 'up' : 'down') + '">' + row.sym + '</b>' +
+                   '<span class="mk-alog-p">' + fmtAny(row.sym, row.v) + '</span>' +
+                   '<em>' + (row.d === 'up' ? '↑ ' : '↓ ') + fmtAny(row.sym, row.a) + '</em></div>';
+        }).join('');
+    }
+
+    function checkAlerts() {
+        var alerts = loadAlerts();
+        var changed = false;
+        ALL_SYMS.forEach(function (sym) {
+            var a = alerts[sym];
+            if (!a || !isFinite(a.v)) return;
+            var v = valOf(sym);
+            if (!isFinite(v)) return;
+            var prev = a.prev;
+            if (!isFinite(prev)) { a.prev = v; changed = true; return; }
+            var crossed = (prev < a.v && v >= a.v) || (prev > a.v && v <= a.v);
+            if (crossed) {
+                var nm = nameOf(sym);
+                notify(nm.zh + ' ' + sym + ' ' + (v >= a.v ? '上穿 ↑ ' : '下穿 ↓ ') + fmtAny(sym, a.v) +
+                       (sym === 'XAU' || sym === 'XAG' ? ' USD/oz' : ' USD') + '，现价 ' + fmtAny(sym, v));
+                a.prev = v;
+                a.hit = Date.now();
+                pushAlog(sym, v, a.v, v >= a.v ? 'up' : 'down');
+                renderAlog();
+                changed = true;
+            } else {
+                a.prev = v;
+            }
+        });
+        if (changed) saveAlerts(alerts);
+        paintAlertBtns();
+        renderAlog();
+    }
+
+    function paintAlertBtns() {
+        var alerts = loadAlerts();
+        Array.prototype.forEach.call(document.querySelectorAll('.mk-alert'), function (btn) {
+            var sym = btn.getAttribute('data-alert');
+            var on = !!alerts[sym];
+            btn.classList.toggle('on', on);
+            btn.title = on ? ('提醒价 ' + fmtAny(sym, alerts[sym].v) + '（点击修改）') : '设置价格提醒';
+        });
+    }
+
+    /* 金银比 */
+    function renderRatio() {
+        var val = $('mk-ratio'), state = $('mk-ratio-state'), bar = $('mk-ratio-bar');
+        if (!val) return;
+        var xau = LIVE.xau, xag = LIVE.xag;
+        if (!isFinite(xau) || !isFinite(xag) || !xag) { val.textContent = '—'; return; }
+        var r = xau / xag;
+        val.textContent = r.toFixed(1);
+        var label, cls;
+        if (r > 90) { label = L() === 'zh' ? '银相对便宜' : 'SILVER CHEAP'; cls = 'hi'; }
+        else if (r < 70) { label = L() === 'zh' ? '金相对便宜' : 'GOLD CHEAP'; cls = 'lo'; }
+        else { label = L() === 'zh' ? '区间中枢' : 'MID RANGE'; cls = 'mid'; }
+        if (state) { state.textContent = label; state.className = cls; }
+        if (bar) bar.style.width = Math.max(2, Math.min(100, (r - 40) / 80 * 100)) + '%';
+        if (bar) bar.style.background = cls === 'hi' ? 'var(--secondary)' : cls === 'lo' ? 'var(--primary)' : 'var(--text-muted)';
+    }
+
+    /* 换算器 */
+    function cnyRateOf(code) {
+        if (code === 'CNY') return 1;
+        var f = FX.filter(function (x) { return x.code === code; })[0];
+        return f ? f.v : null;
+    }
+    function renderConvert() {
+        var inEl = $('mk-conv-in'), from = $('mk-conv-from'), to = $('mk-conv-to'), out = $('mk-conv-out');
+        if (!inEl || !from || !to || !out) return;
+        var amt = parseFloat(inEl.value);
+        if (!isFinite(amt)) amt = 0;
+        var rf = cnyRateOf(from.value), rt = cnyRateOf(to.value);
+        if (!rf || !rt) { out.textContent = '—'; return; }
+        var res = amt * rf / rt;
+        out.innerHTML = '<b>' + fmt(res, res >= 1000 ? 2 : 4) + '</b><small>' + to.value + '</small>' +
+                        '<em>' + from.value + ' → ' + to.value + ' @ ' + fmt(rf / rt, 4) + '</em>';
+    }
+    function initConvert() {
+        var from = $('mk-conv-from'), to = $('mk-conv-to'), inEl = $('mk-conv-in');
+        if (!from || !to || !inEl || from.dataset.ready === '1') return;
+        from.dataset.ready = '1';
+        var codes = ['CNY'].concat(FX.map(function (f) { return f.code; }));
+        from.innerHTML = codes.map(function (c) { return '<option value="' + c + '">' + c + '</option>'; }).join('');
+        to.innerHTML = from.innerHTML;
+        from.value = 'USD';
+        to.value = 'CNY';
+        from.addEventListener('change', renderConvert);
+        to.addEventListener('change', renderConvert);
+        inEl.addEventListener('input', renderConvert);
+        var wrap = from.closest('.mk-tool');
+        if (wrap) {
+            wrap.addEventListener('click', function (e) {
+                var sw = e.target.closest('[data-swap]');
+                if (sw) {
+                    var a = from.value; from.value = to.value; to.value = a;
+                    renderConvert();
+                    return;
+                }
+                var q = e.target.closest('[data-quick]');
+                if (q) { inEl.value = q.getAttribute('data-quick'); renderConvert(); }
+            });
+        }
+        renderConvert();
+    }
+
+    /* 免费行情接口并发会被限流：三个币种改成串行 + 指数退避重试，
+       失败也不清空卡片，回落到上一次成功值并打 LAST 标记 */
+    function fetchPrice(sym, tries) {
+        tries = tries || 0;
+        return fetch('https://api.gold-api.com/price/' + sym, { cache: 'no-store' })
+          .then(function (r) {
+              if (!r.ok) throw new Error('HTTP ' + r.status);
+              return r.json();
+          })
+          .catch(function (err) {
+              if (tries >= 2) throw err;
+              return new Promise(function (res) { setTimeout(res, 700 + tries * 900); })
+                .then(function () { return fetchPrice(sym, tries + 1); });
+          });
+    }
+    var cryptoBusy = false;
+    function pollCrypto() {
+        if (!LIVE.on || !window.fetch || cryptoBusy) return;
+        cryptoBusy = true;
+        var i = 0, ok = 0;
+        function next() {
+            if (i >= CRYPTO.length) {
+                cryptoBusy = false;
+                renderCrypto();
+                checkAlerts();
+                saveHist();
+                saveCache();
+                return;
+            }
+            var c = CRYPTO[i++];
+            fetchPrice(c.sym).then(function (x) {
+                if (x && isFinite(x.price)) {
+                    var prev = isFinite(c.v) ? c.v : null;
+                    c.v = x.price;
+                    c.cached = false;
+                    c.at = Date.now();
+                    if (prev) c.c = (c.v - prev) / prev * 100;
+                    pushHist(c.sym, c.v);
+                    ok++;
+                }
+                renderCrypto();
+            }).catch(function () {
+                /* 单次失败不清空、也不立刻打 LAST：交给下面的 90s 数据年龄判断 */
+                renderCrypto();
+            }).then(function () { setTimeout(next, 260); });
+        }
+        next();
     }
 
     function pollFx() {
@@ -347,7 +665,9 @@
     function renderStatus() {
         var bar = $('mk-status'), txt = $('mk-status-text');
         if (!bar || !txt) return;
-        bar.classList.remove('is-off', 'is-err');
+        bar.classList.remove('is-off', 'is-err', 'is-stale');
+        var staleMin = LIVE.okAt ? (Date.now() - LIVE.okAt) / 60000 : 0;
+        if (staleMin > 10) bar.classList.add('is-stale');
         if (!LIVE.on) {
             bar.classList.add('is-off');
             txt.textContent = 'PAUSED · LAST ' + (LIVE.at ? clock(LIVE.at) : '--:--:--');
@@ -367,6 +687,8 @@
         // 用日内小时线打底，让 sparkline 一进页面就有形态
         LIVE.hist.XAU = GOLD_S.slice(-16);
         LIVE.hist.XAG = SILVER_S.slice(-16);
+        loadHist();
+        restoreCache();
         LIVE.xau = METALS[0].v; LIVE.xag = METALS[5].v;
         renderTable();
         renderFx();
@@ -401,14 +723,43 @@
         }, 1000);
         fxId = setInterval(function () { if (LIVE.on && !document.hidden) pollFx(); }, 600000);
 
+        initConvert();
+        paintAlertBtns();
+        renderRatio();
+        renderAlog();
+        var alertClr = $('mk-alert-clear');
+        if (alertClr) alertClr.addEventListener('click', function () { saveAlog([]); renderAlog(); });
         renderStatus();
         pollFx();
         pollMetals();
+        pollCrypto();
+        setInterval(function () { if (LIVE.on && !document.hidden) pollCrypto(); }, 120000);
+
+        /* 提醒按钮 */
+        Array.prototype.forEach.call(document.querySelectorAll('.mk-alert'), function (btn) {
+            btn.addEventListener('click', function () {
+                var sym = btn.getAttribute('data-alert');
+                var alerts = loadAlerts();
+                var cur = alerts[sym] ? alerts[sym].v : null;
+                var input = window.prompt(sym + ' 提醒价（USD，留空清除）' + (cur ? '，当前设置 ' + cur : ''), cur ? String(cur) : '');
+                if (input === null) return;
+                var v = parseFloat(input);
+                if (!input.trim()) { delete alerts[sym]; saveAlerts(alerts); btn.classList.remove('on'); notify(sym + ' 提醒已清除'); return; }
+                if (!isFinite(v) || v <= 0) { notify('价格格式不对'); return; }
+                alerts[sym] = { v: v, prev: c && isFinite(c.v) ? c.v : null, hit: 0 };
+                saveAlerts(alerts);
+                btn.classList.add('on');
+                notify(sym + ' 到 ' + fmtCoin(v) + ' 时提醒你');
+            });
+            var alerts = loadAlerts();
+            if (alerts[btn.getAttribute('data-alert')]) btn.classList.add('on');
+        });
 
         // 双语重渲染
         new MutationObserver(function (m) {
             if (m[0].attributeName === 'lang') {
-                renderTable(); renderFx(); renderRank(false); renderLive();
+                renderTable(); renderFx(); renderRank(false); renderLive(); renderCrypto();
+                initConvert(); renderConvert(); renderRatio(); paintAlertBtns(); renderAlog();
             }
         }).observe(document.documentElement, { attributes: true, attributeFilter: ['lang'] });
     }

@@ -113,6 +113,12 @@
                 open();
                 return;
             }
+            // 顶栏切主题（和 home 调色盘按钮同一套主题循环）
+            if (e.target.closest && e.target.closest('#mk-theme')) {
+                e.preventDefault();
+                if (window.CyberTheme && window.CyberTheme.next) window.CyberTheme.next();
+                return;
+            }
             // 返回键 / 遮罩空白区
             if (e.target.closest && e.target.closest('#mk-back')) {
                 e.preventDefault();

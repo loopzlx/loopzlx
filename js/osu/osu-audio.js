@@ -5,7 +5,8 @@ var OSU = window.Osu = window.Osu || {};
   'use strict';
   var S = OSU.S;
 
-  var ctx = null, master = null, noise = null, src = null, demoStep = 0;
+  var ctx = null, master = null, musicBus = null, noise = null, src = null, demoStep = 0;
+  var mix = { master: .75, music: .8, sfx: .85 };
 
   var A = OSU.audio = {};
 
@@ -13,8 +14,11 @@ var OSU = window.Osu = window.Osu || {};
     if (ctx) { if (ctx.state === 'suspended') ctx.resume().catch(function () {}); return; }
     try { ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return; }
     master = ctx.createGain();
-    master.gain.value = 0.75;
+    master.gain.value = mix.master;
     master.connect(ctx.destination);
+    musicBus = ctx.createGain();
+    musicBus.gain.value = mix.music;
+    musicBus.connect(master);
     var len = Math.floor(ctx.sampleRate * 0.6);
     noise = ctx.createBuffer(1, len, ctx.sampleRate);
     var d = noise.getChannelData(0);
@@ -23,12 +27,25 @@ var OSU = window.Osu = window.Osu || {};
 
   A.setMuted = function (m) {
     A.muted = !!m;
-    if (master) master.gain.value = A.muted ? 0 : 0.75;
+    if (master) master.gain.value = A.muted ? 0 : mix.master;
   };
+
+  /* 设置面板调用：主 / 音乐 / 音效 三档增益（0–100） */
+  A.applyMix = function (o) {
+    if (!o) return;
+    if (typeof o.master === 'number') mix.master = Math.max(0, Math.min(1, o.master / 100));
+    if (typeof o.music === 'number') mix.music = Math.max(0, Math.min(1, o.music / 100));
+    if (typeof o.sfx === 'number') mix.sfx = Math.max(0, Math.min(1, o.sfx / 100));
+    if (master) master.gain.value = A.muted ? 0 : mix.master;
+    if (musicBus) musicBus.gain.value = mix.music;
+  };
+  A.mixState = function () { return mix; };
 
   A.resume = function () { if (ctx && ctx.state === 'suspended') ctx.resume().catch(function () {}); };
   A.suspend = function () { if (ctx) try { ctx.suspend(); } catch (e) {} };
   A.now = function () { return ctx ? ctx.currentTime : 0; };
+  /* 音频是否真的在走：被浏览器挂起时 currentTime 冻结，谱面必须改走墙钟 */
+  A.isLive = function () { return !!ctx && ctx.state === 'running'; };
 
   A.decode = function (blob) {
     return new Promise(function (res, rej) {
@@ -43,7 +60,7 @@ var OSU = window.Osu = window.Osu || {};
 
   function env(node, t, vol, dur) {
     var g = ctx.createGain();
-    g.gain.setValueAtTime(vol, t);
+    g.gain.setValueAtTime(vol * mix.sfx, t);
     g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
     node.connect(g); g.connect(master);
     return g;
@@ -85,7 +102,7 @@ var OSU = window.Osu = window.Osu || {};
     var t = ctx.currentTime, o = ctx.createOscillator(), g = ctx.createGain();
     o.frequency.setValueAtTime(210, t);
     o.frequency.exponentialRampToValueAtTime(70, t + .09);
-    g.gain.setValueAtTime(.5, t);
+    g.gain.setValueAtTime(.5 * mix.sfx, t);
     g.gain.exponentialRampToValueAtTime(.001, t + .18);
     o.connect(g); g.connect(master); o.start(t); o.stop(t + .2);
   };
@@ -103,7 +120,7 @@ var OSU = window.Osu = window.Osu || {};
     src = ctx.createBufferSource();
     src.buffer = buffer;
     src.playbackRate.value = speed || 1;
-    src.connect(master);
+    src.connect(musicBus || master);
     try { src.start(atTime || ctx.currentTime, Math.max(0, offsetSec || 0)); }
     catch (e) { try { src.start(); } catch (_) {} }
   };
@@ -141,7 +158,7 @@ var OSU = window.Osu = window.Osu || {};
     var o = ctx.createOscillator(), g = ctx.createGain();
     o.frequency.setValueAtTime(150, t); o.frequency.exponentialRampToValueAtTime(48, t + .1);
     g.gain.setValueAtTime(.8, t); g.gain.exponentialRampToValueAtTime(.001, t + .2);
-    o.connect(g); g.connect(master); o.start(t); o.stop(t + .22);
+    o.connect(g); g.connect(musicBus || master); o.start(t); o.stop(t + .22);
   };
   A.snareAt = function (t) {
     if (!ctx || !noise) return;
@@ -149,14 +166,14 @@ var OSU = window.Osu = window.Osu || {};
     var f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 1700; f.Q.value = .9;
     var g = ctx.createGain();
     g.gain.setValueAtTime(.3, t); g.gain.exponentialRampToValueAtTime(.001, t + .14);
-    s.connect(f); f.connect(g); g.connect(master); s.start(t); s.stop(t + .16);
+    s.connect(f); f.connect(g); g.connect(musicBus || master); s.start(t); s.stop(t + .16);
   };
   A.hatAt = function (t, v) {
     if (!ctx || !noise) return;
     var s = ctx.createBufferSource(); s.buffer = noise;
     var f = ctx.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = 7600;
     var g = ctx.createGain(); g.gain.setValueAtTime(v, t); g.gain.exponentialRampToValueAtTime(.001, t + .04);
-    s.connect(f); f.connect(g); g.connect(master); s.start(t); s.stop(t + .05);
+    s.connect(f); f.connect(g); g.connect(musicBus || master); s.start(t); s.stop(t + .05);
   };
   A.pitchAt = function (t, freq, vol) {
     if (!ctx) return;
@@ -164,7 +181,7 @@ var OSU = window.Osu = window.Osu || {};
     o.type = 'triangle'; o.frequency.value = freq;
     g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(vol || .05, t + .01);
     g.gain.exponentialRampToValueAtTime(.0001, t + .14);
-    o.connect(g); g.connect(master); o.start(t); o.stop(t + .16);
+    o.connect(g); g.connect(musicBus || master); o.start(t); o.stop(t + .16);
   };
 
   /* 节拍器（延迟校准用） */

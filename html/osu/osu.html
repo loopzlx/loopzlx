@@ -10,8 +10,13 @@
         <span class="osu-edition">LOOPZLX / RHYTHM CORE</span>
       </div>
       <div class="osu-top-actions">
-        <button id="osu-top-home" class="osu-btn ghost">← HOME</button>
-        <button id="osu-top-back" class="osu-btn ghost">← MENU</button>
+        <div class="lang-switch font-mono" id="osu-lang-switch" aria-label="Language">
+          <button type="button" class="lang-btn active" data-olang="en" id="osu-lang-en">EN</button>
+          <span class="opacity-30">/</span>
+          <button type="button" class="lang-btn" data-olang="zh" id="osu-lang-zh">ZH</button>
+        </div>
+        <button id="osu-top-home" class="osu-btn ghost" data-o="common.home">← HOME</button>
+        <button id="osu-top-back" class="osu-btn ghost" data-o="common.back">← MENU</button>
         <button id="osu-sound-btn" class="osu-icon-btn" title="音效开关">♪</button>
       </div>
     </header>
@@ -25,41 +30,49 @@
 
       <div class="osu-mode-cards" id="osu-mode-cards">
         <button class="osu-mode-card" data-mode="std">
+          <em class="mc-tag" data-o="mode.std.tag">AIM 定位</em>
           <i class="mc-icon">◯</i>
           <b>osu!</b>
-          <span>点击圆圈 · 滑条</span>
+          <span data-o="mode.std.desc">精准锁定 · 环环命中</span>
         </button>
         <button class="osu-mode-card" data-mode="taiko">
+          <em class="mc-tag" data-o="mode.taiko.tag">DRUM 鼓击</em>
           <i class="mc-icon">◐</i>
           <b>taiko</b>
-          <span>鼓点 · 红蓝节奏</span>
+          <span data-o="mode.taiko.desc">双色连打 · 鼓点炸裂</span>
         </button>
         <button class="osu-mode-card" data-mode="catch">
+          <em class="mc-tag" data-o="mode.catch.tag">CATCH 接果</em>
           <i class="mc-icon">❥</i>
           <b>catch</b>
-          <span>接水果 · 左右移动</span>
+          <span data-o="mode.catch.desc">瞬息横移 · 全果收齐</span>
         </button>
         <button class="osu-mode-card" data-mode="mania">
+          <em class="mc-tag" data-o="mode.mania.tag">KEYS 键阵</em>
           <i class="mc-icon">▤</i>
           <b>mania</b>
-          <span>4K–9K 下落</span>
+          <span data-o="mode.mania.desc">多轨齐发 · 十指风暴</span>
         </button>
       </div>
 
       <div class="osu-menu-actions">
-        <button id="osu-btn-play" class="osu-btn primary">PLAY</button>
-        <button id="osu-btn-import" class="osu-btn">IMPORT .OSZ</button>
-        <button id="osu-btn-download" class="osu-btn">DOWNLOAD</button>
-        <button id="osu-btn-settings" class="osu-btn">SETTINGS</button>
+        <button id="osu-btn-play" class="osu-btn primary" data-o="menu.play">PLAY</button>
+        <button id="osu-btn-import" class="osu-btn" data-o="menu.import">IMPORT .OSZ</button>
+        <button id="osu-btn-download" class="osu-btn" data-o="menu.download">DOWNLOAD</button>
+        <button id="osu-btn-settings" class="osu-btn" data-o="menu.settings">SETTINGS</button>
       </div>
 
-      <div class="osu-nowplaying" id="osu-nowplaying">
+      <div class="osu-nowplaying" id="osu-nowplaying" role="button" tabindex="0">
         <div class="np-cover"></div>
         <div class="np-text">
           <div class="np-title">—</div>
           <div class="np-sub">—</div>
+          <div class="np-chips"></div>
         </div>
-        <div class="np-hint">选择模式卡进入选曲 · 演示谱可直接玩</div>
+        <div class="np-side">
+          <div class="np-lib">—</div>
+          <div class="np-go" data-o="np.open">SELECT ▸</div>
+        </div>
       </div>
 
       <div id="osu-log" class="osu-log" aria-live="polite"></div>
@@ -74,7 +87,12 @@
           <button data-mode="catch">catch</button>
           <button data-mode="mania">mania</button>
         </div>
-        <div class="osu-select-tip">选一张谱面 → START</div>
+        <div class="osu-select-tools">
+          <label class="osu-local-search"><span>⌕</span><input id="osu-local-search" type="search" placeholder="Search beatmaps…" autocomplete="off"></label>
+          <div class="osu-local-filter" id="osu-local-filter"><button type="button" data-local-filter="all" class="is-on">ALL</button><button type="button" data-local-filter="fav">★ FAV</button><button type="button" data-local-filter="recent">RECENT</button></div>
+          <select id="osu-local-sort" aria-label="Sort beatmaps"><option value="recent">Recently added</option><option value="played">Recently played</option><option value="title">Title A–Z</option><option value="stars">Difficulty</option><option value="bpm">BPM</option></select>
+          <div class="osu-select-tip" data-o="select.tip">选一张谱面 → START</div>
+        </div>
       </div>
 
       <div class="osu-select-body">
@@ -93,6 +111,12 @@
               <div><span>OBJECTS</span><b data-d="objects">—</b></div>
               <div><span>MODE</span><b data-d="mode">—</b></div>
             </div>
+            <div class="osu-preview-control" id="osu-preview-control">
+              <button type="button" id="osu-preview-toggle" class="osu-preview-btn" disabled><span class="preview-icon">▶</span><span class="preview-label">PREVIEW</span></button>
+              <div class="osu-preview-seek"><span id="osu-preview-current">0:00</span><input id="osu-preview-seek" type="range" min="0" max="1000" value="0" step="1" disabled aria-label="Seek preview audio"><span id="osu-preview-remaining">−0:00</span></div>
+              <label class="osu-preview-volume" title="Preview volume"><span>VOL</span><input id="osu-preview-volume" type="range" min="0" max="1" step="0.05" value="0.65" aria-label="Preview volume"></label>
+              <span class="osu-preview-status" id="osu-preview-status">NO AUDIO</span>
+            </div>
           </div>
         </div>
       </div>
@@ -101,7 +125,7 @@
         <div id="osu-mods" class="osu-mods"></div>
         <div class="osu-foot-right">
           <div class="osu-mult">mult <b id="osu-mod-mult">1.00×</b></div>
-          <button id="osu-btn-start" class="osu-btn primary big">START ▶</button>
+          <button id="osu-btn-start" class="osu-btn primary big" data-o="select.start">START ▶</button>
         </div>
       </div>
     </section>
@@ -109,13 +133,19 @@
     <!-- 游戏 -->
     <section id="osu-play" class="osu-view">
       <div class="osu-play-top">
-        <button id="osu-btn-quit" class="osu-btn ghost small">✕ QUIT</button>
+        <button id="osu-btn-quit" class="osu-btn ghost small" data-o="play.quit">✕ QUIT</button>
         <div class="osu-play-mode" id="osu-play-mode">mania</div>
-        <button id="osu-btn-pause" class="osu-btn ghost small">❚❚ PAUSE</button>
+        <button id="osu-btn-pause" class="osu-btn ghost small" data-o="play.pause">❚❚ PAUSE</button>
       </div>
 
       <div id="osu-board-wrap" class="osu-board-wrap">
-        <canvas id="osu-cv"></canvas>
+        <div class="osu-cv-box">
+          <canvas id="osu-cv"></canvas>
+          <div id="osu-hud-fps" class="osu-hud-fps" style="display:none">
+            <div class="fps-line"><b id="osu-fps-val">0</b><span>FPS</span><i id="osu-fps-ms">0.0 ms</i></div>
+            <canvas id="osu-fps-graph" width="180" height="30"></canvas>
+          </div>
+        </div>
       </div>
 
       <div id="osu-hud" class="osu-hud">
@@ -129,6 +159,9 @@
       </div>
 
       <div id="osu-pads" class="osu-pads"></div>
+
+      <!-- 继续前的 3-2-1 倒计时（和 osu! 一样） -->
+      <div id="osu-countdown" class="osu-countdown"></div>
     </section>
 
     <!-- 结算 -->
@@ -138,56 +171,68 @@
         <div class="osu-result-title" id="osu-result-title">RESULT</div>
       </div>
       <div id="osu-result-stats" class="osu-result-stats"></div>
+      <div id="osu-result-extra" class="osu-result-extra"></div>
       <div class="osu-result-actions">
-        <button id="osu-btn-retry" class="osu-btn primary">RETRY</button>
-        <button id="osu-btn-tomenu" class="osu-btn">MENU</button>
+        <button id="osu-btn-retry" class="osu-btn primary" data-o="result.retry">RETRY</button>
+        <button id="osu-btn-replay" class="osu-btn" data-o="result.replay" hidden>REPLAY</button>
+        <button id="osu-btn-card" class="osu-btn" data-o="result.card">SCORE CARD</button>
+        <button id="osu-btn-tomenu" class="osu-btn" data-o="result.menu">MENU</button>
       </div>
     </section>
 
-    <!-- 设置 -->
+    <!-- 设置（osu!lazer 式分类面板，内容由 js/osu/osu-settings.js 渲染） -->
     <section id="osu-settings" class="osu-view">
-      <h2 class="osu-section-title">SETTINGS</h2>
-
-      <div class="osu-set-block">
-        <h3>自定义按键 · mania 4K</h3>
-        <div id="osu-keybinds" class="osu-keybinds"></div>
-        <p class="osu-set-tip">点一下按钮，再按键盘按键即可重新绑定。</p>
+      <div class="osu-set-head">
+        <div>
+          <h2 class="osu-section-title">SETTINGS</h2>
+          <p class="osu-set-sub">LOOPZLX · RHYTHM CORE CONFIG</p>
+        </div>
+        <button id="osu-settings-back" class="osu-btn primary">BACK</button>
       </div>
-
-      <div class="osu-set-block">
-        <h3>判定 / 延迟</h3>
-        <button id="osu-btn-calib" class="osu-btn">打开延迟校准</button>
+      <div class="osu-set-wrap">
+        <nav class="osu-set-cats" id="osu-set-cats" aria-label="Settings sections"></nav>
+        <div class="osu-set-pages" id="osu-set-pages"></div>
       </div>
-
-      <div class="osu-set-block">
-        <h3>数据来源</h3>
-        <p class="osu-set-tip">谱面格式：osu! .osu / .osz · 在线下载走社区镜像（nerinyan / catboy / osu.direct）。<br>
-        导入的曲目音频只在本次会话内保存，刷新后需重新导入。</p>
-      </div>
-
-      <button id="osu-settings-back" class="osu-btn primary">BACK</button>
     </section>
 
-    <!-- 在线下载 -->
+    <!-- 在线下载（按 osu! 官网 beatmap listing 的排版复刻） -->
     <section id="osu-download" class="osu-view">
-      <h2 class="osu-section-title">DOWNLOAD</h2>
-      <div class="osu-dl-search">
-        <input id="osu-search-input" type="text" placeholder="歌名 / 谱师 / 谱面集 ID（纯数字直接下载）">
-        <button id="osu-search-btn" class="osu-btn primary">SEARCH</button>
+      <div class="osu-web-head">
+        <div class="osu-web-logo">osu<span>!</span><em>beatmaps</em></div>
+        <div class="osu-web-search">
+          <input id="osu-search-input" type="text" data-o="dl.search" data-o-ph placeholder="搜索歌名 / 谱师 / 谱面集 ID" autocomplete="off">
+          <button id="osu-search-btn" class="osu-web-search-btn" aria-label="search">⌕</button>
+        </div>
       </div>
-      <div id="osu-download-status" class="osu-dl-status"></div>
-      <div id="osu-search-results" class="osu-search-results"></div>
-      <button id="osu-download-back" class="osu-btn">BACK</button>
+
+      <div class="osu-web-filters">
+        <div class="osu-web-modes" id="osu-web-modes">
+          <button data-wmode="0" class="is-on" title="osu!">◯</button>
+          <button data-wmode="1" title="osu!taiko">◐</button>
+          <button data-wmode="2" title="osu!catch">❥</button>
+          <button data-wmode="3" title="osu!mania">▤</button>
+        </div>
+        <div class="osu-web-tabs" aria-label="Beatmap status filters">
+          <button class="is-on" data-wtab="all">All</button><button data-wtab="ranked">Ranked</button><button data-wtab="loved">Loved</button><button data-wtab="qualified">Qualified</button><button data-wtab="pending">Pending</button><button data-wtab="graveyard">Graveyard</button><button data-wtab="wip">WIP</button>
+        </div>
+        <div class="osu-web-sort"><label for="osu-web-sort">Sort</label><select id="osu-web-sort"><option value="relevance">Relevance</option><option value="newest">Newest</option><option value="updated">Recently updated</option><option value="title">Title A–Z</option><option value="artist">Artist A–Z</option><option value="stars">Difficulty</option><option value="bpm">BPM</option></select></div>
+        <div class="osu-web-right">
+          <div id="osu-download-status" class="osu-dl-status"></div>
+          <button id="osu-download-back" class="osu-btn ghost small" data-o="dl.back">← MENU</button>
+        </div>
+      </div>
+
+      <div id="osu-search-results" class="osu-web-list"></div>
     </section>
 
     <!-- 暂停 -->
     <div id="osu-pause" class="osu-pause">
       <div class="osu-pause-card">
-        <div class="osu-pause-title">PAUSED</div>
+        <div class="osu-pause-title" data-o="pause.title">PAUSED</div>
         <div class="osu-pause-btns">
-          <button id="osu-pause-resume" class="osu-btn primary">RESUME</button>
-          <button id="osu-pause-retry" class="osu-btn">RETRY</button>
-          <button id="osu-pause-menu" class="osu-btn danger">QUIT</button>
+          <button id="osu-pause-resume" class="osu-btn primary" data-o="pause.resume">RESUME</button>
+          <button id="osu-pause-retry" class="osu-btn" data-o="pause.retry">RETRY</button>
+          <button id="osu-pause-menu" class="osu-btn danger" data-o="pause.quit">QUIT</button>
         </div>
       </div>
     </div>
@@ -201,10 +246,14 @@
     <div id="osu-calib" class="osu-calib">
       <div class="osu-calib-card">
         <h3>DELAY CALIBRATION</h3>
-        <p>跟着节拍敲空格或点击此处</p>
+        <p data-o="calib.hint">跟着节拍敲空格或点击此处</p>
         <div class="calib-pulse"></div>
         <p class="calib-status">准备中…</p>
-        <button id="osu-btn-calib-close" class="osu-btn">CLOSE</button>
+        <div class="calib-actions">
+          <button id="osu-btn-calib-apply" class="osu-btn primary" data-o="calib.apply">APPLY OFFSET</button>
+          <button id="osu-btn-calib-reset" class="osu-btn" data-o="calib.clear">CLEAR</button>
+          <button id="osu-btn-calib-close" class="osu-btn">CLOSE</button>
+        </div>
       </div>
     </div>
 

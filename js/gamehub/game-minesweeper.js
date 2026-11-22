@@ -17,6 +17,8 @@
         openCount = 0, flagCount = 0, timer = 0, clock = 0;
 
     function $(id) { return document.getElementById(id); }
+    function t(k) { return GH.t ? GH.t(k) : k; }
+    var lastOver = { text: '', on: false };
 
     function idx(r, c) { return r * cols + c; }
 
@@ -103,7 +105,7 @@
             clearInterval(timer); timer = 0;
             for (var k = 0; k < board.length; k++) if (board[k].mine && !board[k].flag) { board[k].open = true; drawNode(k); }
             var ov = $('gh-mines-over'), tx = $('gh-mines-over-text');
-            if (tx) tx.textContent = 'BOOM · ' + clock + 's';
+            if (tx) tx.textContent = t('mines.boom') + ' · ' + clock + 's';
             if (ov) ov.classList.add('is-on');
             GH.log && GH.log('mines · boom at ' + clock + 's');
             return;
@@ -127,8 +129,9 @@
             cleared = true;
             clearInterval(timer); timer = 0;
             var ov2 = $('gh-mines-over'), tx2 = $('gh-mines-over-text');
-            if (tx2) tx2.textContent = 'CLEARED · ' + clock + 's';
+            if (tx2) tx2.textContent = t('mines.cleared') + ' · ' + clock + 's';
             if (ov2) ov2.classList.add('is-on');
+            if (window.LZXAch) window.LZXAch.unlock('gh-sweep');
             GH.log && GH.log('mines · cleared in ' + clock + 's');
         }
     }
@@ -219,4 +222,11 @@
     M.onShow = function (active) {
         if (!active && timer) { clearInterval(timer); timer = 0; }
     };
+
+    M.onLang = function () {
+        var tx = $('gh-mines-over-text');
+        if (tx && (dead || cleared)) tx.textContent = (dead ? t('mines.boom') : t('mines.cleared')) + ' · ' + clock + 's';
+    };
+
+    M.onTheme = function () {};
 })();

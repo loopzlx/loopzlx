@@ -8,7 +8,7 @@
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
-  transition: opacity .28s ease, visibility .28s ease;
+  transition: opacity .42s cubic-bezier(.2,.7,.2,1), visibility .42s ease;
 }
 #osu-layer.is-open { opacity: 1; visibility: visible; pointer-events: auto; }
 
@@ -109,6 +109,9 @@ body.osu-open #log-window { opacity: 0; pointer-events: none; }
 
 /* ---------------- 视图切换 ---------------- */
 .osu-view { display: none; flex: 1 1 auto; min-height: 0; }
+.osu-view-enter { animation: osu-view-enter .24s ease both; }
+@keyframes osu-view-enter { from { opacity: 0; transform: translateY(7px); } to { opacity: 1; transform: translateY(0); } }
+@media (prefers-reduced-motion: reduce) { .osu-view-enter { animation: none; } #osu-layer { transition: none; } }
 .osu-view.is-on { display: flex; flex-direction: column; }
 
 /* ---------------- 主菜单 ---------------- */
@@ -139,6 +142,22 @@ body.osu-open #log-window { opacity: 0; pointer-events: none; }
 .osu-mode-card b { font-size: 15px; letter-spacing: .08em; }
 .osu-mode-card span { font-size: 10.5px; color: var(--text-muted, #a78bcc); line-height: 1.4; }
 .osu-mode-card .mc-icon { font-size: 20px; line-height: 1; color: var(--osu-accent2); font-style: normal; }
+/* 模式标签徽章：右上角霓虹小胶囊，每个模式独立色相 */
+.osu-mode-card .mc-tag {
+  position: absolute; top: 10px; right: 10px;
+  font: 700 9px/1 "Share Tech Mono", monospace;
+  letter-spacing: .14em; text-transform: uppercase; font-style: normal;
+  padding: 5px 8px; border-radius: 6px;
+  color: var(--mc-acc, var(--osu-accent2, #ff69b4));
+  border: 1px solid color-mix(in srgb, var(--mc-acc, var(--osu-accent2, #ff69b4)) 45%, transparent);
+  background: rgba(0,0,0,.34);
+  backdrop-filter: blur(4px);
+  text-shadow: 0 1px 4px rgba(0,0,0,.6);
+}
+.osu-mode-card[data-mode="std"]   { --mc-acc: #ff66aa; }
+.osu-mode-card[data-mode="taiko"] { --mc-acc: #ff8a3d; }
+.osu-mode-card[data-mode="catch"] { --mc-acc: #4fe3c1; }
+.osu-mode-card[data-mode="mania"] { --mc-acc: #9a7bff; }
 .osu-mode-card:hover { transform: translateY(-2px); border-color: var(--osu-accent2); }
 .osu-mode-card.is-active {
   border-color: var(--osu-accent2);
@@ -267,6 +286,7 @@ body.osu-open #log-window { opacity: 0; pointer-events: none; }
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;
 }
 .osu-board-wrap {
+  position: relative;
   flex: 1 1 auto; min-height: 0;
   display: flex; align-items: center; justify-content: center;
   padding: 4px 0 10px;
@@ -373,7 +393,8 @@ body.osu-open #log-window { opacity: 0; pointer-events: none; }
 .osu-result-actions { display: flex; gap: 10px; margin-top: 14px; }
 
 /* ---------------- 设置 / 下载 ---------------- */
-#osu-settings, #osu-download { gap: 12px; padding: 16px 0; overflow-y: auto; }
+#osu-download { gap: 12px; padding: 16px 0; overflow-y: auto; }
+#osu-settings { gap: 10px; padding: 16px 0; overflow: hidden; }
 .osu-section-title { margin: 0 0 4px; font-size: 22px; letter-spacing: .24em; font-weight: 800; }
 .osu-set-block {
   padding: 14px; border-radius: var(--osu-rad);
@@ -482,4 +503,921 @@ body.osu-open #log-window { opacity: 0; pointer-events: none; }
   .osu-play-mode { font-size: 9px; letter-spacing: .16em; }
   .osu-board-wrap { padding: 4px 0 6px; }
   .osu-edition { display: none; }
+}
+
+
+/* ---------------- 设置面板（lazer 式：左分类 + 右分页） ---------------- */
+.osu-set-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex: 0 0 auto; }
+.osu-set-sub { margin: 2px 0 0; font-size: 9px; letter-spacing: .28em; color: var(--text-muted, #a78bcc); }
+.osu-set-wrap { flex: 1 1 auto; min-height: 0; display: flex; gap: 16px; }
+
+.osu-set-cats {
+  flex: 0 0 auto; width: 168px; display: flex; flex-direction: column; gap: 4px;
+  overflow-y: auto; padding-right: 4px;
+}
+.osu-set-tab {
+  display: flex; flex-direction: column; gap: 2px; align-items: flex-start;
+  padding: 9px 12px; border-radius: 9px; text-align: left; cursor: pointer;
+  border: 1px solid transparent; background: transparent; color: var(--text-muted, #a78bcc);
+  transition: color .16s, background .16s, border-color .16s;
+}
+.osu-set-tab .tab-en { font-size: 11px; font-weight: 700; letter-spacing: .16em; }
+.osu-set-tab .tab-cn { font-size: 9px; letter-spacing: .12em; opacity: .7; }
+.osu-set-tab:hover { color: var(--text-main, #fff); background: color-mix(in srgb, var(--primary, #8a2be2) 12%, transparent); }
+.osu-set-tab.is-on {
+  color: var(--text-main, #fff);
+  border-color: color-mix(in srgb, var(--primary, #8a2be2) 45%, transparent);
+  background: color-mix(in srgb, var(--primary, #8a2be2) 20%, transparent);
+}
+
+.osu-set-pages { flex: 1 1 auto; min-width: 0; overflow-y: auto; }
+.osu-set-page {
+  display: flex; flex-direction: column; gap: 8px; padding: 4px 2px 18px;
+}
+.osu-set-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 18px;
+  padding: 12px 16px; border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--glass-border, rgba(138,43,226,.28)) 70%, transparent);
+  background: color-mix(in srgb, var(--glass-bg, rgba(15,8,25,.72)) 90%, transparent);
+}
+.osu-set-info { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.osu-set-name { font-size: 12.5px; font-weight: 700; letter-spacing: .06em; color: var(--text-main, #fff); }
+.osu-set-desc { font-size: 10px; line-height: 1.5; letter-spacing: .04em; color: var(--text-muted, #a78bcc); }
+
+/* 滑杆 */
+.osu-range { display: flex; align-items: center; gap: 10px; flex: 0 0 auto; }
+.osu-range-input {
+  -webkit-appearance: none; appearance: none;
+  width: 160px; height: 4px; border-radius: 2px; outline: none;
+  background: linear-gradient(90deg, var(--osu-accent2, #ff69b4), color-mix(in srgb, var(--primary, #8a2be2) 60%, transparent));
+  cursor: pointer;
+}
+.osu-range-input::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none;
+  width: 14px; height: 14px; border-radius: 50%;
+  background: var(--text-main, #fff); border: 2px solid var(--osu-accent2, #ff69b4);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--osu-accent2, #ff69b4) 60%, transparent);
+}
+.osu-range-input::-moz-range-thumb {
+  width: 12px; height: 12px; border-radius: 50%;
+  background: var(--text-main, #fff); border: 2px solid var(--osu-accent2, #ff69b4);
+}
+.osu-range-val { min-width: 46px; text-align: right; font-size: 11px; font-weight: 700; color: var(--osu-accent2, #ff69b4); }
+
+/* 开关 */
+.osu-switch {
+  flex: 0 0 auto; width: 48px; height: 26px; border-radius: 13px; padding: 0 3px;
+  display: flex; align-items: center; cursor: pointer;
+  border: 1px solid color-mix(in srgb, var(--text-main, #fff) 18%, transparent);
+  background: color-mix(in srgb, var(--text-main, #fff) 8%, transparent);
+  transition: background .18s, border-color .18s;
+}
+.osu-switch i {
+  display: block; width: 18px; height: 18px; border-radius: 50%;
+  background: color-mix(in srgb, var(--text-main, #fff) 60%, transparent);
+  transition: transform .18s ease, background .18s;
+}
+.osu-switch.is-on {
+  border-color: var(--osu-accent2, #ff69b4);
+  background: color-mix(in srgb, var(--osu-accent2, #ff69b4) 32%, transparent);
+}
+.osu-switch.is-on i { transform: translateX(22px); background: var(--text-main, #fff); }
+
+/* 游玩 HUD 里的 fps */
+.osu-cv-box { position: relative; display: block; line-height: 0; }
+.osu-hud-fps {
+  position: absolute; right: 14px; top: 12px; z-index: 3;
+  padding: 3px 8px; border-radius: 6px;
+  font-size: 10px; letter-spacing: .12em; color: var(--text-muted, #a78bcc);
+  background: rgba(0,0,0,.35);
+  pointer-events: none; opacity: .9;
+}
+
+@media (max-width: 860px) {
+  .osu-set-wrap { flex-direction: column; gap: 10px; }
+  .osu-set-cats {
+    width: 100%; flex-direction: row; overflow-x: auto; overflow-y: hidden;
+    padding: 0 0 4px; gap: 6px;
+  }
+  .osu-set-tab { flex: 0 0 auto; align-items: center; padding: 7px 12px; }
+  .osu-set-tab .tab-cn { display: none; }
+  .osu-set-row { flex-wrap: wrap; gap: 10px; padding: 11px 13px; }
+  .osu-range { width: 100%; }
+  .osu-range-input { width: 100%; flex: 1 1 auto; }
+}
+
+/* ---------------- 设置：胶囊选择（键数 / 帧率限制） ---------------- */
+.osu-chips { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
+.osu-chip {
+  min-width: 42px; padding: 7px 10px; border-radius: 8px;
+  border: 1px solid var(--glass-border, rgba(138,43,226,.35));
+  background: transparent; color: var(--text-muted, #a78bcc);
+  font-size: 11px; letter-spacing: .06em; transition: .16s ease;
+}
+.osu-chip:hover { color: var(--text-main, #fff); border-color: var(--osu-accent2); }
+.osu-chip.is-on {
+  color: var(--osu-accent2);
+  border-color: var(--osu-accent2);
+  background: color-mix(in srgb, var(--osu-accent2) 14%, transparent);
+  font-weight: 700;
+}
+
+/* ---------------- 游玩 HUD：FPS 数值 + 帧时间 + 波形 ---------------- */
+.osu-hud-fps {
+  position: absolute; top: 8px; right: 10px; z-index: 3;
+  padding: 6px 9px 7px;
+  border-radius: 9px;
+  border: 1px solid var(--glass-border, rgba(138,43,226,.3));
+  background: color-mix(in srgb, var(--bg-base, #050208) 72%, transparent);
+  font-size: 10px; letter-spacing: .08em;
+  line-height: 1.1;
+  pointer-events: none;
+}
+.osu-hud-fps .fps-line { display: flex; align-items: baseline; gap: 4px; }
+.osu-hud-fps b { font-size: 15px; font-weight: 700; color: var(--text-main, #fff); }
+.osu-hud-fps span { font-size: 9px; color: var(--text-muted, #a78bcc); letter-spacing: .18em; }
+.osu-hud-fps i { margin-left: 4px; font-style: normal; font-size: 9px; color: var(--text-muted, #a78bcc); }
+.osu-hud-fps.is-low b { color: #ff6b81; }
+.osu-hud-fps canvas { display: block; margin-top: 4px; width: 90px; height: 15px; opacity: .9; }
+
+/* ---------------- 下载页：osu! 官网 beatmap listing 复刻 ---------------- */
+.osu-web-head { display: flex; align-items: center; gap: 18px; flex: 0 0 auto; padding: 6px 0 10px; }
+.osu-web-logo { font-size: 20px; font-weight: 900; letter-spacing: -.02em; color: var(--text-main, #fff); white-space: nowrap; }
+.osu-web-logo span { color: var(--osu-accent2); }
+.osu-web-logo em { font-style: normal; margin-left: 8px; font-size: 11px; letter-spacing: .18em; color: var(--text-muted, #a78bcc); font-weight: 400; }
+.osu-web-search { position: relative; flex: 1 1 auto; max-width: 520px; display: flex; }
+.osu-web-search input {
+  flex: 1 1 auto; padding: 10px 14px; border-radius: 10px;
+  border: 1px solid var(--glass-border, rgba(138,43,226,.35));
+  background: color-mix(in srgb, var(--glass-bg, rgba(15,8,25,.7)) 80%, transparent);
+  color: var(--text-main, #fff); font-family: inherit; font-size: 12px;
+}
+.osu-web-search input:focus { outline: none; border-color: var(--osu-accent2); }
+.osu-web-search-btn {
+  position: absolute; right: 4px; top: 4px; bottom: 4px; width: 34px;
+  border: none; border-radius: 8px; background: transparent; color: var(--osu-accent2); font-size: 15px;
+}
+
+.osu-web-filters {
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  padding: 8px 0 10px; border-bottom: 1px solid var(--glass-border, rgba(138,43,226,.22));
+  flex: 0 0 auto;
+}
+.osu-web-modes { display: flex; gap: 5px; }
+.osu-web-modes button {
+  width: 34px; height: 34px; border-radius: 50%;
+  border: 1px solid var(--glass-border, rgba(138,43,226,.3));
+  background: transparent; color: var(--text-muted, #a78bcc); font-size: 14px;
+  transition: .16s ease;
+}
+.osu-web-modes button:hover { color: var(--text-main, #fff); }
+.osu-web-modes button.is-on {
+  color: var(--osu-accent2); border-color: var(--osu-accent2);
+  background: color-mix(in srgb, var(--osu-accent2) 14%, transparent);
+}
+.osu-web-tabs { display: flex; gap: 5px; flex-wrap: wrap; font-size: 10px; letter-spacing: .08em; color: var(--text-muted, #a78bcc); }
+.osu-web-tabs button { padding: 6px 9px; border-radius: 999px; border: 1px solid var(--glass-border, rgba(138,43,226,.22)); background: transparent; color: inherit; font: inherit; cursor: pointer; }
+.osu-web-tabs button:hover, .osu-web-tabs button.is-on { color: var(--osu-accent2); border-color: var(--osu-accent2); background: color-mix(in srgb, var(--osu-accent2) 12%, transparent); }
+.osu-web-sort { display:flex; align-items:center; gap:6px; color:var(--text-muted, #a78bcc); font-size:10px; }
+.osu-web-sort select { background:var(--glass-bg, rgba(15,8,25,.8)); color:var(--text-main,#fff); border:1px solid var(--glass-border,rgba(138,43,226,.3)); border-radius:8px; padding:7px 9px; font:inherit; max-width:150px; }
+.osu-web-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+
+.osu-web-list {
+  flex: 1 1 auto; min-height: 0; overflow-y: auto;
+  display: flex; flex-direction: column; gap: 8px; padding: 10px 2px 18px;
+}
+.osu-web-card {
+  display: flex; align-items: center; gap: 14px;
+  padding: 10px 12px; border-radius: 12px;
+  border: 1px solid var(--glass-border, rgba(138,43,226,.22));
+  background: color-mix(in srgb, var(--glass-bg, rgba(15,8,25,.7)) 82%, transparent);
+  transition: border-color .16s ease, transform .12s ease;
+}
+.osu-web-card:hover { border-color: var(--osu-accent2); transform: translateX(2px); }
+.osu-web-cover {
+  position: relative; flex: 0 0 auto;
+  width: 132px; height: 62px; border-radius: 8px;
+  background-size: cover; background-position: center;
+  display: grid; place-items: center;
+  overflow: hidden;
+  box-shadow: inset 0 0 24px rgba(0,0,0,.45);
+  color: rgba(255,255,255,.72); font-size: 20px;
+}
+.osu-web-cover .cover-stars {
+  position: absolute; left: 6px; bottom: 4px; font-size: 10px; font-weight: 700;
+  color: #fff; text-shadow: 0 1px 4px rgba(0,0,0,.8);
+}
+.osu-web-meta { flex: 1 1 auto; min-width: 0; }
+.osu-web-meta .w-title {
+  font-size: 14px; font-weight: 700; color: var(--text-main, #fff);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.osu-web-meta .w-artist { font-size: 11px; color: var(--osu-accent2); margin-top: 2px; }
+.osu-web-meta .w-mapper { font-size: 10px; letter-spacing: .06em; color: var(--text-muted, #a78bcc); margin-top: 3px; }
+.osu-web-tags {
+  flex: 0 0 auto; font-size: 10px; letter-spacing: .1em; color: var(--text-muted, #a78bcc);
+  display: flex; align-items: center; gap: 8px; white-space: nowrap;
+}
+.osu-web-tags em {
+  font-style: normal; padding: 3px 7px; border-radius: 5px;
+  border: 1px solid var(--glass-border, rgba(138,43,226,.3));
+  letter-spacing: .06em; color: var(--text-muted, #a78bcc);
+}
+.osu-web-tags em.w-ranked { color: var(--osu-accent2); border-color: var(--osu-accent2); }
+.osu-web-dl {
+  flex: 0 0 auto; padding: 9px 16px; border-radius: 999px;
+  border: 1px solid var(--osu-accent2);
+  background: color-mix(in srgb, var(--osu-accent2) 18%, transparent);
+  color: var(--osu-accent2); font-size: 10px; font-weight: 700; letter-spacing: .14em;
+  transition: .16s ease;
+}
+.osu-web-dl:hover { background: var(--osu-accent2); color: var(--bg-base, #050208); }
+
+@media (max-width: 860px) {
+  .osu-web-head { flex-wrap: wrap; gap: 8px; }
+  .osu-web-logo { font-size: 16px; }
+  .osu-web-cover { width: 84px; height: 52px; }
+  .osu-web-dl { padding: 8px 12px; }
+  .osu-web-tabs { display: none; }
+  .osu-web-tags em:nth-child(n+3) { display: none; }
+}
+
+@media (min-width: 1100px) {
+  .osu-web-tags em:nth-child(n+2) { display: inline-block; }
+}
+
+.osu-web-tags .w-mode {
+  font-size: 10px; letter-spacing: .12em; text-transform: uppercase;
+  color: var(--osu-accent2, #ff69b4);
+}
+
+/* ================= v1.6 追加：模式卡配图 / 倒计时 / 难度 / 删除 / 语言 / pp ================= */
+
+/* 每个模式卡一张纯色渐变图（img/osu/mode-*.jpg），随主题压暗 */
+.osu-mode-card { position: relative; overflow: hidden; isolation: isolate; }
+.osu-mode-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(180deg, rgba(4,0,10,.30), rgba(4,0,10,.66)), var(--mc-img);
+  background-size: cover, cover;
+  background-position: center, center;
+  opacity: .95;
+  filter: saturate(1.05);
+  z-index: 0;
+  transition: opacity .25s ease, transform .35s ease;
+}
+.osu-mode-card > * { position: relative; z-index: 1; text-shadow: 0 1px 8px rgba(0,0,0,.55); }
+.osu-mode-card[data-mode="std"] { --mc-img: url(../img/osu/mode-std.jpg); }
+.osu-mode-card[data-mode="taiko"] { --mc-img: url(../img/osu/mode-taiko.jpg); }
+.osu-mode-card[data-mode="catch"] { --mc-img: url(../img/osu/mode-catch.jpg); }
+.osu-mode-card[data-mode="mania"] { --mc-img: url(../img/osu/mode-mania.jpg); }
+.osu-mode-card:hover::before { transform: scale(1.04); }
+.osu-mode-card.is-active::before { opacity: 1; }
+
+/* 继续前的 3-2-1 */
+.osu-countdown {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: rgba(4, 2, 10, .34);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  z-index: 30;
+}
+.osu-countdown.is-on { opacity: 1; visibility: visible; }
+.osu-countdown .cd-num {
+  font: 800 clamp(72px, 12vw, 140px)/1 "Share Tech Mono", monospace;
+  color: #fff;
+  text-shadow: 0 2px 0 rgba(0,0,0,.45), 0 0 34px rgba(0,0,0,.55);
+}
+.osu-countdown .cd-label {
+  font: 700 13px/1 "Share Tech Mono", monospace;
+  letter-spacing: .32em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,.78);
+  text-shadow: 0 1px 3px rgba(0,0,0,.6);
+}
+.osu-countdown.beat .cd-num { animation: osuCountDown 1s cubic-bezier(.2,.75,.25,1) both; }
+@keyframes osuCountDown {
+  0%   { transform: scale(2.1); opacity: 0; }
+  18%  { transform: scale(1.18); opacity: 1; }
+  42%  { transform: scale(1); opacity: 1; }
+  100% { transform: scale(.96); opacity: .35; }
+}
+
+/* 选曲：删除按钮 + 难度列表 */
+.osu-song-card { position: relative; }
+.song-del {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  line-height: 1;
+  color: var(--text-muted, #a78bcc);
+  background: rgba(0, 0, 0, .35);
+  border: 1px solid var(--glass-border, rgba(138,43,226,.35));
+  opacity: .55;
+  transition: all .18s ease;
+}
+.osu-song-card:hover .song-del { opacity: 1; }
+.song-del:hover { color: #ff5c7a; border-color: #ff5c7a; }
+.song-del.is-armed {
+  width: auto;
+  padding: 0 7px;
+  border-radius: 10px;
+  color: #ff5c7a;
+  border-color: #ff5c7a;
+  background: rgba(255, 92, 122, .12);
+  font-size: 10px;
+  letter-spacing: .06em;
+}
+
+.osu-diffs { margin-top: 12px; }
+.osu-diffs-head {
+  font: 600 10px/1 "Share Tech Mono", monospace;
+  letter-spacing: .16em;
+  color: var(--text-muted, #a78bcc);
+  margin-bottom: 8px;
+}
+.osu-diff {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  padding: 7px 10px;
+  margin-bottom: 5px;
+  border-radius: 8px;
+  border: 1px solid var(--glass-border, rgba(138,43,226,.3));
+  background: rgba(255, 255, 255, .03);
+  color: var(--text-main, #f0f4f8);
+  font: 500 12px/1.2 "Share Tech Mono", monospace;
+  cursor: pointer;
+  transition: all .16s ease;
+}
+.osu-diff:hover { border-color: var(--primary, #8a2be2); background: rgba(138, 43, 226, .14); }
+.osu-diff.is-on {
+  border-color: var(--secondary, #ff69b4);
+  background: rgba(255, 105, 180, .16);
+  box-shadow: 0 0 0 1px rgba(255, 105, 180, .3) inset;
+}
+.osu-diff .diff-stars { color: var(--secondary, #ff69b4); font-size: 11px; }
+
+/* 语言按钮组：和主页 .lang-switch 一致的 EN / ZH */
+.osu-lang-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border-radius: 8px;
+  border: 1px solid var(--glass-border, rgba(138,43,226,.35));
+  background: var(--glass-bg, rgba(15,8,25,.6));
+}
+.osu-lang-switch .lang-btn {
+  padding: 5px 9px;
+  border-radius: 6px;
+  border: 0;
+  background: transparent;
+  color: var(--text-muted, #a78bcc);
+  font: 600 11px/1 "Share Tech Mono", monospace;
+  letter-spacing: .1em;
+  cursor: pointer;
+  transition: all .16s ease;
+}
+.osu-lang-switch .lang-btn:hover { color: var(--text-main, #f0f4f8); }
+.osu-lang-switch .lang-btn.active {
+  color: #fff;
+  background: var(--primary, #8a2be2);
+  box-shadow: 0 0 12px rgba(138, 43, 226, .5);
+}
+.osu-lang-switch .lang-sep { color: var(--text-muted, #a78bcc); font-size: 10px; opacity: .6; }
+
+/* 结果页 pp */
+.osu-res-ppline {
+  margin: 6px 0 2px;
+  font: 500 13px/1.4 "Share Tech Mono", monospace;
+  color: var(--text-muted, #a78bcc);
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  justify-content: center;
+}
+.osu-res-ppline .osu-res-pp {
+  font: 700 26px/1 "Share Tech Mono", monospace;
+  color: var(--secondary, #ff69b4);
+  text-shadow: 0 0 18px rgba(255, 105, 180, .45);
+}
+.osu-res-ppline .osu-res-stars {
+  margin-left: 12px;
+  color: #ffcc22;
+  font-size: 12px;
+}
+
+/* 设置里的危险按钮 + 加载更多 */
+.osu-btn.danger, .osu-btn.is-armed {
+  border-color: #ff5c7a;
+  color: #ff5c7a;
+}
+.osu-btn.is-armed { background: rgba(255, 92, 122, .14); }
+.osu-more { margin: 14px auto 0; display: block; }
+
+/* 删除按钮与 OSZ 标签不打架 */
+.osu-song-card .song-badge { margin-right: 18px; }
+
+/* ================= v1.7：浅色主题自适应 / 语言按钮 / FPS 右下 / 歌单 / 搜索网格 ================= */
+
+/* 模式卡上的文字永远压在暗图上，所以固定浅色，避免 paper / sneaker 主题下深字+暗图看不清 */
+.osu-mode-card b { color: #fff; }
+.osu-mode-card span { color: rgba(255, 255, 255, .84); }
+.osu-mode-card .mc-icon { color: #fff; opacity: .92; }
+
+/* 浅色主题：卡片压暗层稍微亮一点，字才不会闷在暗里 */
+:root.theme-paper .osu-mode-card::before,
+:root.theme-sneaker .osu-mode-card::before {
+  background-image: linear-gradient(180deg, rgba(0,0,0,.10), rgba(0,0,0,.48)), var(--mc-img);
+}
+:root.theme-paper .osu-mode-card,
+:root.theme-sneaker .osu-mode-card {
+  border-color: rgba(0, 0, 0, .18);
+  box-shadow: 0 2px 14px rgba(0, 0, 0, .10);
+}
+/* 浅色主题下日志 / 空提示别用半透明白 */
+:root.theme-paper .osu-log, :root.theme-sneaker .osu-log { background: rgba(0, 0, 0, .04); }
+:root.theme-paper .osu-empty, :root.theme-sneaker .osu-empty { color: var(--text-muted); }
+
+/* 语言按钮：直接复用主页 .lang-switch，这里只补一下内边距的轻量差异 */
+#osu-lang-switch { gap: 6px; padding: 4px 10px; }
+#osu-lang-switch .lang-btn { letter-spacing: .15em; }
+
+/* FPS 挪到右下角（电脑端惯例） */
+.osu-hud-fps {
+  right: 12px !important;
+  left: auto !important;
+  top: auto !important;
+  bottom: 12px !important;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+/* 左下角歌单卡（正在播放 / 待游玩） */
+.osu-nowplaying {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+}
+.osu-nowplaying .np-cover {
+  width: 64px;
+  height: 64px;
+  border-radius: 10px;
+  background-size: cover;
+  background-position: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  color: #fff;
+  overflow: hidden;
+}
+.osu-nowplaying .np-title { font-weight: 700; letter-spacing: .04em; }
+.osu-nowplaying .np-sub { color: var(--text-muted); font-size: 11px; margin-top: 2px; }
+.osu-nowplaying .np-chips {
+  display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px;
+}
+.osu-nowplaying .np-chip {
+  font: 500 10px/1 "Share Tech Mono", monospace;
+  padding: 3px 7px;
+  border-radius: 5px;
+  border: 1px solid var(--glass-border, rgba(138,43,226,.3));
+  color: var(--text-muted);
+}
+.osu-nowplaying .np-chip.np-stars { color: #ffcc22; border-color: rgba(255,204,34,.35); }
+.osu-nowplaying .np-side {
+  display: flex; flex-direction: column; align-items: flex-end; gap: 4px;
+  font: 600 10px/1.3 "Share Tech Mono", monospace;
+  color: var(--text-muted);
+  letter-spacing: .1em;
+}
+.osu-nowplaying .np-go {
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--glass-border, rgba(138,43,226,.35));
+  color: var(--text-main);
+  background: rgba(255,255,255,.04);
+}
+.osu-nowplaying:hover .np-go { border-color: var(--primary); color: var(--primary); }
+
+/* 下载页：卡片改成 osu! 官网那种网格 */
+.osu-web-list {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fill, minmax(232px, 1fr));
+  grid-auto-rows: max-content;
+  gap: 14px;
+  align-items: start;
+  align-content: start;
+}
+.osu-web-card {
+  display: flex !important;
+  flex-direction: column;
+  gap: 0;
+  overflow: hidden;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--glass-bg, rgba(15,8,25,.8)) 94%, transparent);
+  border: 1px solid var(--glass-border, rgba(138,43,226,.3));
+  transition: transform .16s ease, border-color .16s ease;
+}
+.osu-web-card:hover { transform: translateY(-2px); border-color: var(--primary, #8a2be2); }
+.osu-web-card .osu-web-cover {
+  position: relative;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 9;
+  padding-top: 0;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  border-radius: 0;
+}
+.osu-web-card .osu-web-cover > span {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  font-size: 34px; color: rgba(255,255,255,.85);
+}
+.osu-web-card .osu-web-cover .cover-stars {
+  position: absolute; left: 8px; bottom: 8px;
+  padding: 2px 7px; border-radius: 999px;
+  background: rgba(0,0,0,.62);
+  color: #ffcc22; font: 700 10px/1.4 "Share Tech Mono", monospace;
+}
+.osu-web-card .osu-web-meta { padding: 10px 12px 4px; }
+.osu-web-card .w-title { font: 700 13px/1.35 "Share Tech Mono", monospace; color: var(--text-main); }
+.osu-web-card .w-artist { font-size: 11px; opacity: .7; margin-top: 2px; }
+.osu-web-card .w-mapper { font-size: 10px; opacity: .5; margin-top: 2px; }
+.osu-web-card .osu-web-tags {
+  padding: 6px 12px 10px; display: flex; flex-wrap: wrap; gap: 5px;
+}
+.osu-web-card .osu-web-tags em, .osu-web-card .osu-web-tags span {
+  font: 500 9.5px/1 "Share Tech Mono", monospace;
+  padding: 3px 6px; border-radius: 4px;
+  border: 1px solid var(--glass-border, rgba(138,43,226,.3));
+  color: var(--text-muted);
+  font-style: normal;
+}
+.osu-web-card .osu-web-dl {
+  margin: 0 12px 12px;
+  padding: 8px 10px;
+  border-radius: 7px;
+  border: 1px solid var(--primary, #8a2be2);
+  background: color-mix(in srgb, var(--primary, #8a2be2) 18%, transparent);
+  color: var(--text-main);
+  font: 700 10px/1 "Share Tech Mono", monospace;
+  letter-spacing: .12em;
+  cursor: pointer;
+}
+.osu-web-card .osu-web-dl:hover { background: var(--primary, #8a2be2); color: #fff; }
+.osu-web-list .osu-more { grid-column: 1 / -1; }
+
+/* ---------------- v1.8：游玩界面按模式 / 按主题自适应 ---------------- */
+/* 浅色主题下 HUD 与游玩控件用深色墨水，避免白字压在米白/白底上 */
+:root.theme-paper .osu-hud span,
+:root.theme-sneaker .osu-hud span { color: #1b1109 !important; text-shadow: none !important; }
+:root.theme-paper .hud-combo span,
+:root.theme-sneaker .hud-combo span { color: var(--secondary) !important; }
+:root.theme-paper .osu-hud small,
+:root.theme-sneaker .osu-hud small { color: rgba(27,17,9,.55) !important; }
+:root.theme-paper .hud-hp, :root.theme-paper .hud-prog,
+:root.theme-sneaker .hud-hp, :root.theme-sneaker .hud-prog { background: rgba(0,0,0,.14); }
+:root.theme-paper .osu-pad,
+:root.theme-sneaker .osu-pad { color: #1b1109; background: rgba(255,255,255,.72); border-color: rgba(0,0,0,.16); }
+:root.theme-paper .osu-play-mode,
+:root.theme-sneaker .osu-play-mode { color: var(--secondary); }
+:root.theme-paper #osu-btn-quit, :root.theme-sneaker #osu-btn-quit,
+:root.theme-paper #osu-btn-pause, :root.theme-sneaker #osu-btn-pause {
+  color: #1b1109; border-color: rgba(0,0,0,.22); background: rgba(255,255,255,.6);
+}
+
+/* 画布：浅色主题下加一圈描边与柔和阴影，看着像"贴在纸上的卡"，不再是突兀的黑块 */
+:root.theme-paper .osu-board-wrap > .osu-cv-box,
+:root.theme-sneaker .osu-board-wrap > .osu-cv-box {
+  border: 1px solid rgba(0,0,0,.14);
+  box-shadow: 0 12px 34px rgba(60,40,20,.18), 0 0 0 1px rgba(255,255,255,.5) inset;
+}
+
+/* 模式色强调：游玩时的 HUD 连击、进度条、FPS 曲线取当前模式色 */
+:root.theme-paper .hud-prog i, :root.theme-sneaker .hud-prog i { background: var(--secondary); }
+
+/* 选曲：一张谱面集展开所有难度（点歌曲 → 直接选难度，像 osu 的 diff picker） */
+.osu-diff-pick {
+  display: flex; flex-wrap: wrap; gap: 6px;
+  margin: -4px 0 8px 8px;
+  padding: 8px 10px;
+  border-left: 2px solid var(--osu-accent2, #ff69b4);
+  border-radius: 0 8px 8px 0;
+  background: color-mix(in srgb, var(--glass-bg, rgba(15,8,25,.6)) 70%, transparent);
+}
+.osu-diff-btn {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 10px; border-radius: 7px;
+  border: 1px solid var(--glass-border, rgba(138,43,226,.32));
+  background: transparent; color: var(--text-main, #fff);
+  font: 700 11px/1 "Share Tech Mono", monospace; letter-spacing: .06em;
+  cursor: pointer; transition: .14s ease;
+}
+.osu-diff-btn b { font-weight: 700; }
+.osu-diff-btn span { font-size: 10px; color: var(--osu-accent2, #ff69b4); }
+.osu-diff-btn:hover { border-color: var(--osu-accent2, #ff69b4); }
+.osu-diff-btn.is-on {
+  background: color-mix(in srgb, var(--osu-accent2, #ff69b4) 22%, transparent);
+  border-color: var(--osu-accent2, #ff69b4);
+}
+:root.theme-paper .osu-diff-pick, :root.theme-sneaker .osu-diff-pick { background: rgba(0,0,0,.04); }
+:root.theme-paper .osu-diff-btn, :root.theme-sneaker .osu-diff-btn { color: #1b1109; border-color: rgba(0,0,0,.18); }
+
+/* v1.8：FPS 计数器收窄，别盖住 mania 最右一轨的键位字母；浅色主题下换浅玻璃 + 深字 */
+.osu-hud-fps { padding: 4px 7px 5px; border-radius: 7px; }
+.osu-hud-fps .fps-line { display: flex; align-items: baseline; gap: 4px; font-size: 10px; }
+.osu-hud-fps #osu-fps-graph { width: 92px; height: 16px; opacity: .85; }
+:root.theme-paper .osu-hud-fps, :root.theme-sneaker .osu-hud-fps {
+  background: rgba(255,255,255,.78);
+  border: 1px solid rgba(0,0,0,.16);
+  color: rgba(24,14,6,.62);
+}
+:root.theme-paper .osu-hud-fps b, :root.theme-sneaker .osu-hud-fps b { color: #1b1109; }
+
+/* 校准面板动作条 */
+.osu-calib-card .calib-actions { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 10px; }
+
+/* ============ v4.9：结算面板的 PB / 本地榜 ============ */
+.osu-result-extra { margin: 10px auto 0; width: min(520px, 88%); font-family: 'JetBrains Mono', ui-monospace, monospace; }
+.osu-res-pb {
+  display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;
+  padding: 10px 14px; border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--primary) 30%, transparent);
+  background: color-mix(in srgb, var(--primary) 8%, transparent);
+}
+.osu-res-pb.new { border-color: var(--secondary); background: color-mix(in srgb, var(--secondary) 12%, transparent); }
+.osu-res-pb span { font-size: 10px; letter-spacing: .2em; color: var(--text-muted); }
+.osu-res-pb b { font-size: 20px; color: var(--text-main); }
+.osu-res-pb em { font-style: normal; font-size: 12px; color: var(--text-muted); }
+.osu-res-pb i { font-style: normal; font-size: 10px; letter-spacing: .14em; color: var(--secondary); margin-left: auto; }
+.osu-res-board { margin-top: 10px; padding: 8px 12px; border-radius: 8px; border: 1px dashed color-mix(in srgb, var(--text-muted) 30%, transparent); }
+.osu-res-board > span { font-size: 10px; letter-spacing: .2em; color: var(--text-muted); }
+.osu-res-row { display: flex; gap: 10px; align-items: baseline; padding: 4px 0; font-size: 12px; }
+.osu-res-row b { color: var(--primary); min-width: 28px; }
+.osu-res-row em { font-style: normal; color: var(--text-main); }
+.osu-res-row i { font-style: normal; color: var(--text-muted); margin-left: auto; }
+
+/* v5.0 判定分布条 */
+.osu-res-dist { display: flex; height: 4px; border-radius: 2px; overflow: hidden; margin: 10px 0 6px; background: rgba(255,255,255,.06); }
+.osu-res-dist span { display: block; height: 100%; }
+.osu-res-dist-legend { display: flex; flex-wrap: wrap; gap: 3px 10px; font-family: monospace; font-size: 9px; letter-spacing: .08em; margin-bottom: 8px; }
+.osu-res-dist-legend i { font-style: normal; opacity: .95; }
+
+/* v5.2 皮肤包：覆盖强调色（不跟随站点主题） */
+#osu-app[data-skin="frost"] { --osu-accent: #5ec8ff; --osu-accent2: #2b8dff; }
+#osu-app[data-skin="ember"] { --osu-accent: #ffa53d; --osu-accent2: #ff4b2b; }
+#osu-app[data-skin="neon"]  { --osu-accent: #7dffb0; --osu-accent2: #18e0a8; }
+#osu-app[data-skin="mono"]  { --osu-accent: #e8e8e8; --osu-accent2: #8a8a8a; }
+
+.osu-skin-chip { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; }
+.osu-skin-chip i { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+.osu-skin-chip .auto-a { background: linear-gradient(135deg, #8a2be2 50%, #ff69b4 50%); width: 14px; }
+.osu-skin-chip .auto-b { display: none; }
+.osu-skin-chip span { font-size: 10px; letter-spacing: .12em; }
+
+/* ================= v1.8 visual cleanup: restrained lazer-inspired UI ================= */
+#osu-app::before {
+  background-image: radial-gradient(80% 70% at 0% 0%, rgba(255,66,145,.12), transparent 58%),
+                   linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px),
+                   linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px);
+  background-size: auto, 48px 48px, 48px 48px;
+  opacity: 1;
+}
+#osu-app { background: #111116; --osu-rad: 8px; }
+.osu-shell { padding-inline: clamp(14px, 3vw, 44px); }
+.osu-top { border-bottom-color: rgba(255,255,255,.10); }
+.osu-logo { text-shadow: none; color: #ff66aa; }
+.osu-edition { color: rgba(255,255,255,.42); letter-spacing: .16em; }
+.osu-btn { border-color: rgba(255,255,255,.14); background: rgba(255,255,255,.045); border-radius: 6px; letter-spacing: .08em; }
+.osu-btn:hover { transform: none; background: rgba(255,255,255,.09); border-color: rgba(255,102,170,.65); }
+.osu-btn.primary { background: #ff66aa; color: #19141a; box-shadow: none; font-weight: 900; }
+.osu-btn.primary:hover { filter: brightness(1.04); }
+.osu-icon-btn { border-color: rgba(255,255,255,.15); border-radius: 7px; }
+#osu-menu { gap: 16px; padding-top: clamp(12px, 2.4vh, 24px); }
+.osu-menu-hero { display:flex; align-items: baseline; gap: 18px; }
+.osu-menu-hero h1 { font-size: clamp(42px, 6vw, 72px); text-shadow: none; }
+.osu-menu-hero p { color: rgba(255,255,255,.45); letter-spacing: .16em; font-size: 11px; }
+.osu-mode-cards { gap: 9px; }
+.osu-mode-card {
+  min-height: 116px; padding: 15px; background: #1c1b22; border: 1px solid rgba(255,255,255,.09);
+  border-radius: 8px; gap: 6px; box-shadow: none;
+}
+.osu-mode-card::before {
+  inset: auto 0 0 auto; width: 38%; height: 100%;
+  background-image: linear-gradient(90deg, #1c1b22 0%, rgba(28,27,34,.25) 40%, rgba(28,27,34,.12) 100%), var(--mc-img);
+  background-size: cover; background-position: center; opacity: .32; filter: grayscale(.28) saturate(.7);
+  transition: opacity .2s ease;
+}
+.osu-mode-card:hover::before, .osu-mode-card.is-active::before { transform:none; opacity:.48; }
+.osu-mode-card > * { text-shadow: none; }
+.osu-mode-card .mc-tag { position: static; order: 0; background: transparent; border: 0; padding: 0; border-radius: 0; backdrop-filter:none; color: var(--mc-acc); text-shadow:none; opacity:.9; }
+.osu-mode-card .mc-icon { font-size: 23px; color: var(--mc-acc); opacity:1; }
+.osu-mode-card b { font-size: 19px; letter-spacing: .02em; }
+.osu-mode-card span { color: rgba(255,255,255,.56); font-size: 11px; }
+.osu-mode-card[data-mode="std"] { --mc-acc:#ff66aa; }
+.osu-mode-card[data-mode="taiko"] { --mc-acc:#ff765d; }
+.osu-mode-card[data-mode="catch"] { --mc-acc:#65d6b5; }
+.osu-mode-card[data-mode="mania"] { --mc-acc:#a997ff; }
+.osu-mode-card:hover { border-color: rgba(255,255,255,.22); }
+.osu-mode-card.is-active { border-color: var(--mc-acc); box-shadow: inset 0 0 0 1px var(--mc-acc); }
+.osu-menu-actions { gap: 8px; }
+.osu-nowplaying { background:#1c1b22; border:1px solid rgba(255,255,255,.09); border-radius:8px; }
+.np-cover { border-radius:5px; background:#2b2932; }
+.np-sub, .np-hint { color:rgba(255,255,255,.48); }
+.osu-log { background:rgba(0,0,0,.16); border-color:rgba(255,255,255,.08); color:rgba(255,255,255,.36); }
+.osu-mode-row button { border-radius:6px; border-color:rgba(255,255,255,.12); color:rgba(255,255,255,.52); }
+.osu-mode-row button.is-on { background:rgba(255,102,170,.12); border-color:#ff66aa; color:#ff66aa; }
+.osu-song-card { background:#1b1a20; border-radius:7px; border-color:rgba(255,255,255,.05); }
+.osu-song-card:hover { border-color:rgba(255,102,170,.42); }
+.osu-song-card.is-sel { background:rgba(255,102,170,.09); border-color:#ff66aa; }
+.osu-detail { background:#1b1a20; border-color:rgba(255,255,255,.09); border-radius:8px; }
+.detail-grid > div { background:rgba(255,255,255,.04); border-radius:5px; }
+.osu-select-foot { border-top-color:rgba(255,255,255,.1); }
+@media (max-width: 680px) {
+  .osu-menu-hero { align-items:flex-end; flex-wrap:wrap; gap:5px 12px; }
+  .osu-mode-card { min-height:105px; padding:12px; }
+  .osu-mode-card::before { width:42%; opacity:.24; }
+  .osu-mode-card b { font-size:17px; }
+  .osu-mode-card span { max-width:80%; }
+}
+
+/* ---- lazer-inspired visual pass: restrained, album-art-first, compact controls ---- */
+#osu-app { --osu-rad: 5px; --osu-accent: #ff66aa; --osu-accent2: #ff66aa; background: #17171b; font-family: Inter, "Segoe UI", system-ui, sans-serif; }
+#osu-app::before { background: linear-gradient(120deg, rgba(255,102,170,.09), transparent 38%), linear-gradient(0deg, #17171b, #202027); opacity: 1; }
+.osu-shell { padding-left: clamp(12px,2vw,28px); padding-right: clamp(12px,2vw,28px); }
+.osu-top { height: 54px; border-bottom-color: rgba(255,255,255,.09); }
+.osu-logo { text-shadow:none; font-family: Inter, system-ui, sans-serif; font-size: 27px; font-weight: 900; }
+.osu-edition { color: rgba(255,255,255,.42); letter-spacing:.1em; font-family: inherit; }
+.osu-btn { border-radius: 4px; background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.12); letter-spacing:.03em; font-family: inherit; }
+.osu-btn:hover { transform:none; background: rgba(255,255,255,.12); color:#fff; border-color:rgba(255,255,255,.3); }
+.osu-btn.primary { background:#ff66aa; border-color:#ff66aa; box-shadow:none; color:#21151c; font-weight:800; }
+.osu-btn.primary:hover { background:#ff86bb; color:#21151c; }
+.osu-icon-btn { border-radius:4px; border-color:rgba(255,255,255,.12); }
+#osu-menu { padding-top: clamp(10px,2vh,22px); gap:12px; }
+.osu-menu-hero h1 { font-size:clamp(46px,7vw,82px); text-shadow:none; font-family:Inter,system-ui,sans-serif; }
+.osu-menu-hero p { font-family:inherit; color:rgba(255,255,255,.48); letter-spacing:.12em; font-size:11px; }
+.osu-mode-cards { gap:8px; }
+.osu-mode-card { position:relative; min-height:122px; padding:0 12px 12px; border:0; border-radius:5px; overflow:hidden; background: #292930; isolation:isolate; }
+.osu-mode-card::before { content:""; position:absolute; inset:0; z-index:-1; background-image:linear-gradient(0deg,rgba(12,12,15,.94),rgba(12,12,15,.12) 70%), var(--mode-art); background-size:cover; background-position:center; opacity:.9; }
+.osu-mode-card[data-mode="std"] { --mode-art:url('../img/osu/mode-std.jpg'); }
+.osu-mode-card[data-mode="taiko"] { --mode-art:url('../img/osu/mode-taiko.jpg'); }
+.osu-mode-card[data-mode="catch"] { --mode-art:url('../img/osu/mode-catch.jpg'); }
+.osu-mode-card[data-mode="mania"] { --mode-art:url('../img/osu/mode-mania.jpg'); }
+.osu-mode-card .mc-tag { top:9px; right:9px; border:0; background:rgba(0,0,0,.45); color:#fff; backdrop-filter:none; text-shadow:none; }
+.osu-mode-card .mc-icon { margin-top:auto; font-size:24px; color:var(--mc-acc); }
+.osu-mode-card b { font-size:18px; letter-spacing:0; font-weight:850; text-transform:none; }
+.osu-mode-card span { color:rgba(255,255,255,.7); font-family:inherit; font-size:11px; }
+.osu-mode-card:hover { transform:translateY(-1px); filter:brightness(1.06); }
+.osu-mode-card.is-active { outline:2px solid var(--mc-acc); outline-offset:-2px; box-shadow:none; }
+.osu-menu-actions { gap:7px; }
+.osu-nowplaying { border:0; border-radius:5px; background:#292930; padding:10px; gap:10px; }
+.np-cover { border-radius:3px; width:54px; height:54px; }
+.np-title { font-size:14px; }
+.np-sub,.np-hint { color:rgba(255,255,255,.52); }
+.osu-log { border:0; border-radius:3px; background:rgba(0,0,0,.22); color:rgba(255,255,255,.38); height:50px; }
+#osu-select { gap:8px; padding-top:10px; }
+.osu-select-head { align-items:flex-start; flex-wrap:wrap; }
+.osu-mode-row { gap:3px; }
+.osu-mode-row button { border:0; border-radius:3px; padding:9px 14px; color:rgba(255,255,255,.55); background:rgba(255,255,255,.06); font-family:inherit; letter-spacing:0; }
+.osu-mode-row button.is-on { background:#ff66aa; color:#24151d; border:0; }
+.osu-select-tools { display:flex; align-items:center; gap:8px; margin-left:auto; flex-wrap:wrap; }
+.osu-local-search { display:flex; align-items:center; gap:7px; width:min(280px,48vw); padding:7px 10px; border-radius:4px; background:rgba(255,255,255,.07); color:rgba(255,255,255,.45); }
+.osu-local-search input { border:0; outline:0; min-width:0; width:100%; background:transparent; color:#fff; font:inherit; font-size:12px; }
+.osu-local-search input::placeholder { color:rgba(255,255,255,.38); }
+#osu-local-sort { border:0; border-radius:4px; padding:8px 10px; background:rgba(255,255,255,.07); color:rgba(255,255,255,.7); font:inherit; font-size:12px; }
+.osu-select-tip { font-family:inherit; letter-spacing:0; color:rgba(255,255,255,.42); }
+.osu-select-body { grid-template-columns:minmax(0,1fr) minmax(0,340px); gap:8px; }
+.osu-song-list { gap:3px; padding:0 3px 0 0; }
+.osu-song-card { border-radius:3px; border:0; background:rgba(255,255,255,.045); padding:7px; gap:10px; }
+.osu-song-card:hover { background:rgba(255,255,255,.09); border:0; }
+.osu-song-card.is-sel { background:rgba(255,102,170,.18); box-shadow:inset 3px 0 #ff66aa; border:0; }
+.song-cover { border-radius:3px; width:58px; height:58px; }
+.song-title { font-size:13px; font-weight:750; }
+.song-meta { color:rgba(255,255,255,.48); font-size:11px; }
+.song-badge { border:0; background:rgba(255,255,255,.08); color:rgba(255,255,255,.45); font-size:9px; }
+.osu-detail { border:0; border-radius:4px; background:#292930; padding:0; gap:0; overflow-y:auto; }
+.osu-detail-cover { height:clamp(120px,22vh,190px); border-radius:0; background-size:cover!important; background-position:center!important; position:relative; font-size:0; }
+.osu-detail-cover::after { content:""; position:absolute; inset:0; background:linear-gradient(0deg,#292930,transparent 60%); }
+.osu-detail-main { padding:0 14px 14px; position:relative; margin-top:-26px; z-index:1; }
+.detail-title { font-size:19px; line-height:1.15; font-weight:850; }
+.detail-artist { color:rgba(255,255,255,.72); font-size:12px; }
+.detail-mapper { color:rgba(255,255,255,.4); font-size:11px; }
+.detail-grid { gap:4px; }
+.detail-grid>div { border-radius:3px; padding:7px 9px; background:rgba(255,255,255,.055); }
+.detail-grid span { color:rgba(255,255,255,.4); letter-spacing:.1em; }
+.detail-grid b { font-size:13px; }
+.osu-diffs-head { color:rgba(255,255,255,.45); letter-spacing:.06em; }
+.osu-diff { border-radius:3px; border-color:rgba(255,255,255,.1); background:rgba(255,255,255,.04); }
+.osu-diff.is-on { border-color:#ff66aa; background:rgba(255,102,170,.12); color:#ff9ac8; }
+.osu-select-foot { border-top:1px solid rgba(255,255,255,.08); padding-top:8px; }
+.osu-mod { border-radius:3px; border-color:rgba(255,255,255,.1); background:rgba(255,255,255,.04); font-family:inherit; }
+.osu-mod.is-on { background:rgba(255,102,170,.12); border-color:#ff66aa; color:#ff9ac8; }
+.osu-mult { letter-spacing:0; }
+.osu-btn.big { padding:12px 28px; border-radius:4px; }
+@media(max-width:860px) { .osu-select-body { grid-template-columns:1fr; } .osu-detail { max-height:32vh; } .osu-select-tools { width:100%; margin-left:0; } .osu-local-search { flex:1; width:auto; } }
+@media(max-width:560px) { .osu-mode-cards { grid-template-columns:repeat(2,minmax(0,1fr)); } .osu-mode-card { min-height:105px; } .osu-select-head { gap:6px; } .osu-select-tip { display:none; } .osu-mode-row button { padding:8px 10px; } .osu-detail-cover { height:100px; } .osu-detail-main { margin-top:-20px; padding:0 10px 10px; } .osu-detail { max-height:30vh; } .osu-select-foot { align-items:flex-start; } .osu-mods { max-width:55%; } }
+
+/* lazer-inspired beatmap artwork, difficulty colors and restrained motion */
+.song-cover { background-size:cover!important; background-position:center!important; background-repeat:no-repeat!important; overflow:hidden; flex-shrink:0; }
+.song-cover:not([style*="background-image"]) { display:grid; place-items:center; }
+.song-rating { min-width:54px; text-align:right; font-size:11px; font-weight:800; letter-spacing:.01em; }
+.song-rating.low { color:#8bd3ff; }
+.song-rating.mid { color:#9ee493; }
+.song-rating.high { color:#ffd166; }
+.song-rating.expert { color:#ff8fbc; }
+.osu-song-card { transition:background .14s ease,transform .14s ease,box-shadow .14s ease; }
+.osu-song-card:hover { transform:translateX(2px); }
+.osu-song-card.is-sel .song-cover { box-shadow:0 0 0 1px rgba(255,255,255,.18); }
+.osu-detail-cover { background-size:cover!important; background-position:center!important; transition:background-image .2s ease; }
+.osu-detail.has-real-cover .osu-detail-cover::after { background:linear-gradient(0deg,#292930 2%,rgba(41,41,48,.38) 50%,rgba(0,0,0,.06)); }
+.osu-detail [data-d="stars"] { transition:color .18s ease; }
+.osu-diff { transition:background .14s ease,border-color .14s ease,transform .14s ease; }
+.osu-diff:hover { transform:translateY(-1px); }
+@media(prefers-reduced-motion:reduce) { .osu-song-card,.osu-diff,.osu-detail-cover { transition:none!important; } }
+
+/* lazer-inspired beatmap artwork, difficulty colors and restrained motion */
+.song-cover { background-size:cover!important; background-position:center!important; background-repeat:no-repeat!important; overflow:hidden; flex-shrink:0; }
+.song-rating { min-width:54px; text-align:right; font-size:11px; font-weight:800; letter-spacing:.01em; }
+.song-rating.low { color:#8bd3ff; }
+.song-rating.mid { color:#9ee493; }
+.song-rating.high { color:#ffd166; }
+.song-rating.expert { color:#ff8fbc; }
+.osu-song-card { transition:background .14s ease,transform .14s ease,box-shadow .14s ease; }
+.osu-song-card:hover { transform:translateX(2px); }
+.osu-song-card.is-sel .song-cover { box-shadow:0 0 0 1px rgba(255,255,255,.18); }
+.osu-detail-cover { background-size:cover!important; background-position:center!important; transition:background-image .2s ease; }
+.osu-detail.has-real-cover .osu-detail-cover::after { background:linear-gradient(0deg,#292930 2%,rgba(41,41,48,.38) 50%,rgba(0,0,0,.06)); }
+.osu-detail [data-d="stars"] { transition:color .18s ease; }
+.osu-diff { transition:background .14s ease,border-color .14s ease,transform .14s ease; }
+.osu-diff:hover { transform:translateY(-1px); }
+@media(prefers-reduced-motion:reduce) { .osu-song-card,.osu-diff,.osu-detail-cover { transition:none!important; } }
+
+/* Beatmap preview controls — compact lazer-inspired player */
+.osu-preview-control{display:flex;align-items:center;gap:10px;margin:12px 0 4px;padding:8px 10px;background:rgba(12,12,15,.48);border:1px solid rgba(255,255,255,.08);border-radius:5px;min-height:38px}
+.osu-preview-btn{display:inline-flex;align-items:center;gap:7px;border:0;border-radius:4px;padding:7px 11px;background:#ff66ab;color:#19151a;font:700 11px/1 inherit;letter-spacing:.06em;cursor:pointer;transition:background .16s,transform .16s;white-space:nowrap}
+.osu-preview-btn:hover:not(:disabled){background:#ff8bc0;transform:translateY(-1px)}
+.osu-preview-btn:disabled{opacity:.38;cursor:not-allowed}
+.osu-preview-btn.is-playing{background:#f4f4f5;color:#27232a}
+.preview-icon{font-size:12px}
+.osu-preview-volume{display:flex;align-items:center;gap:7px;flex:1;min-width:65px;color:rgba(255,255,255,.5);font:600 9px/1 monospace;letter-spacing:.08em}
+.osu-preview-volume input{width:100%;min-width:45px;height:3px;accent-color:#ff66ab;cursor:pointer}
+.osu-preview-status{font:600 9px/1 monospace;letter-spacing:.08em;color:rgba(255,255,255,.42);min-width:48px;text-align:right}
+.osu-preview-status:where(:not(:empty)){white-space:nowrap}
+@media(max-width:560px){.osu-preview-control{gap:7px;margin-top:8px;padding:6px 8px}.osu-preview-btn{padding:7px 8px;font-size:10px}.osu-preview-status{min-width:40px}}
+@media(prefers-reduced-motion:reduce){.osu-preview-btn{transition:none}}
+
+/* Preview timeline / seek */
+.osu-preview-seek{display:flex;align-items:center;gap:6px;flex:1 1 150px;min-width:100px;color:rgba(255,255,255,.48);font:600 9px/1 monospace;font-variant-numeric:tabular-nums}
+.osu-preview-seek span{min-width:28px;text-align:center}
+.osu-preview-seek input{flex:1;width:100%;min-width:35px;height:3px;margin:0;accent-color:#ff66ab;cursor:pointer}
+.osu-preview-seek input:disabled{opacity:.35;cursor:not-allowed}
+@media(max-width:560px){.osu-preview-control{flex-wrap:wrap}.osu-preview-seek{order:3;flex-basis:100%;min-width:100%;padding:2px 3px}.osu-preview-volume{flex:1 1 80px}}
+/* Import drag-and-drop affordance */
+#osu-select.osu-drop-active { outline: 2px dashed var(--osu-pink, #ff66aa); outline-offset: -8px; background: rgba(255,102,170,.055); }
+#osu-select.osu-drop-active::after { content: 'DROP .OSZ / .OSU TO IMPORT'; position: fixed; inset: 18px; z-index: 80; display: grid; place-items: center; border: 2px dashed var(--osu-pink, #ff66aa); border-radius: 16px; background: rgba(20,18,24,.88); color: var(--osu-pink, #ff66aa); font-weight: 800; letter-spacing: .12em; pointer-events: none; }
+
+@media(max-width:640px){ .osu-web-head{align-items:stretch;flex-direction:column;gap:8px}.osu-web-filters{gap:8px}.osu-web-tabs{order:3;width:100%}.osu-web-sort{order:4}.osu-web-right{margin-left:auto}.osu-web-card{gap:8px;padding:8px}.osu-web-cover{width:90px;height:56px}.osu-web-tags{flex-wrap:wrap;white-space:normal;gap:4px}.osu-web-sort select{max-width:130px}}
+
+/* Online beatmapset details dialog */
+.osu-set-modal{position:fixed;inset:0;z-index:9999;display:none;align-items:center;justify-content:center;padding:16px}.osu-set-modal.is-open{display:flex}.osu-set-modal-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.76);backdrop-filter:blur(5px)}.osu-set-modal-panel{position:relative;width:min(760px,96vw);max-height:88vh;overflow:auto;background:var(--bg-panel,#17121e);border:1px solid var(--primary,#9a50e8);border-radius:14px;box-shadow:0 24px 80px #0009;padding:20px}.osu-set-modal-close{position:absolute;right:12px;top:10px;border:0;background:transparent;color:inherit;font-size:28px;cursor:pointer}.osu-set-modal-title{font-size:22px;font-weight:800;padding-right:35px}.osu-set-modal-sub{opacity:.7;font-size:12px;margin:5px 0 14px}.osu-set-modal-state{font-size:11px;opacity:.65;margin:8px 0}.osu-set-modal-diffs{display:flex;flex-direction:column;gap:7px}.osu-set-diff-row{width:100%;text-align:left;display:grid;grid-template-columns:minmax(110px,1fr) auto;gap:5px 12px;padding:10px 12px;border:1px solid var(--border-color,#37303f);background:rgba(255,255,255,.025);color:inherit;border-radius:8px;cursor:pointer}.osu-set-diff-row:hover,.osu-set-diff-row.is-selected{border-color:var(--primary,#9a50e8);background:rgba(154,80,232,.12)}.osu-set-diff-name{font-weight:700}.osu-set-diff-name small{display:block;font-size:10px;opacity:.6;font-weight:400;text-transform:uppercase}.osu-set-diff-star{font-weight:800;color:#f2b64a}.osu-set-diff-stats{grid-column:1/-1;font-size:11px;opacity:.75}.osu-set-modal-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}.osu-set-modal-actions button{border:1px solid var(--primary,#9a50e8);border-radius:8px;padding:10px 13px;background:var(--primary,#9a50e8);color:#fff;font-weight:700;cursor:pointer}.osu-set-modal-actions button:disabled{opacity:.4;cursor:not-allowed}.osu-set-modal-actions .osu-set-download-all{background:transparent;color:inherit}@media(max-width:560px){.osu-set-modal-panel{padding:15px}.osu-set-diff-row{grid-template-columns:1fr auto}.osu-set-modal-title{font-size:18px}}
+
+/* Cross-device refinements */
+@media (max-width: 760px) { #osu-app { font-size: 14px; } .osu-shell { padding-left: 10px; padding-right: 10px; } .osu-top { gap: 8px; flex-wrap: wrap; } .osu-top-actions { gap: 5px; } .osu-top-actions .osu-btn { padding: 8px 10px; font-size: 11px; } .osu-mode-cards { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; } .osu-mode-card { min-height: 120px; } .osu-select-tools { flex-wrap: wrap; } .osu-local-search { flex: 1 1 100%; min-width: 0; } #osu-local-sort { flex: 1 1 45%; min-width: 0; } .osu-select-body { min-height: 0; } .osu-song-list { overflow-y: auto; -webkit-overflow-scrolling: touch; } .osu-set-modal { width: min(96vw, 700px); max-height: 88dvh; overflow-y: auto; } }
+@media (min-width: 761px) and (max-width: 1100px) { .osu-shell { padding-inline: 20px; } .osu-mode-cards { grid-template-columns: repeat(2,minmax(0,1fr)); } }
+
+@media (max-width: 760px) { .osu-set-modal-panel { width: min(96vw, 700px); max-height: 88dvh; overflow-y: auto; } }
+
+/* Local collection filters */
+.osu-local-filter{display:flex;gap:5px;flex-wrap:wrap}.osu-local-filter button{border:1px solid var(--osu-line,rgba(255,255,255,.15));background:transparent;color:inherit;border-radius:999px;padding:5px 9px;font-size:10px;letter-spacing:.08em;cursor:pointer}.osu-local-filter button.is-on{background:var(--osu-accent,#b066ff);color:#fff;border-color:transparent}.song-fav{position:absolute;right:7px;top:7px;z-index:3;font-size:18px;line-height:1;color:#aaa;text-shadow:0 1px 5px #000;cursor:pointer;padding:4px}.song-fav.is-on{color:#ffd166}.osu-song-card{position:relative}
+@media(max-width:700px){.osu-local-filter button{padding:6px 8px}.osu-select-tools{gap:7px}.osu-local-search{min-width:0;flex:1}.osu-select-tip{display:none}}
+/* Recent-play history: compact osu-style profile history on result screen */
+.osu-res-history { max-height: 172px; overflow-y: auto; overscroll-behavior: contain; }
+.osu-res-history .osu-res-row { align-items: flex-start; gap: 7px; flex-wrap: wrap; }
+.osu-res-history .osu-res-row i { margin-left: 0; flex: 1 1 100%; font-size: 10px; line-height: 1.45; }
+@media (max-width: 520px) {
+  .osu-res-history { padding: 7px 9px; }
+  .osu-res-history .osu-res-row em { font-size: 11px; }
+  .osu-res-history .osu-res-row i { font-size: 9px; overflow-wrap: anywhere; }
 }

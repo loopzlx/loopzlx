@@ -9,14 +9,6 @@
 <canvas id="matrix-canvas"></canvas>
 <div id="danmaku-container"></div>
 
-<!-- 日志 -->
-<div id="log-window">
-    <div style="font-size:8px;margin-bottom:8px;letter-spacing:2px;display:flex;justify-content:space-between;border-bottom:1px solid var(--glass-border);padding-bottom:6px">
-        <span>KERNEL_V4.4_OS</span><span id="log-mode">STABLE</span>
-    </div>
-    <div id="log-content"></div>
-</div>
-
 <!-- 导航 -->
 <nav class="fixed w-full z-50 px-5 md:px-12" id="main-nav">
     <div class="max-w-7xl mx-auto flex justify-between items-center gap-4">
@@ -26,8 +18,8 @@
 
         <div class="nav-links hidden xl:flex items-center gap-6 xl:gap-8 text-[11px] font-bold uppercase tracking-widest whitespace-nowrap">
             <a href="#home"     data-en="Home"     data-zh="主页" class="text-white/60 hover:text-white hover:drop-shadow-[0_0_8px_var(--primary)] transition-all">Home</a>
-            <a href="#about" data-nav-secondary    data-en="About"    data-zh="关于" class="text-white/60 hover:text-white hover:drop-shadow-[0_0_8px_var(--primary)] transition-all">About</a>
-            <a href="#skills" data-nav-secondary   data-en="Matrix"   data-zh="矩阵" class="text-white/60 hover:text-white hover:drop-shadow-[0_0_8px_var(--primary)] transition-all">Matrix</a>
+            
+            
             <a href="#projects" data-nav-secondary data-en="Projects" data-zh="项目" class="text-white/60 hover:text-white hover:drop-shadow-[0_0_8px_var(--primary)] transition-all">Projects</a>
             <div class="more-menu" data-nav-secondary>
                 <button type="button" class="more-btn" id="more-btn" aria-expanded="false" aria-controls="more-panel" aria-haspopup="true">
@@ -37,6 +29,7 @@
                     <a href="#market" data-market-open data-en="Market Feed" data-zh="行情监控" class="more-item"><i class="fas fa-chart-line"></i><span>Market Feed</span></a>
                     <a href="#osu" data-osu-open data-en="osu! Kernel" data-zh="osu! 内核" class="more-item"><i class="fas fa-gamepad"></i><span>osu! Kernel</span></a>
                     <a href="#gamehub" data-gamehub-open data-en="GameHub" data-zh="游戏中心" class="more-item"><i class="fas fa-dice"></i><span>GameHub</span></a>
+                    <a href="#about" data-lzx-tool="about" data-en="About / Diag" data-zh="关于 / 自检" class="more-item"><i class="fas fa-circle-info"></i><span>About / Diag</span></a>
                 </div>
             </div>
             <div class="lang-switch font-mono">
@@ -58,12 +51,13 @@
 
     <div id="mobile-menu" class="hidden xl:hidden flex-col gap-4 max-w-7xl mx-auto mt-4 p-5 border border-white/10 rounded-2xl backdrop-blur-xl text-[11px] font-bold uppercase tracking-widest">
         <a href="#home"     data-en="Home"     data-zh="主页" class="text-white/70 hover:text-white py-1">Home</a>
-        <a href="#about"    data-nav-secondary data-en="About"    data-zh="关于" class="text-white/70 hover:text-white py-1">About</a>
-        <a href="#skills"   data-nav-secondary data-en="Matrix"   data-zh="矩阵" class="text-white/70 hover:text-white py-1">Matrix</a>
+        
+        
         <a href="#projects" data-nav-secondary data-en="Projects" data-zh="项目" class="text-white/70 hover:text-white py-1">Projects</a>
         <a href="#market" data-market-open data-en="Market" data-zh="行情" class="text-white/70 hover:text-white py-1">Market</a>
         <a href="#osu" data-osu-open data-en="osu!" data-zh="osu! 音游" class="text-white/70 hover:text-white py-1">osu!</a>
         <a href="#gamehub" data-gamehub-open data-en="GameHub" data-zh="游戏中心" class="text-white/70 hover:text-white py-1">GameHub</a>
+        <a href="#celeste" data-celeste-open data-en="Celeste" data-zh="蔚蓝" class="text-white/70 hover:text-white py-1">Celeste</a>
         <div class="lang-switch font-mono self-start">
             <button type="button" class="lang-btn active" id="m-btn-en" data-lang="en">EN</button>
             <span class="text-gray-700">/</span>
@@ -74,8 +68,8 @@
 </nav>
 
 <!-- 首页大标题 -->
-<section id="home" class="w-full hero-screen flex flex-col items-center justify-center text-center relative px-5 sm:px-6 py-24">
-    <div class="absolute top-20 sm:top-28 left-0 right-0 max-w-7xl mx-auto px-5 sm:px-12 flex justify-between items-start opacity-40 pointer-events-none">
+<section id="home" class="w-full hero-screen flex flex-col justify-center relative px-5 sm:px-6 py-24">
+    <div id="hero-meta" class="absolute top-20 sm:top-28 left-0 right-0 max-w-7xl mx-auto px-5 sm:px-12 flex justify-between items-start opacity-40 pointer-events-none">
         <div class="text-[7px] sm:text-[10px] font-mono uppercase tracking-[0.2em] sm:tracking-[0.3em] text-left" style="color:var(--primary)" data-en="Neural Link: Stable" data-zh="神经连接：稳定">Neural Link: Stable</div>
         <div class="text-right font-mono">
             <div id="live-clock" class="text-xs sm:text-sm font-bold text-white tracking-widest opacity-80">00:00:00 <span class="text-[9px] font-normal opacity-50">UTC</span></div>
@@ -83,59 +77,94 @@
         </div>
     </div>
 
-    <div class="z-10 w-full">
-        <img id="hero-avatar" src="avatar.png" alt="loopzlx avatar" class="w-20 h-20 sm:w-28 sm:h-28 rounded-full border-2 border-white/20 p-1 mb-5 sm:mb-6 mx-auto reveal hover:border-[var(--primary)] transition-colors duration-300" onerror="this.style.display='none'">
-        <h1 class="text-4xl sm:text-6xl md:text-8xl font-black mb-5 sm:mb-6 text-white tracking-tighter uppercase reveal glitch-text" data-text="loopzlx">loopzlx</h1>
-        <div class="flex gap-5 sm:gap-8 mb-6 sm:mb-8 justify-center reveal">
-            <a href="https://github.com/loopzlx" target="_blank" rel="noopener" class="social-link text-xl sm:text-2xl" title="GitHub"><i class="fab fa-github"></i></a>
-            <a href="https://youtube.com/@loopelzeta?si=bzGWMIR7JFG1kxIH" target="_blank" rel="noopener" class="social-link text-xl sm:text-2xl" title="YouTube"><i class="fab fa-youtube"></i></a>
-            <a href="https://space.bilibili.com/3546616348806078" target="_blank" rel="noopener" class="social-link text-xl sm:text-2xl" title="Bilibili"><i class="fa-brands fa-bilibili"></i></a>
-            <a href="https://qm.qq.com/q/shpXHNfIpa" target="_blank" rel="noopener" class="social-link text-xl sm:text-2xl" title="QQ Group"><i class="fab fa-qq"></i></a>
-        </div>
-        <p class="text-base sm:text-lg md:text-xl font-mono text-gray-400 h-8 reveal uppercase px-2"><span id="typing-text" class="cursor-blink"></span></p>
-    </div>
-</section>
-
-<!-- About -->
-<section id="about" class="py-20 md:py-32 px-5 sm:px-6 md:px-12 max-w-7xl mx-auto">
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-20 items-center">
-        <div class="lg:col-span-7 space-y-6 md:space-y-10 reveal">
-            <h2 class="text-3xl sm:text-5xl md:text-7xl font-black italic text-white uppercase leading-tight" data-en="Kinetic by Design." data-zh="以动塑形，因简而生。">Kinetic by Design.</h2>
-            <div class="glass-card p-6 md:p-10 rounded-2xl border-l-4" style="border-left-color:var(--primary)">
-                <p class="text-lg sm:text-xl md:text-2xl text-gray-200 font-light italic leading-relaxed" id="about-quote">"Code shapes the logic. Movement defies gravity. Design bridges the gap."</p>
+    <div class="hero-grid">
+        <!-- 左：头像 / 名字 / 社交 / 打字机 -->
+        <div class="hero-left">
+            <div class="hero-id">
+                <img id="hero-avatar" src="avatar.png" alt="loopzlx avatar" class="w-20 h-20 sm:w-24 sm:h-24 rounded-full border-2 border-white/20 p-1 mx-auto reveal hover:border-[var(--primary)] transition-colors duration-300" onerror="this.style.display='none'">
+                <div class="hero-id-meta reveal">
+                    <span class="hero-id-tag">PORTFOLIO<span>//</span>2026</span>
+                    <span class="hero-id-role">UI · WEB · MOTION</span>
+                    <span class="hero-id-state"><i></i>OPEN FOR WORK</span>
+                </div>
             </div>
+            <h1 class="text-4xl sm:text-6xl md:text-7xl font-black mb-4 sm:mb-5 text-white tracking-tighter uppercase reveal glitch-text" data-text=">loopzlx_"><span class="h1-mark">&gt;</span>loopzlx<span class="h1-caret">_</span></h1>
+            <div class="hero-social flex gap-5 sm:gap-8 mb-6 sm:mb-8 justify-center reveal">
+                <a href="https://github.com/loopzlx" target="_blank" rel="noopener" class="social-link text-xl sm:text-2xl" title="GitHub"><i class="fab fa-github"></i></a>
+                <a href="https://youtube.com/@loopelzeta?si=bzGWMIR7JFG1kxIH" target="_blank" rel="noopener" class="social-link text-xl sm:text-2xl" title="YouTube"><i class="fab fa-youtube"></i></a>
+                <a href="https://space.bilibili.com/3546616348806078" target="_blank" rel="noopener" class="social-link text-xl sm:text-2xl" title="Bilibili"><i class="fa-brands fa-bilibili"></i></a>
+                <a href="https://qm.qq.com/q/shpXHNfIpa" target="_blank" rel="noopener" class="social-link text-xl sm:text-2xl" title="QQ Group"><i class="fab fa-qq"></i></a>
+            </div>
+            <a href="https://github.com/sponsors/loopzlx" target="_blank" rel="noopener" class="hero-sponsor reveal">
+                <i class="fas fa-heart"></i><span data-en="Sponsor this" data-zh="赞助支持">Sponsor this</span>
+                <em>↗</em>
+            </a>
+
         </div>
-        <div class="lg:col-span-5 reveal">
-            <div class="h-64 sm:h-80 lg:h-auto lg:aspect-[4/5] rounded-3xl lg:rounded-[3rem] glass-card flex flex-col items-center justify-center relative overflow-hidden">
-                <i class="fas fa-fingerprint text-6xl mb-4 opacity-20" style="color:var(--primary)"></i>
-                <div class="text-[10px] font-mono tracking-[0.3em] uppercase opacity-30">BIO_SCAN_ACTIVE</div>
-                <div class="absolute bottom-6 right-6 md:bottom-10 md:right-10 glass-card p-5 md:p-8 rounded-2xl md:rounded-[2rem]">
-                    <div class="text-3xl md:text-5xl font-black" style="color:var(--secondary)">01</div>
-                    <div class="text-[9px] md:text-[10px] font-bold text-gray-400 uppercase tracking-widest">Pure Flow</div>
+
+        <!-- 右：GitHub 贡献墙（可在上面玩贪吃蛇） -->
+        <div class="hero-right reveal">
+            <div class="gh-wall" id="gh-wall">
+                <div class="gh-wall-head">
+                    <div class="gh-wall-head-l">
+                        <div class="gh-wall-title">GITHUB<span>ACTIVITY</span></div>
+                        <div class="gh-wall-sub" id="gh-sub">CONTRIBUTIONS · PAST YEAR</div>
+                    </div>
+                    <div class="gh-wall-head-r">
+                        <div class="gh-wall-score" id="gh-score"><b>0</b><span>SCORE</span></div>
+                        <div class="gh-wall-tools">
+                            <button type="button" class="gh-tool on" id="gh-snake-toggle" title="Snake (auto)"><i class="fas fa-gamepad"></i></button>
+                            <button type="button" class="gh-tool" id="gh-src-toggle" title="Use my GitHub data">GH</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="gh-wall-months" id="gh-months"></div>
+                <div class="gh-wall-body">
+                    <div class="gh-wall-days"><span>MON</span><span>WED</span><span>FRI</span></div>
+                    <div class="gh-wall-canvas-wrap"><canvas id="gh-canvas" width="1060" height="140"></canvas></div>
+                </div>
+                <div class="gh-wall-foot">
+                    <span class="gh-wall-total" id="gh-total">— contributions</span>
+                    <div class="gh-legend"><em data-en="Less" data-zh="少">Less</em>
+                        <i class="lv0"></i><i class="lv1"></i><i class="lv2"></i><i class="lv3"></i><i class="lv4"></i>
+                        <em data-en="More" data-zh="多">More</em>
+                    </div>
+                </div>
+                <div class="gh-wall-stats">
+                    <div><b id="gh-stat-streak">—</b><span data-en="STREAK" data-zh="连续">STREAK</span></div>
+                    <div><b id="gh-stat-best">—</b><span data-en="BEST DAY" data-zh="单日">BEST DAY</span></div>
+                    <div><b id="gh-stat-rate">—</b><span data-en="ACTIVE" data-zh="活跃">ACTIVE</span></div>
+                </div>
+                <div class="gh-wall-hint" id="gh-hint" data-en="AUTO SNAKE · eats the grid and lights it up" data-zh="自动贪吃蛇 · 吃掉格子就点亮">AUTO SNAKE · eats the grid and lights it up</div>
+            </div>
+
+            <!-- 右栏第二块：技术栈占比 -->
+            <div class="gh-stack" id="gh-stack">
+                <div class="gh-stack-head">
+                    <span class="gh-stack-title">STACK<span>MIX</span></span>
+                    <span class="gh-stack-sub" data-en="local repo · by bytes" data-zh="本地仓库 · 按体积">public repos · by bytes</span>
+                </div>
+                <div class="gh-stack-bars" id="gh-stack-bars"></div>
+                <div class="gh-stack-foot">
+                    <span id="gh-stack-note" data-en="1 repo · ★ 1 · 1 pinned" data-zh="1 个仓库 · ★ 1 · 置顶 1">1 repo · ★ 1 · 1 pinned</span>
+                    <a href="https://github.com/loopzlx?tab=repositories" target="_blank" rel="noopener">REPOS ↗</a>
+                </div>
+                <div class="gh-stack-last">
+                    <span class="gs-dot"></span>
+                    <span class="gs-key" data-en="LAST PUSH" data-zh="最近推送">LAST PUSH</span>
+                    <b id="gh-stack-repo">loopzlx/loopzlx</b>
+                    <em>2h</em>
                 </div>
             </div>
         </div>
     </div>
-</section>
 
-<!-- Skills -->
-<section id="skills" class="py-20 md:py-32 px-5 sm:px-6 max-w-7xl mx-auto">
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 items-center">
-        <div class="reveal">
-            <h2 class="text-4xl sm:text-5xl font-black text-white mb-2 uppercase italic" data-en="Core Stack" data-zh="核心能力">Core Stack</h2>
-            <div class="w-20 h-1.5 mb-6 md:mb-8" style="background-color:var(--primary); box-shadow: 0 0 10px var(--primary);"></div>
-            <div class="space-y-4 md:space-y-6 font-mono text-xs text-gray-400">
-                <p data-en="System capabilities initialized." data-zh="系统能力模块已初始化。">System capabilities initialized.</p>
-                <div class="space-y-3 md:space-y-4" id="skill-list"></div>
-            </div>
-        </div>
-        <div class="flex justify-center items-center reveal min-h-[280px] sm:min-h-[360px] lg:min-h-[400px]">
-            <svg id="radar-svg" viewBox="0 0 400 400" role="img" aria-label="Skill matrix radar chart" class="w-full max-w-[400px] h-auto drop-shadow-[0_0_15px_var(--glass-border)]">
-                <g id="radar-grids"></g>
-                <g id="radar-axes"></g>
-                <polygon id="radar-value-area" points="200,200 200,200 200,200 200,200 200,200,200" fill="var(--radar-fill)" stroke="var(--radar-stroke)" stroke-width="2"/>
-                <g id="radar-labels" class="text-[10px] fill-gray-500 font-mono font-bold uppercase"></g>
-            </svg>
+    <!-- A 方案：首屏底部预告下一个区块，把下方的空白接上 -->
+    <div class="hero-teaser">
+        <span class="ht-tag">NEXT <em>//</em> ABOUT</span>
+        <div class="ht-main">
+            <b>KINETIC BY DESIGN.</b>
+            <i data-en="Code shapes the logic. Movement defies gravity." data-zh="代码塑造逻辑，运动对抗重力。">Code shapes the logic. Movement defies gravity.</i>
         </div>
     </div>
 </section>
@@ -171,6 +200,13 @@
     <div id="gamehub-slot"></div>
 </div>
 
+<!-- Celeste 覆盖层（片段 html/celeste/celeste.html 由 celeste-loader.js 懒加载注入） -->
+<div id="celeste-layer" aria-hidden="true" aria-label="Celeste">
+    <div id="celeste-slot"></div>
+</div>
+
+</div>
+
 <!-- Contact -->
 <section id="transmission" class="py-20 md:py-32 px-5 sm:px-6 max-w-7xl mx-auto reveal">
     <h2 class="text-4xl sm:text-5xl font-black text-white mb-2 uppercase italic" data-en="I/O Interface" data-zh="信号接口">I/O Interface</h2>
@@ -185,7 +221,20 @@
         </div>
         <button id="broadcast-btn" class="px-6 md:px-10 py-3 text-white text-[11px] font-bold uppercase rounded-full transition-all whitespace-nowrap" style="background-color:var(--primary); box-shadow: 0 0 10px var(--glass-border);" data-en="Broadcast" data-zh="广播">Broadcast</button>
     </div>
+
+    <!-- 系统日志：终端命令行的输出区，随页面滚动，不再浮在卡片上 -->
+    <div id="log-window">
+        <div class="log-head">
+            <span id="kernel-ver">KERNEL_V6.9.2_OS</span>
+            <span class="log-head-mid" data-en="SYSTEM OUTPUT" data-zh="系统输出">SYSTEM OUTPUT</span>
+            <span id="log-mode">STABLE</span>
+        </div>
+        <div id="log-content"></div>
+    </div>
 </section>
+
+<!-- 页面收尾：满宽巨型字标 -->
+<section id="wordmark" aria-hidden="true"><span>loopzlx</span></section>
 
 <footer class="py-12 md:py-20 text-center text-[10px] tracking-[0.6em] md:tracking-[1em] uppercase">© 2026 loopzlx</footer>
 
@@ -203,8 +252,10 @@
     <!-- 播放器胶囊 -->
     <div class="audio-player" id="audio-container">
         <div class="player-left">
+            <button class="pl-mini" id="prev-btn" aria-label="Previous track"><i class="fas fa-backward-step"></i></button>
             <div class="disc-anim" id="disc-cover"></div>
             <button id="play-btn" aria-label="Play/Pause"><i class="fas fa-play" id="play-icon"></i></button>
+            <button class="pl-mini" id="next-btn" aria-label="Next track"><i class="fas fa-forward-step"></i></button>
         </div>
 
         <div class="player-middle">
@@ -223,8 +274,12 @@
         </div>
 
         <div class="player-right">
+            <button class="pl-mini" id="shuffle-btn" aria-label="Shuffle" title="随机播放"><i class="fas fa-shuffle"></i></button>
+            <button class="pl-mini" id="repeat-btn" aria-label="Repeat" title="循环：关 / 全部 / 单曲"><i class="fas fa-repeat"></i></button>
+            <button class="pl-mini" id="vol-btn" aria-label="Volume" title="音量"><i class="fas fa-volume-high"></i></button>
             <button id="playlist-btn" aria-label="Playlist"><i class="fas fa-list-ul"></i></button>
         </div>
+        <div id="vol-pop"><input type="range" id="vol-range" min="0" max="1" step="0.05" value="1" aria-label="Volume"></div>
         <audio id="bg-audio" preload="metadata"></audio>
     </div>
 </div>
