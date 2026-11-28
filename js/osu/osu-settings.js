@@ -3,6 +3,9 @@ var OSUS = window.Osu = window.Osu || {};
 
 (function () {
   'use strict';
+  /* 写入 innerHTML 前转义（名称 / 段位 / 币种码等可能来自存档码、分享链接或外部接口） */
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+
 
   var KEY = 'osu_settings';
   var DEF = {
@@ -263,9 +266,9 @@ var OSUS = window.Osu = window.Osu || {};
       var b = el('button', 'osu-chip osu-skin-chip' + (curId === id ? ' is-on' : ''));
       b.type = 'button';
       var dots = sk.accent
-        ? '<i style="background:' + sk.accent[0] + '"></i><i style="background:' + sk.accent[1] + '"></i>'
+        ? '<i style="background:' + esc(sk.accent[0]) + '"></i><i style="background:' + esc(sk.accent[1]) + '"></i>'
         : '<i class="auto-a"></i><i class="auto-b"></i>';
-      b.innerHTML = dots + '<span>' + sk.name + '</span>';
+      b.innerHTML = dots + '<span>' + esc(sk.name) + '</span>';
       b.setAttribute('title', sk.cn || sk.name);
       b.addEventListener('click', function () {
         if (OSUS.setSkin) OSUS.setSkin(id);

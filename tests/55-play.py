@@ -1,11 +1,14 @@
+import os, tempfile
+PORT = os.environ.get("PORT", "8770")
+OUT_DIR = os.environ.get("OUT_DIR", tempfile.gettempdir())
 import asyncio, time
 from playwright.async_api import async_playwright
 async def main():
     async with async_playwright() as p:
-        b = await p.chromium.launch(executable_path="/usr/local/bin/chromium", args=["--no-sandbox"])
+        b = await p.chromium.launch(executable_path=(os.environ.get("CHROMIUM") or None), args=["--no-sandbox"])
         pg = await b.new_page(viewport={"width":1440,"height":900})
         errs=[]; pg.on("pageerror", lambda e: errs.append("E:"+str(e)))
-        await pg.goto("http://localhost:8770/load.html"); await pg.wait_for_timeout(7000)
+        await pg.goto(f"http://localhost:{PORT}/load.html"); await pg.wait_for_timeout(7000)
         # --- celeste 通关回归
         await pg.evaluate("window.CelesteWarp.open()")
         await pg.wait_for_function("()=>window.Celeste && CelesteWarp.app()", timeout=20000)
@@ -28,7 +31,7 @@ async def main():
         print("celeste:", await pg.evaluate("()=>{const a=CelesteWarp.app();return {fin:a.level.finished,sec:+a.level.time.toFixed(2),deaths:a.level.deaths,pb:(document.getElementById('cl-over-pb')||{}).textContent}}"))
         # 编辑器截图
         await pg.evaluate("()=>Celeste.Editor.open()"); await pg.wait_for_timeout(700)
-        await pg.screenshot(path="/tmp/final-editor.png")
+        await pg.screenshot(path=os.path.join(OUT_DIR, "final-editor.png"))
         await pg.evaluate("()=>Celeste.Editor.close()"); await pg.wait_for_timeout(400)
         # --- osu 开局 20 秒
         await pg.evaluate("()=>CelesteWarp.close()"); await pg.wait_for_timeout(400)

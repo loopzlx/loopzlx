@@ -67,14 +67,65 @@
         return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
     }
 
+    /* act: 点击卡片时的动作（打开覆盖层 / 聚焦终端 / 滚动到贡献墙）；封面在 img/projects/ */
     const projectList = [
-        { cat: 'dev', title: 'Cyber Terminal', en: 'CLI Portfolio', zh: '终端作品集',
-          imgCyber: makeColorSvg('#120b20','#8a2be2','01'), imgSneaker: makeColorSvg('#f4eee7','#d2a87a','01') },
-        { cat: 'parkour', title: 'Flow Archive', en: 'Urban Movement', zh: '城市影像',
-          imgCyber: makeColorSvg('#07131b','#19c7a4','02'), imgSneaker: makeColorSvg('#e8f0ec','#5cae9a','02') },
-        { cat: 'dev', title: 'Neural Matrix', en: 'SVG Data Viz', zh: '数据可视化',
-          imgCyber: makeColorSvg('#10141f','#4f78ff','03'), imgSneaker: makeColorSvg('#edf0f8','#8299d9','03') }
+        { cat: 'dev', act: 'terminal', title: 'Cyber Terminal', en: 'CLI Portfolio · 26 commands', zh: '终端作品集 · 26 条命令',
+          imgCyber: 'img/projects/cyber-terminal-cyber.svg', imgSneaker: 'img/projects/cyber-terminal-light.svg' },
+        { cat: 'dev', act: 'osu', title: 'osu! Kernel', en: 'Four-mode rhythm game, .osz import', zh: '四模式音游 · 支持导入 .osz',
+          imgCyber: 'img/projects/osu-kernel-cyber.svg', imgSneaker: 'img/projects/osu-kernel-light.svg' },
+        { cat: 'parkour', act: 'celeste', title: 'Celeste Layer', en: 'Precision platformer + level editor', zh: '精确平台跳跃 · 关卡编辑器',
+          imgCyber: 'img/projects/celeste-layer-cyber.svg', imgSneaker: 'img/projects/celeste-layer-light.svg' },
+        { cat: 'dev', act: 'gamehub', title: 'Game Hub', en: '2048 · Snake · Minesweeper', zh: '2048 · 贪吃蛇 · 扫雷',
+          imgCyber: 'img/projects/game-hub-cyber.svg', imgSneaker: 'img/projects/game-hub-light.svg' },
+        { cat: 'dev', act: 'wall', title: 'Neural Matrix', en: 'SVG & canvas data viz', zh: 'SVG / Canvas 数据可视化',
+          imgCyber: 'img/projects/neural-matrix-cyber.svg', imgSneaker: 'img/projects/neural-matrix-light.svg' },
+        { cat: 'dev', act: 'wiki', title: 'Site Wiki', en: 'Docs: commands, modules, save codes', zh: '站点百科 · 命令 / 模块 / 存档码',
+          imgCyber: 'img/projects/wiki-cyber.svg', imgSneaker: 'img/projects/wiki-light.svg' }
     ];
+
+    /* 站点百科：在页内窗口（iframe）里打开 wiki.html；按住 Ctrl/⌘ 点链接或点窗口里的「新标签页」仍可单独打开 */
+    let wikiWin = null;
+    function openWiki() {
+        if (!wikiWin) {
+            const w = document.createElement('div');
+            w.className = 'lzx-wiki'; w.setAttribute('role', 'dialog'); w.setAttribute('aria-modal', 'true'); w.setAttribute('aria-label', 'LOOPZLX Wiki');
+            w.innerHTML = '<div class="lzx-wiki-box"><div class="lzx-wiki-bar"><b>WIKI</b><span></span>' +
+                '<a class="lzx-wiki-ext" href="wiki.html" target="_blank" rel="noopener">新标签页 ↗</a>' +
+                '<button type="button" class="lzx-wiki-x" aria-label="关闭">✕</button></div>' +
+                '<iframe class="lzx-wiki-frame" title="LOOPZLX Wiki" loading="lazy"></iframe></div>';
+            document.body.appendChild(w);
+            w.addEventListener('click', e => { if (e.target === w) closeWiki(); });
+            w.querySelector('.lzx-wiki-x').addEventListener('click', closeWiki);
+            wikiWin = w;
+        }
+        const light = /theme-(sneaker|paper)/.test(document.documentElement.className);
+        const f = wikiWin.querySelector('iframe');
+        const url = 'wiki.html?embed=1&t=' + (light ? 'light' : 'dark');
+        if (f.getAttribute('src') !== url) f.setAttribute('src', url);
+        wikiWin.classList.add('open'); document.body.classList.add('wiki-open');
+        wikiWin.querySelector('.lzx-wiki-x').focus();
+    }
+    function closeWiki() {
+        if (!wikiWin) return;
+        wikiWin.classList.remove('open'); document.body.classList.remove('wiki-open');
+    }
+    document.addEventListener('click', e => {
+        const a = e.target && e.target.closest && e.target.closest('a[href="wiki.html"]');
+        if (!a || a.closest('.lzx-wiki') || e.ctrlKey || e.metaKey || e.shiftKey || e.button) return;
+        e.preventDefault(); openWiki();
+    });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape' && wikiWin && wikiWin.classList.contains('open')) closeWiki(); });
+    window.addEventListener('message', e => { if (e.origin === location.origin && e.data === 'lzx-wiki-close') closeWiki(); });
+
+    /* 精选作品卡片的动作表：模块没加载 / 失败时静默跳过，不抛错 */
+    const PROJECT_ACTIONS = {
+        terminal: () => { const el = $('danmaku-input'); const sec = $('transmission'); if (sec) sec.scrollIntoView({ behavior: prefersReducedMotion() ? 'auto' : 'smooth' }); setTimeout(() => el && el.focus({ preventScroll: true }), 450); },
+        wall: () => { const el = $('gh-wall'); if (el) el.scrollIntoView({ behavior: prefersReducedMotion() ? 'auto' : 'smooth', block: 'center' }); },
+        wiki: () => openWiki(),
+        osu: () => window.OsuWarp && window.OsuWarp.open(),
+        celeste: () => window.CelesteWarp && window.CelesteWarp.open(),
+        gamehub: () => window.GameHubWarp && window.GameHubWarp.open()
+    };
 
     let typingWords = config.en.words;
     let typeTimer = null, wI = 0, cI = 0, isDeleting = false;
@@ -115,11 +166,25 @@
         logContent.scrollTop = logContent.scrollHeight;
     }
 
+    /* 标题 / 描述 / 分享卡片随语言切换（分享链接的预览按当前语言显示；爬虫看到的仍是 HTML 里的默认值） */
+    const PAGE_META = {
+        zh: { title: 'loopzlx | 赛博终端', desc: 'LOOPZLX 的赛博终端风个人主页：osu! 四模式音游内核、GameHub、Celeste 关卡编辑器。' },
+        en: { title: 'loopzlx | Cyber Nexus Terminal', desc: 'LOOPZLX cyber-terminal portfolio: osu! four-mode kernel, GameHub, Celeste level editor.' }
+    };
+    function applyPageMeta(lang) {
+        const m = PAGE_META[lang]; if (!m) return;
+        document.title = m.title;
+        const set = (sel, v) => { const el = document.querySelector(sel); if (el) el.setAttribute('content', v); };
+        set('meta[name="description"]', m.desc);
+        set('meta[property="og:description"]', m.desc);
+        set('meta[name="twitter:description"]', m.desc);
+    }
     function setLang(lang, force) {
         if (!config[lang] || (lang === currentLang && !force)) return;
         currentLang = lang;
         try { localStorage.setItem('lzx.lang', lang); } catch (e) {}
         document.documentElement.lang = (lang === 'zh') ? 'zh-CN' : 'en';
+        applyPageMeta(lang);
         const els = document.querySelectorAll('[data-en], [data-en-ph], #about-quote');
         els.forEach(el => el.classList.add('lang-fade-out'));
 
@@ -251,15 +316,19 @@
         const grid = $('project-grid');
         if (!grid) return;
         grid.innerHTML = projectList.map((p) => `
-            <div class="project-item reveal glass-card rounded-2xl md:rounded-[2.5rem] overflow-hidden group" data-category="${p.cat}">
+            <div class="project-item reveal glass-card rounded-2xl md:rounded-[2.5rem] overflow-hidden group" data-category="${p.cat}" data-act="${p.act || ''}" role="button" tabindex="0" aria-label="${p.title}">
                 <div class="h-48 md:h-60 bg-gray-800 relative overflow-hidden">
                     <img src="${p.imgCyber}" data-cyber="${p.imgCyber}" data-sneaker="${p.imgSneaker}" alt="${p.title}" loading="lazy" width="600" height="400" class="w-full h-full object-cover">
                 </div>
                 <div class="p-6 md:p-8">
                     <h3 class="text-lg md:text-xl font-bold text-white mb-2 uppercase tracking-wide">${p.title}</h3>
                     <p class="text-gray-400 text-sm font-light mb-0" data-en="${p.en}" data-zh="${p.zh}">${p.en}</p>
+                    <span class="project-open" data-en="OPEN ↗" data-zh="打开 ↗">OPEN ↗</span>
                 </div>
             </div>`).join('');
+        const run = (card) => { const fn = PROJECT_ACTIONS[card.dataset.act]; if (fn) { try { fn(); addLog('Open: ' + (card.getAttribute('aria-label') || card.dataset.act)); } catch (e) {} } };
+        grid.addEventListener('click', (e) => { const c = e.target.closest('.project-item'); if (c) run(c); });
+        grid.addEventListener('keydown', (e) => { if (e.key !== 'Enter' && e.key !== ' ') return; const c = e.target.closest('.project-item'); if (c) { e.preventDefault(); run(c); } });
         grid.querySelectorAll('img').forEach(img => {
             img.addEventListener('error', function handler() {
                 this.removeEventListener('error', handler);
@@ -333,7 +402,7 @@
     let matrixLast = 0;
     function layerOpen() {
         return document.body.classList.contains('osu-open')
-            || document.body.classList.contains('market-open')
+
             || document.body.classList.contains('gamehub-open')
             || document.body.classList.contains('celeste-open');
     }
@@ -360,7 +429,8 @@
         } catch (e) { matrixColor = '#8a2be2'; }
     }
 
-    function scheduleMatrix() { if (matrixRunning && !matrixRaf && !document.hidden && !layerOpen()) matrixRaf = requestAnimationFrame(drawMatrix); }
+    function lowPower() { return !!(window.LZXPower && window.LZXPower.on()); }
+    function scheduleMatrix() { if (matrixRunning && !matrixRaf && !document.hidden && !layerOpen() && !lowPower()) matrixRaf = requestAnimationFrame(drawMatrix); }
     function startMatrix() {
         if (matrixRunning || !mCtx) return;
         if (prefersReducedMotion()) { addLog('System: Motion reduced — matrix stream skipped'); return; }
@@ -373,7 +443,7 @@
 
     function drawMatrix(ts) {
         matrixRaf = null;
-        if (!matrixRunning || !mCtx || document.hidden || layerOpen()) return;
+        if (!matrixRunning || !mCtx || document.hidden || layerOpen() || lowPower()) return;
         matrixRaf = requestAnimationFrame(drawMatrix);
         // 限帧：移动端 30fps，桌面 50fps（肉眼足够，省一半以上绘制开销）
         const budget = IS_COARSE ? 1000 / 24 : 1000 / 40;
@@ -405,6 +475,7 @@
         if (document.hidden && matrixRaf) { cancelAnimationFrame(matrixRaf); matrixRaf = null; }
         else scheduleMatrix();
     });
+    document.addEventListener('lzx:power', () => { if (lowPower()) { if (matrixRaf) { cancelAnimationFrame(matrixRaf); matrixRaf = null; } } else scheduleMatrix(); });
     if (window.MutationObserver) new MutationObserver(scheduleMatrix).observe(document.body, { attributes: true, attributeFilter: ['class'] });
 
     function resetGravity() { document.querySelectorAll('.gravity-applied').forEach(el => { el.style.transform = ''; el.classList.remove('gravity-applied'); }); }
@@ -433,7 +504,7 @@
         addLog('System: All parameters reset');
     }
 
-    /* 覆盖层（market / osu / gamehub）的顶栏也要能切主题，这里把 switchTheme 暴露出去 */
+    /* 覆盖层（osu / gamehub / celeste）的顶栏也要能切主题，这里把 switchTheme 暴露出去 */
     window.CyberTheme = {
         next: function () { switchTheme(); return currentTheme; },
         set: function (name) {
@@ -520,15 +591,6 @@
                 } else {
                     addLog('Error: gamehub offline');
                 }
-            } else if (target === 'market') {
-                const trigger = document.querySelector('[data-market-open]');
-                if (trigger) {
-                    trigger.click();
-                    if (window.LZXAch) window.LZXAch.visit('market');
-                    addLog('Warp: market feed mounted (in-page)');
-                } else {
-                    addLog('Error: market feed offline');
-                }
             } else if (target === 'celeste') {
                 if (window.CelesteWarp) {
                     window.CelesteWarp.open();
@@ -553,15 +615,15 @@
 
         /* ---- 实用命令（v4.9） ---- */
         '/ls': () => {
-            addLog('Modules: market · osu! · gamehub · celeste');
-            addLog('Jump with /goto <market|osu|gamehub|celeste|home>');
+            addLog('Modules: osu! · gamehub · celeste');
+            addLog('Jump with /goto <osu|gamehub|celeste|home>');
         },
         '/goto': (arg) => {
             const t = String(arg || '').toLowerCase().replace('!', '').trim();
             if (t === 'home' || t === 'top') { resetAll(); window.scrollTo({ top: 0, behavior: 'smooth' }); addLog('Warp: home'); return; }
             if (t === 'game') { commands['/warp']('gamehub'); return; }
-            if (t === 'market' || t === 'osu' || t === 'gamehub' || t === 'celeste') { commands['/warp'](t); return; }
-            addLog('Error: /goto <market|osu|gamehub|celeste|home>');
+            if (t === 'osu' || t === 'gamehub' || t === 'celeste') { commands['/warp'](t); return; }
+            addLog('Error: /goto <osu|gamehub|celeste|home>');
         },
         '/theme': (arg) => {
             const names = ['cyber', 'hacker', 'ocean', 'paper', 'sneaker', 'sunset', 'sweet'];
@@ -740,7 +802,7 @@
 
     /* ---- 命令面板（Cmd/Ctrl+K）与快捷键速查（?） ---- */
     const PALETTE_DESC = {
-        '/warp': '进入一个模块（osu / gamehub / market / celeste）',
+        '/warp': '进入一个模块（osu / gamehub / celeste）',
         '/goto': '跳到模块或回到首页（/goto home）',
         '/ls': '列出所有模块',
         '/theme': '切换主题（/theme paper 等）',
@@ -828,10 +890,10 @@
                 run: () => { addLog('Execute: ' + k); commands[k](); }
             }));
             all = all.concat([
-                { label: 'market', desc: '行情面板', run: () => commands['/warp']('market') },
                 { label: 'osu!', desc: '音游覆盖层', run: () => commands['/warp']('osu') },
                 { label: 'gamehub', desc: '小游戏中心', run: () => commands['/warp']('gamehub') },
                 { label: 'celeste', desc: '蔚蓝覆盖层', run: () => commands['/warp']('celeste') },
+                { label: 'wiki', desc: '站点百科（窗口）', run: () => openWiki() },
                 { label: 'home', desc: '回到主页顶部', run: () => commands['/goto']('home') }
             ]);
             render('');
@@ -860,7 +922,7 @@
             ['/', '把焦点跳到终端输入框'],
             ['↑ / ↓', '终端里翻命令历史'],
             ['Tab', '补全命令'],
-            ['1 / 2 / 3 / 4', '快速打开 market / osu! / gamehub / celeste'],
+            ['1 / 2 / 3', '快速打开 osu! / gamehub / celeste'],
             ['Esc', '关闭当前面板']
         ];
         const wrap = document.createElement('div');
@@ -871,7 +933,7 @@
         document.body.appendChild(wrap);
         wrap.addEventListener('click', e => { if (e.target === wrap) wrap.classList.remove('open'); });
 
-        const map = { '1': 'market', '2': 'osu', '3': 'gamehub', '4': 'celeste' };
+        const map = { '1': 'osu', '2': 'gamehub', '3': 'celeste' };
         document.addEventListener('keydown', e => {
             const tag = (e.target && e.target.tagName) || '';
             const typing = tag === 'INPUT' || tag === 'TEXTAREA' || (e.target && e.target.isContentEditable);
@@ -885,8 +947,7 @@
             }
             const anyOverlay = document.body.classList.contains('osu-open') ||
                 document.body.classList.contains('gamehub-open') ||
-                document.body.classList.contains('celeste-open') ||
-                document.body.classList.contains('market-open');
+                document.body.classList.contains('celeste-open');
             if (anyOverlay) return;
             if (map[e.key] && !e.ctrlKey && !e.metaKey && !e.altKey) {
                 commands['/warp'](map[e.key]);
@@ -976,10 +1037,9 @@
             /* 点击打开覆盖层记为一次访问 */
             document.addEventListener('click', e => {
                 if (!window.LZXAch || !e.target || !e.target.closest) return;
-                const el = e.target.closest('[data-market-open],[data-osu-open],[data-gamehub-open],[data-celeste-open]');
+                const el = e.target.closest('[data-osu-open],[data-gamehub-open],[data-celeste-open]');
                 if (!el) return;
-                if (el.hasAttribute('data-market-open')) window.LZXAch.visit('market');
-                else if (el.hasAttribute('data-osu-open')) window.LZXAch.visit('osu');
+                if (el.hasAttribute('data-osu-open')) window.LZXAch.visit('osu');
                 else if (el.hasAttribute('data-gamehub-open')) window.LZXAch.visit('gamehub');
                 else window.LZXAch.visit('celeste');
             }, true);
@@ -1070,14 +1130,15 @@
     (function () {
         var VIEW_KEY = 'lzx.lastview';
         var REMEMBER_KEY = 'lzx.rememberview';
-        var MAP = { 'market-open': 'market', 'osu-open': 'osu', 'gamehub-open': 'gamehub', 'celeste-open': 'celeste' };
-        var last = null;
+        var MAP = { 'osu-open': 'osu', 'gamehub-open': 'gamehub', 'celeste-open': 'celeste' };
+        var last = null, restoring = false;
         try { last = localStorage.getItem(VIEW_KEY); } catch (e) {}
 
         function remember() {
             try { return localStorage.getItem(REMEMBER_KEY) !== '0'; } catch (e) { return true; }
         }
         function record() {
+            if (restoring) return;   /* 恢复期间 body 还是首页状态，不能把「上次所在分区」覆盖成 home */
             var cls = document.body.classList, cur = 'home';
             Object.keys(MAP).forEach(function (c) { if (cls.contains(c)) cur = MAP[c]; });
             if (cur === last) return;
@@ -1086,19 +1147,24 @@
         }
         function restore() {
             if (!remember() || !last || last === 'home') return;
+            /* 各模块是在 main.js 之后按顺序懒加载的：固定等 1.1s 在慢网络下模块还没就绪，恢复会静默失败。
+               改成轮询（每 250ms，最多 20s）：模块就绪并真的打开了才算成功；期间用户自己打开了别的覆盖层就不抢。 */
             var openers = {
-                osu: function () { window.OsuWarp && window.OsuWarp.open(); },
-                gamehub: function () { window.GameHubWarp && window.GameHubWarp.open(); },
-                celeste: function () { window.CelesteWarp && window.CelesteWarp.open(); },
-                market: function () {
-                    var t = document.querySelector('[data-market-open]');
-                    if (t) t.click();
-                }
+                osu: function () { if (!window.OsuWarp) return false; window.OsuWarp.open(); return true; },
+                gamehub: function () { if (!window.GameHubWarp) return false; window.GameHubWarp.open(); return true; },
+                celeste: function () { if (!window.CelesteWarp) return false; window.CelesteWarp.open(); return true; }
             };
-            if (!openers[last]) return;
-            setTimeout(function () {
-                try { openers[last](); addLog('Resume: ' + last + ' restored (last session)'); } catch (e) {}
-            }, 1100);
+            var target = last;
+            if (!openers[target]) return;
+            var tries = 0;
+            restoring = true;
+            function done() { clearInterval(poll); restoring = false; record(); }
+            var poll = setInterval(function () {
+                if (++tries > 80 || layerOpen()) { done(); return; }
+                var ok = false;
+                try { ok = openers[target](); } catch (e) { ok = false; }
+                if (ok) { done(); addLog('Resume: ' + target + ' restored (last session)'); }
+            }, 250);
         }
 
         /* 覆盖层打开/切换/关闭都记录：全部关闭时写回 home，

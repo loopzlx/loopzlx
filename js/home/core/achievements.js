@@ -8,7 +8,7 @@
 
   var DEFS = [
     { id: 'first-warp', icon: '◇', zh: '初次跃迁', en: 'First Jump', desc: '打开任意一个覆盖层', descEn: 'Open any overlay' },
-    { id: 'all-warp', icon: '◈', zh: '四界通游', en: 'All Portals', desc: 'market / osu! / gamehub / celeste 各打开过一次', descEn: 'Visit market / osu! / gamehub / celeste at least once each' },
+    { id: 'all-warp', icon: '◈', zh: '三界通游', en: 'All Portals', desc: 'osu! / gamehub / celeste 各打开过一次', descEn: 'Visit osu! / gamehub / celeste at least once each' },
     { id: 'celeste-clear', icon: '▲', zh: '登顶', en: 'Summit', desc: '通关蔚蓝', descEn: 'Clear Celeste' },
     { id: 'celeste-perfect', icon: '★', zh: '无伤登顶', en: 'Deathless', desc: '0 死亡通关蔚蓝', descEn: 'Clear Celeste with zero deaths' },
     { id: 'celeste-berry', icon: '●', zh: '贪吃', en: 'Berry Picker', desc: '一次吃满全部草莓', descEn: 'Collect every berry in a single run' },
@@ -110,13 +110,13 @@
       return true;
     },
 
-    /* 记录某模块被打开过；四个都开过就解锁 all-warp */
+    /* 记录某模块被打开过；三个都开过就解锁 all-warp */
     visit: function (id) {
       if (!id || seen[id]) return;
       seen[id] = 1;
       try { window.localStorage.setItem('lzx.ach.seen', JSON.stringify(seen)); } catch (e) {}
       API.unlock('first-warp');
-      if (seen.market && seen.osu && seen.gamehub && seen.celeste) API.unlock('all-warp');
+      if (seen.osu && seen.gamehub && seen.celeste) API.unlock('all-warp');
     },
 
     /* 计数器型成就：terminal-10 */

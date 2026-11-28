@@ -122,6 +122,7 @@ var OSU = window.Osu = window.Osu || {};
 
     S.replay = null;
     S.replayMode = false;
+    if (OSU.replay && OSU.replay.syncBar) OSU.replay.syncBar();
     if (OSU.replay) {
       if (!chart.replay && !chart.demo) OSU.replay.begin(chart, modeKey);
       else OSU.replay.abort();
@@ -134,6 +135,7 @@ var OSU = window.Osu = window.Osu || {};
   };
 
   G.songTime = function () {
+    if (S.replay && OSU.replay && OSU.replay.clock) { S.songTime = OSU.replay.clock(); return S.songTime; }   /* 回放用自己的时钟：可倍速、可拖动 */
     var speed = S.speed || 1;
     var live = OSU.audio.isLive ? OSU.audio.isLive() : false;
     if (live) {

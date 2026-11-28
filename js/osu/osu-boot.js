@@ -9,7 +9,7 @@ var OSU = window.Osu = window.Osu || {};
   /* ---------------- 统一输入 ---------------- */
   var I = OSU.input = {};
 
-  function canPlay() { return S.running && !S.paused; }
+  function canPlay() { return S.running && !S.paused && !S.replay; }   /* 回放中不接管输入，否则按键会和录制事件叠加判定 */
 
   /* Auto（AT）mod：判定由 autoPlay 全自动驱动，此时彻底忽略真人按键 / 触屏 / 指针，
      否则误触会在已有 PERFECT 的谱面上打出 GOOD/MEH/MISS，把 100% 拉下来。 */

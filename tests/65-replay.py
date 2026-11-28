@@ -1,12 +1,15 @@
 import asyncio
+import os, tempfile
+PORT = os.environ.get("PORT", "8770")
+OUT_DIR = os.environ.get("OUT_DIR", tempfile.gettempdir())
 from playwright.async_api import async_playwright
 async def main():
     async with async_playwright() as p:
-        b = await p.chromium.launch(executable_path="/usr/local/bin/chromium", args=["--no-sandbox"])
+        b = await p.chromium.launch(executable_path=(os.environ.get("CHROMIUM") or None), args=["--no-sandbox"])
         pg = await b.new_page(viewport={"width":1440,"height":900})
         errs=[]; pg.on("pageerror", lambda e: errs.append("E:"+str(e)))
         pg.on("response", lambda r: errs.append("404:"+r.url.split('/')[-1]) if r.status==404 else None)
-        await pg.goto("http://localhost:8770/load.html"); await pg.wait_for_timeout(6500)
+        await pg.goto(f"http://localhost:{PORT}/load.html"); await pg.wait_for_timeout(6500)
         await pg.evaluate("window.OsuWarp.open()")
         await pg.wait_for_function("()=>window.OSU && OSU.game && OSU.replay", timeout=25000)
         await pg.wait_for_timeout(1200)
@@ -26,7 +29,7 @@ async def main():
         print("playing:", await pg.evaluate("()=>[!!OSU.S.replay, OSU.S.view]"))
         await pg.wait_for_timeout(7000)
         print("end:", await pg.evaluate("()=>[!!OSU.S.replay, OSU.S.view, OSU.S.judged]"))
-        await pg.screenshot(path="/tmp/v52-replay2.png")
+        await pg.screenshot(path=os.path.join(OUT_DIR, "v52-replay2.png"))
         print("errs:", [e for e in errs if e.startswith('E:') or e.startswith('404:')][:6])
         await b.close()
 asyncio.run(main())

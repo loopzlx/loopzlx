@@ -1,0 +1,14 @@
+{
+  "name": "loopzlx-site",
+  "private": true,
+  "version": "7.3.0",
+  "description": "LOOPZLX cyber portfolio（纯静态站）。版本号以 version.json 为准。",
+  "scripts": {
+    "build:css": "node tools/build-tailwind.mjs",
+    "build": "node tools/build.mjs",
+    "build:all": "node tools/build-tailwind.mjs && node tools/build.mjs",
+    "serve": "python3 -m http.server 8770",
+    "test": "bash tests/run.sh"
+  },
+  "devDependencies": { "tailwindcss": "^4.3.0" }
+}

@@ -1,7 +1,7 @@
 {
   "name": "LOOPZLX // Cyber Portfolio",
   "short_name": "LOOPZLX",
-  "description": "Cyber terminal portfolio with live market feed, osu! kernel, game hub and a Celeste layer.",
+  "description": "Cyber terminal portfolio with osu! kernel, game hub and a Celeste layer.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",

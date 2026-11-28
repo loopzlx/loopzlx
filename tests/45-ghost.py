@@ -1,11 +1,14 @@
+import os, tempfile
+PORT = os.environ.get("PORT", "8770")
+OUT_DIR = os.environ.get("OUT_DIR", tempfile.gettempdir())
 import asyncio, time
 from playwright.async_api import async_playwright
 async def main():
     async with async_playwright() as p:
-        b = await p.chromium.launch(executable_path="/usr/local/bin/chromium", args=["--no-sandbox"])
+        b = await p.chromium.launch(executable_path=(os.environ.get("CHROMIUM") or None), args=["--no-sandbox"])
         pg = await b.new_page(viewport={"width":1280,"height":720})
         errs=[]; pg.on("pageerror", lambda e: errs.append("E:"+str(e)))
-        await pg.goto("http://localhost:8770/load.html"); await pg.wait_for_timeout(7000)
+        await pg.goto(f"http://localhost:{PORT}/load.html"); await pg.wait_for_timeout(7000)
         await pg.evaluate("window.CelesteWarp.open()")
         await pg.wait_for_function("()=>window.Celeste && CelesteWarp.app()", timeout=20000)
         await pg.wait_for_timeout(400)
@@ -30,7 +33,7 @@ async def main():
         await pg.keyboard.down("ArrowRight"); await pg.wait_for_timeout(1500); await pg.keyboard.up("ArrowRight")
         await pg.wait_for_timeout(200)
         print("ghostIdx:", await pg.evaluate("()=>CelesteWarp.app().ghostIdx"))
-        await pg.screenshot(path="/tmp/v5-ghost.png")
+        await pg.screenshot(path=os.path.join(OUT_DIR, "v5-ghost.png"))
         print("errs:", errs[:4])
         await b.close()
 asyncio.run(main())

@@ -1,11 +1,14 @@
+import os, tempfile
+PORT = os.environ.get("PORT", "8770")
+OUT_DIR = os.environ.get("OUT_DIR", tempfile.gettempdir())
 import asyncio, time
 from playwright.async_api import async_playwright
 async def main():
     async with async_playwright() as p:
-        b = await p.chromium.launch(executable_path="/usr/local/bin/chromium", args=["--no-sandbox"])
+        b = await p.chromium.launch(executable_path=(os.environ.get("CHROMIUM") or None), args=["--no-sandbox"])
         pg = await b.new_page(viewport={"width":1280,"height":720})
         errs=[]; pg.on("pageerror", lambda e: errs.append("E:"+str(e)))
-        await pg.goto("http://localhost:8770/load.html"); await pg.wait_for_timeout(7000)
+        await pg.goto(f"http://localhost:{PORT}/load.html"); await pg.wait_for_timeout(7000)
         # More 菜单里 celeste 已删
         await pg.click("#more-btn"); await pg.wait_for_timeout(400)
         print("more items:", await pg.evaluate("()=>document.querySelectorAll('#more-panel a').length"))
@@ -22,7 +25,7 @@ async def main():
         await pg.evaluate("()=>{Celeste.settings.mods.keyOverlay=true;Celeste.settings.mods.debugHit=true;}")
         await pg.keyboard.down("ArrowRight"); await pg.wait_for_timeout(700)
         print("keys:", await pg.evaluate("()=>{const k=document.getElementById('cl-keys');return k?[k.className,k.querySelectorAll('i.on').length]:null}"))
-        await pg.screenshot(path="/tmp/v51-keys.png")
+        await pg.screenshot(path=os.path.join(OUT_DIR, "v51-keys.png"))
         await pg.keyboard.up("ArrowRight")
         # 通关看 splits
         await pg.evaluate("()=>CelesteWarp.app().restart()"); await pg.wait_for_timeout(300)
@@ -38,7 +41,7 @@ async def main():
             await pg.wait_for_timeout(150)
         await pg.keyboard.up("ArrowRight"); await pg.wait_for_timeout(600)
         print("splits:", await pg.evaluate("()=>{const a=CelesteWarp.app();return [a.splits.length, document.getElementById('cl-over-splits').textContent.slice(0,80)]}"))
-        await pg.screenshot(path="/tmp/v51-splits.png")
+        await pg.screenshot(path=os.path.join(OUT_DIR, "v51-splits.png"))
         print("errs:", errs[:4])
         await b.close()
 asyncio.run(main())

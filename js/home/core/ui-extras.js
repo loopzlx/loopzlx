@@ -85,7 +85,7 @@
 
         var BARS = 34, vals = new Array(BARS).fill(0);
         var gradY = null, gradH = -1, gradKey = '', lastSpec = 0, specRaf = 0;
-        function scheduleFrame() { if (!specRaf && !document.hidden && wrap.classList.contains('is-visible')) specRaf = requestAnimationFrame(frame); }
+        function scheduleFrame() { if (!specRaf && !document.hidden && !(window.LZXPower && window.LZXPower.on()) && wrap.classList.contains('is-visible')) specRaf = requestAnimationFrame(frame); }
         function frame(ts) {
             specRaf = 0;
             if (document.hidden) return;
@@ -182,6 +182,10 @@
                     '<button class="lzx-pk-toggle" id="lzx-pk-motion"></button>' +
                   '</div>' +
                   '<div class="lzx-pk-row">' +
+                    '<span>低功耗 LOW POWER</span>' +
+                    '<button class="lzx-pk-toggle" id="lzx-pk-power"></button>' +
+                  '</div>' +
+                  '<div class="lzx-pk-row">' +
                     '<span>记住分区 RESUME</span>' +
                     '<button class="lzx-pk-toggle" id="lzx-pk-resume"></button>' +
                   '</div>' +
@@ -210,6 +214,7 @@
                     return;
                 }
                 if (e.target.id === 'lzx-pk-motion') { toggleMotion(); return; }
+                if (e.target.id === 'lzx-pk-power') { LZXPower.toggle(); paint(); return; }
                 if (e.target.id === 'lzx-pk-resume') {
                     var on = window.LZXView ? !window.LZXView.remember() : false;
                     if (window.LZXView) window.LZXView.setRemember(on);
@@ -232,6 +237,8 @@
                 mo.classList.toggle('on', motionOn());
                 mo.textContent = motionOn() ? 'ON' : 'OFF';
             }
+            var pw = $('lzx-pk-power');
+            if (pw) { pw.classList.toggle('on', LZXPower.on()); pw.textContent = LZXPower.on() ? 'ON' : 'OFF'; }
             paintResume();
         }
 
@@ -274,6 +281,22 @@
 
         window.LZXAppearance = { open: open, close: close, motionOn: motionOn };
     }
+
+    /* ---------------- 3a. 低功耗模式 ----------------
+       停掉所有 JS 驱动的循环（数字雨 / 贡献墙蛇 / 频谱）+ 关毛玻璃与 CSS 动画。
+       存 lzx.lowpower = 'on' | 'off'；没存过时：系统开了「省流量」才自动开启。 */
+    var LZXPower = window.LZXPower = (function () {
+        function stored() { try { return localStorage.getItem('lzx.lowpower'); } catch (e) { return null; } }
+        function auto() { var c = navigator.connection; return !!(c && c.saveData); }
+        function on() { var v = stored(); return v === 'on' ? true : v === 'off' ? false : auto(); }
+        function apply() {
+            document.documentElement.classList.toggle('lzx-lowpower', on());
+            try { document.dispatchEvent(new CustomEvent('lzx:power', { detail: { on: on() } })); } catch (e) {}
+        }
+        function set(v) { try { localStorage.setItem('lzx.lowpower', v ? 'on' : 'off'); } catch (e) {} apply(); }
+        return { on: on, set: set, toggle: function () { set(!on()); return on(); }, apply: apply };
+    })();
+    LZXPower.apply();
 
     /* ---------------- 3. 动效开关 ---------------- */
     function applyMotion() {
@@ -668,7 +691,7 @@
 
                 var p = snake.progress;
                 /* 每步先快后慢一点，脖子不会硬生生停住 */
-                var pe = p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2;
+                var pe = p;
                 var pts = [];
                 var phase = now / 210;
                 var nx = -snake.dir.y, ny = snake.dir.x;
@@ -808,11 +831,14 @@
             }, { threshold: 0.05 }).observe(wall);
         }
 
+        document.addEventListener('lzx:power', function (e) { if (!e.detail.on && ghOnScreen && !raf) { prevTs = 0; raf = requestAnimationFrame(loop); } });
         var lastPaint = 0;
+        var FRAME_CAP = (window.matchMedia && window.matchMedia('(pointer:coarse)').matches) || window.innerWidth < 820;
         function loop(ts) {
-            if (!ghOnScreen) { raf = 0; return; }
+            if (!ghOnScreen || (window.LZXPower && window.LZXPower.on())) { raf = 0; return; }
             if (!prevTs) prevTs = ts;
-            if (ts - lastPaint < 40) { raf = requestAnimationFrame(loop); return; }
+            var minGap = !snake ? 140 : (FRAME_CAP ? 30 : 0);
+            if (minGap && ts - lastPaint < minGap) { raf = requestAnimationFrame(loop); return; }
             lastPaint = ts;
             var dt = Math.min(64, ts - prevTs);
             prevTs = ts;
@@ -944,20 +970,20 @@
     var STACK_FILES = [
         'css/celeste.css', 'css/gamehub.css', 'css/osu.css',
         'css/style.css', 'html/celeste/celeste.html', 'html/gamehub/gamehub.html',
-        'html/home/home.html', 'html/market/market.html', 'html/osu/osu.html',
+        'html/home/home.html', 'html/osu/osu.html',
         'index.html', 'js/celeste/celeste-boot.js', 'js/celeste/celeste-core.js',
         'js/celeste/celeste-editor.js', 'js/celeste/celeste-level.js', 'js/celeste/celeste-player.js',
         'js/celeste/celeste-render.js', 'js/celeste/celeste-settings.js', 'js/celeste/celeste-ui.js',
         'js/gamehub/game-2048.js', 'js/gamehub/gamehub-core.js', 'js/gamehub/gamehub-i18n.js',
         'js/gamehub/game-minesweeper.js', 'js/gamehub/game-snake.js', 'js/home/core/achievements.js',
         'js/home/core/audio-player.js', 'js/home/core/celeste-loader.js', 'js/home/core/gamehub-loader.js',
-        'js/home/core/main.js', 'js/home/core/market.js', 'js/home/core/market-loader.js',
+        'js/home/core/main.js',
         'js/home/core/osu-loader.js', 'js/home/core/toolkit.js', 'js/home/core/ui-extras.js',
         'js/osu/osu-audio.js', 'js/osu/osu-beatmap.js', 'js/osu/osu-boot.js',
         'js/osu/osu-core.js', 'js/osu/osu-game.js', 'js/osu/osu-i18n.js',
         'js/osu/osu-mode-catch.js', 'js/osu/osu-mode-mania.js', 'js/osu/osu-mode-standard.js',
         'js/osu/osu-mode-taiko.js', 'js/osu/osu-replay.js', 'js/osu/osu-settings.js',
-        'js/osu/osu-ui.js', 'load.html', 'README-行情模块.txt',
+        'js/osu/osu-ui.js', 'load.html', 'README.txt',
         'sw.js'
     ];
     var STACK_LABEL = { js: 'JAVASCRIPT', css: 'CSS', html: 'HTML', txt: 'DOCS', md: 'DOCS' };
@@ -1052,7 +1078,7 @@
     function initPlayerReveal() {
         var wrap = document.getElementById('audio-wrapper');
         if (!wrap) return;
-        var OVERLAY = ['osu-open', 'market-open', 'gamehub-open', 'celeste-open'];
+        var OVERLAY = ['osu-open', 'gamehub-open', 'celeste-open'];
         var logWin = document.getElementById('log-window');
         function sync() {
             var overlay = OVERLAY.some(function (c) { return document.body.classList.contains(c); });

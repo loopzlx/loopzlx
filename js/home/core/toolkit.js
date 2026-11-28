@@ -4,6 +4,9 @@
  */
 (function () {
     'use strict';
+  /* 写入 innerHTML 前转义（名称 / 段位 / 币种码等可能来自存档码、分享链接或外部接口） */
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+
     if (window.LZXTool) return;
 
     var T = window.LZXTool = {};
@@ -15,9 +18,8 @@
         'osu.best.v2', 'osu.board.v1', 'osu.history.v1', 'osu_settings', 'osu_keybinds', 'osu.profile', 'osu.skin', 'osu_lang', 'osu_local_favorites_v1', 'osu_local_recent_v1', 'osu.replay.v1', 'osu_modes_played_v1', 'lzx.osu.modes',
         'celeste.pb.v1', 'celeste.custom.v1', 'celeste.lib.v1', 'celeste.ghost.v1', 'celeste.settings.v2', 'celeste.keys.v1',
         'gh_2048_best', 'gh_2048_save_v1', 'gh_snake_best', 'gh_snake_save_v1', 'gh_mines_best', 'gh_mines_save_v1', 'gh_lang',
-        'mk.alerts.v1', 'mk.hist.v1', 'mk.alertlog.v1',
         'lzx.ach.v1', 'lzx.ach.seen', 'lzx.ach.total',
-        'lzx.theme', 'theme', 'lzx.motion', 'lzx.visits', 'lzx.lang', 'lzx.hist', 'lzx.lastview', 'lzx.rememberview', 'lzx.uid', 'site_lang', 'lang'
+        'lzx.theme', 'theme', 'lzx.motion', 'lzx.lowpower', 'lzx.visits', 'lzx.lang', 'lzx.hist', 'lzx.lastview', 'lzx.rememberview', 'lzx.uid', 'site_lang', 'lang'
     ];
     var PREFIX_KEYS = ['lzx.ach.cnt.', 'osu.best.v2.', 'osu.board.v1.', 'osu.history.v1.'];
     /* 体积大、可选的（默认勾选） */
@@ -34,7 +36,7 @@
         try {
             for (var i = 0; i < localStorage.length; i++) {
                 var k = localStorage.key(i);
-                if (!isKey(k) || /(^|\.)cache|mk\.cache|__lzx_probe|market.*cache/i.test(k)) continue;
+                if (!isKey(k) || /(^|\.)cache|__lzx_probe/i.test(k)) continue;
                 if (!includeHeavy && HEAVY.indexOf(k) >= 0) continue;
                 var v = localStorage.getItem(k);
                 if (v != null) d[k] = v;
@@ -91,7 +93,7 @@
         if (fnv(text) !== m[3]) throw new Error('校验失败：存档码可能被截断或改动过');
         var obj = JSON.parse(text);
         if (!obj || obj.app !== 'lzx' || !obj.data) throw new Error('这不是 LOOPZLX 的存档码');
-        if (obj.v > 1) throw new Error('存档版本过高（v' + obj.v + '），请用更新的站点导入');
+        if (obj.v > 2) throw new Error('存档版本过高（v' + obj.v + '），请用更新的站点导入');
         return obj;
     }
 
@@ -113,7 +115,7 @@
     /* 返回 { value, action: 'write'|'keep' } */
     function mergeValue(key, local, incoming) {
         if (local == null) return { value: incoming, action: 'write' };
-        if (/settings|keybind|skin|lang|theme|motion|profile|favorites|recent|lastview|rememberview/.test(key)) return { value: incoming, action: 'write' };
+        if (/settings|keybind|skin|lang|theme|motion|lowpower|profile|favorites|recent|lastview|rememberview/.test(key)) return { value: incoming, action: 'write' };
 
         /* 纯数字型最佳值 */
         if (/^gh_(2048|snake|mines)_best$/.test(key) || key === 'lzx.ach.total') {
@@ -224,6 +226,23 @@
     }
 
     /* ============================== 导出 / 导入 API ============================== */
+    /* ---- 分享链接 / 二维码 ---- */
+    var QR_SRC = (function () {
+        var s = document.currentScript, q = (s && s.src && s.src.match(/\?v=[0-9.]+/)) || [''];
+        return 'js/home/core/qr.js' + q[0];
+    })();
+    function loadQR() {
+        if (window.LZXQR) return Promise.resolve(window.LZXQR);
+        return new Promise(function (resolve, reject) {
+            var s = document.createElement('script');
+            s.src = QR_SRC; s.onload = function () { resolve(window.LZXQR); };
+            s.onerror = function () { reject(new Error('二维码模块加载失败')); };
+            document.head.appendChild(s);
+        });
+    }
+    /* 存档放在 URL 的 # 片段里：片段不会随请求发给任何服务器，只有打开链接的浏览器能读到 */
+    T.shareLink = function (code) { return location.href.split('#')[0].split('?')[0] + '#lzx=' + code; };
+
     T.exportCode = async function (includeHeavy) {
         var data = collect(includeHeavy !== false);
         var library = includeHeavy !== false ? await readOsuLibrary() : [];
@@ -235,7 +254,7 @@
 
     T.inspectCode = async function (code) {
         var obj = await unpack(code);
-        var data = obj.data, keys = Object.keys(data), heavy = 0;
+        var data = obj.data, keys = Object.keys(data).filter(isKey), heavy = 0;
         keys.forEach(function (k) { if (HEAVY.indexOf(k) >= 0) heavy++; });
         return { at: obj.at, keys: keys, heavy: heavy, libraryCount: (obj.osuLibrary || []).length, ver: obj.ver };
     };
@@ -243,7 +262,11 @@
     /* apply=true 才真正写入；否则只返回预览 */
     T.importCode = async function (code, apply) {
         var obj = await unpack(code);
-        var data = obj.data, writes = [], keeps = [], k;
+        var rawData = obj.data || {}, data = {}, writes = [], keeps = [], k;
+        /* 只收白名单 key + 字符串值，防止存档码往 localStorage 写任意键 */
+        Object.keys(rawData).forEach(function (key) {
+            if (isKey(key) && typeof rawData[key] === 'string') data[key] = rawData[key];
+        });
         var current = {};
         for (k in data) current[k] = localStorage.getItem(k);
         for (k in data) {
@@ -256,7 +279,7 @@
                 try { localStorage.setItem(key, r.value); } catch (e) {}
             });
             /* 设置类 / 偏好类从存档同步；PB 与计数仍按合并规则 */
-            Object.keys(data).forEach(function(key){ if (/settings|keybind|skin|lang|theme|motion|profile|favorites|recent|lastview|rememberview/i.test(key) && data[key] != null) { try{localStorage.setItem(key,data[key]);}catch(e){} } });
+            Object.keys(data).forEach(function(key){ if (/settings|keybind|skin|lang|theme|motion|lowpower|profile|favorites|recent|lastview|rememberview/i.test(key) && data[key] != null) { try{localStorage.setItem(key,data[key]);}catch(e){} } });
         }
         var libCount = 0; if (apply && obj.osuLibrary && obj.osuLibrary.length) libCount = await writeOsuLibrary(obj.osuLibrary);
         return { writes: writes, keeps: keeps, total: Object.keys(data).length, libraryCount: libCount, incomingLibraryCount: (obj.osuLibrary || []).length };
@@ -304,7 +327,7 @@
         catch (e) { add('localStorage', 'fail', '不可写（可能是隐私模式 / 配额满）'); }
 
         /* 2. 模块 */
-        [['osu', window.OsuWarp], ['gamehub', window.GameHubWarp], ['market', window.MarketWarp || (document.querySelector('[data-market-open]') ? {} : null)], ['celeste', window.CelesteWarp], ['achievements', window.LZXAch], ['theme', window.CyberTheme], ['player', window.CyberAudioPlayer]].forEach(function (p) {
+        [['osu', window.OsuWarp], ['gamehub', window.GameHubWarp], ['celeste', window.CelesteWarp], ['achievements', window.LZXAch], ['theme', window.CyberTheme], ['player', window.CyberAudioPlayer]].forEach(function (p) {
             add('module:' + p[0], p[1] ? 'ok' : 'fail', p[1] ? '' : '未挂载');
         });
 
@@ -423,7 +446,7 @@
             '  <div class="lzx-about-rows">' +
             '    <div><span>版本</span><b>v' + ver + '</b></div>' +
             '    <div><span>架构</span><b>静态单页 + 按需注入覆盖层</b></div>' +
-            '    <div><span>模块</span><b>market · osu! · gamehub · celeste</b></div>' +
+            '    <div><span>模块</span><b>osu! · gamehub · celeste</b></div>' +
             '    <div><span>存储</span><b>localStorage（无服务端）</b></div>' +
             '    <div><span>字体</span><b>Orbitron / Share Tech Mono</b></div>' +
             '  </div>' +
@@ -441,13 +464,16 @@
     function renderSave(body) {
         body.innerHTML =
             '<div class="lzx-tool-pane">' +
-            '  <div class="lzx-save-note">存档码把成绩、成就、自制图打包成一段文本，贴到另一台设备就能导回来。<b>不会上传任何服务器。</b></div>' +
+            '  <div class="lzx-save-note">存档码把成绩、成就、自制图打包成一段文本，贴到另一台设备就能导回来；也可以生成<b>分享链接 / 二维码</b>，手机扫一下就能打开并提示导入。<b>不会上传任何服务器</b>（链接把存档放在 # 之后，只有打开它的浏览器能读到）。</div>' +
             '  <label class="lzx-save-opt"><input type="checkbox" id="lzx-save-heavy" checked> 包含大件数据：自制图、Celeste 图库/影子、osu 回放与导入曲库（可能很长）</label>' +
             '  <div class="lzx-save-btns">' +
             '    <button id="lzx-do-export">生成存档码</button>' +
             '    <button id="lzx-do-copy" disabled>复制</button>' +
             '    <button id="lzx-do-dl" disabled>下载 .txt</button>' +
+            '    <button id="lzx-do-link" disabled>复制分享链接</button>' +
+            '    <button id="lzx-do-qr" disabled>二维码</button>' +
             '  </div>' +
+            '  <div id="lzx-qr-box" class="lzx-qr-box" hidden></div>' +
             '  <textarea id="lzx-code-out" class="lzx-code" readonly placeholder="点「生成存档码」"></textarea>' +
             '  <div class="lzx-save-sep"></div>' +
             '  <textarea id="lzx-code-in" class="lzx-code" placeholder="在这里粘贴存档码"></textarea>' +
@@ -465,6 +491,9 @@
         var copyBtn = body.querySelector('#lzx-do-copy');
         var dlBtn = body.querySelector('#lzx-do-dl');
         var impBtn = body.querySelector('#lzx-do-import');
+        var linkBtn = body.querySelector('#lzx-do-link');
+        var qrBtn = body.querySelector('#lzx-do-qr');
+        var qrBox = body.querySelector('#lzx-qr-box');
 
         function say(text, cls) { msg.className = 'lzx-save-msg' + (cls ? ' ' + cls : ''); msg.textContent = text; }
 
@@ -472,7 +501,8 @@
             try {
                 var r = await T.exportCode(heavy.checked);
                 out.value = r.code;
-                copyBtn.disabled = dlBtn.disabled = false;
+                copyBtn.disabled = dlBtn.disabled = linkBtn.disabled = qrBtn.disabled = false;
+                qrBox.hidden = true; qrBox.innerHTML = '';
                 say('已打包 ' + r.count + ' 项' + (r.libraryCount ? ' · osu 曲库 ' + r.libraryCount + ' 套' : '') + '，' + (r.bytes / 1024).toFixed(1) + ' KB 文本', 'ok');
             } catch (e) { say(String(e.message || e), 'bad'); }
         });
@@ -481,6 +511,23 @@
             catch (e) {
                 out.select(); document.execCommand('copy'); say('已复制（兼容模式）', 'ok');
             }
+        });
+        linkBtn.addEventListener('click', async function () {
+            var link = T.shareLink(out.value);
+            var note = link.length > 8000 ? '（链接很长 ' + (link.length / 1024).toFixed(1) + ' KB，部分聊天软件会截断，建议改用下载 / 取消大件数据）' : '';
+            try { await navigator.clipboard.writeText(link); say('分享链接已复制' + note, link.length > 8000 ? 'bad' : 'ok'); }
+            catch (e) { out.value = link; out.select(); document.execCommand('copy'); out.value = link.split('#lzx=')[1]; say('分享链接已复制（兼容模式）' + note, 'ok'); }
+        });
+        qrBtn.addEventListener('click', async function () {
+            if (!qrBox.hidden) { qrBox.hidden = true; return; }
+            try {
+                var Q = await loadQR();
+                var svg = Q.svg(T.shareLink(out.value), { border: 3 });
+                if (!svg) { say('存档太大，二维码装不下（上限约 2.9 KB）。取消勾选「包含大件数据」再生成，或改用复制 / 下载。', 'bad'); return; }
+                qrBox.innerHTML = svg + '<div class="lzx-qr-cap">用手机相机扫码 → 打开页面 → 核对后点「导入并合并」</div>';
+                qrBox.hidden = false;
+                say('二维码已生成（含 ' + (out.value.length / 1024).toFixed(1) + ' KB 存档）', 'ok');
+            } catch (e) { say(String(e.message || e), 'bad'); }
         });
         dlBtn.addEventListener('click', function () {
             var blob = new Blob([out.value], { type: 'text/plain' });
@@ -516,7 +563,7 @@
         var pane = body.querySelector('.lzx-tool-pane');
         var html = '<div class="lzx-diag-sum">' + (r.bad ? '<b class="bad">' + r.bad + ' 项异常</b>' : '<b class="ok">全部通过</b>') + ' · ' + r.ok + ' 项正常</div><div class="lzx-diag-rows">';
         r.rows.forEach(function (row) {
-            html += '<div class="lzx-diag-row ' + row.state + '"><i>' + (row.state === 'ok' ? '●' : row.state === 'warn' ? '▲' : '✕') + '</i><span>' + row.name + '</span><em>' + (row.detail || (row.state === 'ok' ? 'ok' : '')) + '</em></div>';
+            html += '<div class="lzx-diag-row ' + row.state + '"><i>' + (row.state === 'ok' ? '●' : row.state === 'warn' ? '▲' : '✕') + '</i><span>' + esc(row.name) + '</span><em>' + esc(row.detail || (row.state === 'ok' ? 'ok' : '')) + '</em></div>';
         });
         html += '</div><div class="lzx-diag-foot"><button id="lzx-diag-again">重新自检</button><button id="lzx-diag-copy">复制报告</button></div>';
         pane.innerHTML = html;
@@ -539,6 +586,21 @@
         document.body.classList.remove('lzx-tool-open');
     }
     T.open = function (tab) { open(tab || 'about'); };
+
+    /* 打开 …#lzx=<存档码> 的链接：弹出存档面板、预填并校验；绝不自动写入，必须用户点「导入并合并」确认 */
+    function consumeShareHash() {
+        var m = /^#lzx=([A-Za-z0-9_.\-]+)$/.exec(location.hash || '');
+        if (!m) return;
+        try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {}   // 地址栏不留存档，刷新也不会重复弹
+        open('save');
+        var inp = document.getElementById('lzx-code-in'), chk = document.getElementById('lzx-do-check');
+        if (!inp || !chk) return;
+        inp.value = m[1];
+        var note = document.querySelector('.lzx-save-note');
+        if (note) note.insertAdjacentHTML('afterbegin', '<b class="lzx-share-flag">检测到分享链接里的存档：请核对内容，确认后再点「导入并合并」（不会自动覆盖）。</b><br>');
+        chk.click();
+    }
+    setTimeout(consumeShareHash, 700);
     T.close = close;
     T.tabs = function (name) { if (wrap && !wrap.hidden) switchTab(name); };
 
@@ -588,7 +650,7 @@
             }
         });
         /* 覆盖层容器补角色，方便读屏识别为对话框 */
-        ['market-layer', 'osu-layer', 'gamehub-layer', 'celeste-layer', 'cl-set', 'cl-over'].forEach(function (id) {
+        ['osu-layer', 'gamehub-layer', 'celeste-layer', 'cl-set', 'cl-over'].forEach(function (id) {
             var n = document.getElementById(id);
             if (n && !n.getAttribute('role')) { n.setAttribute('role', 'dialog'); n.setAttribute('aria-modal', 'true'); }
         });

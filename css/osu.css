@@ -1421,3 +1421,26 @@ body.osu-open #log-window { opacity: 0; pointer-events: none; }
   .osu-res-history .osu-res-row em { font-size: 11px; }
   .osu-res-history .osu-res-row i { font-size: 9px; overflow-wrap: anywhere; }
 }
+
+/* ---------------- 回放控制条（拖动 / 倍速）---------------- */
+.osu-replay-bar {
+  display: flex; align-items: center; gap: 10px; flex: 0 0 auto;
+  padding: 4px 2px 0;
+}
+.osu-replay-bar[hidden] { display: none; }
+.osu-replay-bar #orp-seek {
+  flex: 1 1 auto; min-width: 0; height: 18px; margin: 0; cursor: pointer;
+  accent-color: var(--osu-accent2, #19c7a4);
+}
+.orp-time { font-size: 10px; letter-spacing: .12em; color: var(--text-muted, #a78bcc); white-space: nowrap; min-width: 84px; text-align: center; font-variant-numeric: tabular-nums; }
+.orp-rates { display: flex; gap: 4px; flex: 0 0 auto; }
+.orp-rate {
+  border: 1px solid var(--glass-border, rgba(138,43,226,.3)); border-radius: 6px; background: transparent;
+  color: var(--text-muted, #a78bcc); font: inherit; font-size: 10px; padding: 4px 7px; cursor: pointer; letter-spacing: .06em;
+}
+.orp-rate.is-on { border-color: var(--osu-accent2); color: var(--osu-accent2); background: color-mix(in srgb, var(--osu-accent2) 12%, transparent); }
+@media (max-width: 640px) {
+  .osu-replay-bar { gap: 6px; flex-wrap: wrap; }
+  .osu-replay-bar #orp-seek { order: 3; flex: 1 0 100%; }
+  .orp-time { min-width: 0; }
+}

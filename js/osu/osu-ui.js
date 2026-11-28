@@ -136,7 +136,7 @@ var OSU = window.Osu = window.Osu || {};
     var chips = np.querySelector('.np-chips');
     if (chips) {
       chips.innerHTML =
-        '<span class="np-chip">' + (c.version || 'Normal') + '</span>' +
+        '<span class="np-chip">' + esc(c.version || 'Normal') + '</span>' +
         (pick.charts.length > 1 ? '<span class="np-chip">' + pick.charts.length + ' ' + t('select.diffs', 'DIFFS') + '</span>' : '') +
         '<span class="np-chip np-stars">★ ' + OSU.starRating(c).toFixed(1) + '</span>' +
         '<span class="np-chip">' + U.time(c.length || 30) + '</span>' +
@@ -202,12 +202,12 @@ var OSU = window.Osu = window.Osu || {};
       var rating = OSU.starRating(c);
       var starTier = rating < 2 ? 'low' : rating < 4 ? 'mid' : rating < 6 ? 'high' : 'expert';
       var coverStyle = it.bgUrl
-        ? 'background-image:linear-gradient(0deg,rgba(20,20,24,.2),rgba(20,20,24,.05)),url("' + it.bgUrl + '")'
+        ? 'background-image:linear-gradient(0deg,rgba(20,20,24,.2),rgba(20,20,24,.05)),url(&quot;' + esc(it.bgUrl) + '&quot;)'
         : 'background:linear-gradient(135deg,' + C.MODE_COLOR[mode] + ',rgba(0,0,0,.25))';
       card.innerHTML =
         '<div class="song-cover" style="' + coverStyle + '">' + (it.bgUrl ? '' : C.MODE_ICON[mode]) + '</div>' +
-        '<div class="song-text"><div class="song-title">' + c.title + '</div>' +
-        '<div class="song-meta">' + c.artist + ' · ' + (it.charts.length > 1 ? it.charts.length + ' ' + (OSU.i18n ? OSU.i18n.t('select.diffs') : 'DIFFS') : c.version) + '</div></div>' +
+        '<div class="song-text"><div class="song-title">' + esc(c.title) + '</div>' +
+        '<div class="song-meta">' + esc(c.artist) + ' · ' + (it.charts.length > 1 ? it.charts.length + ' ' + (OSU.i18n ? OSU.i18n.t('select.diffs') : 'DIFFS') : esc(c.version)) + '</div></div>' +
         '<div class="song-rating ' + starTier + '">★ ' + rating.toFixed(2) + '</div>' +
         '<div class="song-badge">' + (it.demo ? 'DEMO' : 'OSZ') + '</div>' +
         (it.demo ? '' : '<span class="song-del" title="删除这张谱面">×</span>');
@@ -249,7 +249,7 @@ var OSU = window.Osu = window.Osu || {};
           var db = document.createElement('button');
           db.type = 'button';
           db.className = 'osu-diff-btn' + ((it.dl || 0) === ci ? ' is-on' : '');
-          db.innerHTML = '<b>' + (cc.version || ('Diff ' + (ci + 1))) + '</b><span>★ ' + OSU.starRating(cc).toFixed(1) + '</span>';
+          db.innerHTML = '<b>' + esc(cc.version || ('Diff ' + (ci + 1))) + '</b><span>★ ' + OSU.starRating(cc).toFixed(1) + '</span>';
           db.addEventListener('click', function (ev) {
             ev.stopPropagation();
             it.dl = ci;
@@ -319,7 +319,7 @@ var OSU = window.Osu = window.Osu || {};
       selected.charts.forEach(function (d, i) {
         var b = document.createElement('button');
         b.className = 'osu-diff' + (i === (selected.dl || 0) ? ' is-on' : '');
-        b.innerHTML = '<span class="diff-name">' + d.version + '</span><span class="diff-stars">★ ' + OSU.starRating(d).toFixed(1) + '</span>';
+        b.innerHTML = '<span class="diff-name">' + esc(d.version) + '</span><span class="diff-stars">★ ' + OSU.starRating(d).toFixed(1) + '</span>';
         b.addEventListener('click', function () {
           selected.dl = i;
           UI.renderDetail();
@@ -650,13 +650,13 @@ var OSU = window.Osu = window.Osu || {};
       var top = board.filter(function (r) { return r.key === key; }).slice(0, 5);
       var html = '<div class="osu-res-pb' + (isPB ? ' new' : '') + '">' +
         '<span>BEST</span><b>' + (best ? U.fmt(best.score) : '—') + '</b>' +
-        '<em>' + (best ? best.acc.toFixed(2) + '% · ' + best.rank : '') + '</em>' +
+        '<em>' + (best ? best.acc.toFixed(2) + '% · ' + esc(best.rank) : '') + '</em>' +
         (isPB ? '<i>NEW RECORD</i>' : '') + '</div>';
       if (top.length > 1) {
         html += '<div class="osu-res-board"><span>LOCAL TOP</span>';
         top.forEach(function (r, i) {
           html += '<div class="osu-res-row"><b>#' + (i + 1) + '</b><em>' + U.fmt(r.score) +
-            '</em><i>' + r.acc.toFixed(2) + '% · ' + r.rank + '</i></div>';
+            '</em><i>' + r.acc.toFixed(2) + '% · ' + esc(r.rank) + '</i></div>';
         });
         html += '</div>';
       }
@@ -667,8 +667,8 @@ var OSU = window.Osu = window.Osu || {};
           var when = new Date(r.at);
           var dateLabel = when.toLocaleDateString() + ' ' + when.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
           html += '<div class="osu-res-row"><b>' + (i + 1) + '</b><em>' + U.fmt(r.score) +
-            '</em><i>' + r.acc.toFixed(2) + '% · ' + r.rank + (r.failed ? ' · FAIL' : '') +
-            ' · ' + r.mods + ' · ' + dateLabel + '</i></div>';
+            '</em><i>' + r.acc.toFixed(2) + '% · ' + esc(r.rank) + (r.failed ? ' · FAIL' : '') +
+            ' · ' + esc(r.mods) + ' · ' + dateLabel + '</i></div>';
         });
         html += '</div>';
       }

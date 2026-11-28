@@ -15,7 +15,7 @@
         'js/celeste/celeste-boot.js',
         'js/celeste/celeste-editor.js'
     ];
-    var VER = '?v=1.13';
+    var VER = '?v=7.3.0';
 
     var loaded = false;
     var isOpen = false;

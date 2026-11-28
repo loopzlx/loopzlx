@@ -26,9 +26,9 @@
                     <span data-en="More" data-zh="更多">More</span><i class="fas fa-chevron-down"></i>
                 </button>
                 <div class="more-panel" id="more-panel">
-                    <a href="#market" data-market-open data-en="Market Feed" data-zh="行情监控" class="more-item"><i class="fas fa-chart-line"></i><span>Market Feed</span></a>
                     <a href="#osu" data-osu-open data-en="osu! Kernel" data-zh="osu! 内核" class="more-item"><i class="fas fa-gamepad"></i><span>osu! Kernel</span></a>
                     <a href="#gamehub" data-gamehub-open data-en="GameHub" data-zh="游戏中心" class="more-item"><i class="fas fa-dice"></i><span>GameHub</span></a>
+                    <a href="wiki.html" target="_blank" rel="noopener" data-en="Wiki" data-zh="站点百科" class="more-item"><i class="fas fa-book"></i><span>Wiki</span></a>
                     <a href="#about" data-lzx-tool="about" data-en="About / Diag" data-zh="关于 / 自检" class="more-item"><i class="fas fa-circle-info"></i><span>About / Diag</span></a>
                 </div>
             </div>
@@ -54,10 +54,10 @@
         
         
         <a href="#projects" data-nav-secondary data-en="Projects" data-zh="项目" class="text-white/70 hover:text-white py-1">Projects</a>
-        <a href="#market" data-market-open data-en="Market" data-zh="行情" class="text-white/70 hover:text-white py-1">Market</a>
         <a href="#osu" data-osu-open data-en="osu!" data-zh="osu! 音游" class="text-white/70 hover:text-white py-1">osu!</a>
         <a href="#gamehub" data-gamehub-open data-en="GameHub" data-zh="游戏中心" class="text-white/70 hover:text-white py-1">GameHub</a>
         <a href="#celeste" data-celeste-open data-en="Celeste" data-zh="蔚蓝" class="text-white/70 hover:text-white py-1">Celeste</a>
+        <a href="wiki.html" target="_blank" rel="noopener" data-en="Wiki" data-zh="百科" class="text-white/70 hover:text-white py-1">Wiki</a>
         <div class="lang-switch font-mono self-start">
             <button type="button" class="lang-btn active" id="m-btn-en" data-lang="en">EN</button>
             <span class="text-gray-700">/</span>
@@ -185,11 +185,6 @@
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8" id="project-grid"></div>
 </section>
 
-<!-- Market 覆盖层（片段 html/market/market.html 由 market-loader.js 懒加载注入） -->
-<div id="market-layer" class="mk-layer" aria-hidden="true" aria-label="Market feed">
-    <div id="market-slot" data-include="html/market/market.html"></div>
-</div>
-
 <!-- osu! 覆盖层（片段 html/osu/osu.html 由 osu-loader.js 懒加载注入，指令栏 warp osu 可拉起） -->
 <div id="osu-layer" class="osu-layer" aria-hidden="true" aria-label="osu! rhythm game">
     <div id="osu-slot"></div>
@@ -225,7 +220,7 @@
     <!-- 系统日志：终端命令行的输出区，随页面滚动，不再浮在卡片上 -->
     <div id="log-window">
         <div class="log-head">
-            <span id="kernel-ver">KERNEL_V6.9.2_OS</span>
+            <span id="kernel-ver">KERNEL_V7.3.0_OS</span>
             <span class="log-head-mid" data-en="SYSTEM OUTPUT" data-zh="系统输出">SYSTEM OUTPUT</span>
             <span id="log-mode">STABLE</span>
         </div>

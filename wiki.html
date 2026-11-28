@@ -1,0 +1,745 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>LOOPZLX Wiki</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #f7f6fb; --panel: #ffffff; --panel2: #efedf8; --fg: #1d1a2b; --muted: #5f5a78;
+  --line: #dcd8ec; --accent: #6d28d9; --accent-ink: #ffffff; --accent-soft: #ece4fb;
+  --good: #0f7a4d; --warn: #9a5b00; --code-bg: #f0eef9; --hl: #fff0a8; --hl-ink: #3a2f00;
+  --font-body: "Inter", system-ui, -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --font-head: "Space Grotesk", "Inter", system-ui, "PingFang SC", "Microsoft YaHei", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0f0d18; --panel: #171428; --panel2: #1f1b36; --fg: #e9e6f7; --muted: #a29cc0;
+  --line: #2f2a4d; --accent: #a78bfa; --accent-ink: #14102a; --accent-soft: #2a2250;
+  --good: #4ade9b; --warn: #f2b45a; --code-bg: #1b1730; --hl: #5a4a00; --hl-ink: #fff3b8; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #0f0d18; --panel: #171428; --panel2: #1f1b36; --fg: #e9e6f7; --muted: #a29cc0;
+  --line: #2f2a4d; --accent: #a78bfa; --accent-ink: #14102a; --accent-soft: #2a2250;
+  --good: #4ade9b; --warn: #f2b45a; --code-bg: #1b1730; --hl: #5a4a00; --hl-ink: #fff3b8; color-scheme: dark; }
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: 76px; }
+body { background: var(--bg); color: var(--fg); font: 15px/1.75 var(--font-body); margin: 0;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 0 56px; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 30; background: var(--bg); }
+a { color: var(--accent); text-underline-offset: 3px; }
+code, kbd, pre { font-family: var(--font-mono); }
+code { background: var(--code-bg); padding: .12em .4em; border-radius: 4px; font-size: .88em; overflow-wrap: anywhere; }
+kbd { background: var(--panel); border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 5px; padding: .08em .45em; font-size: .85em; white-space: nowrap; }
+mark { background: var(--hl); color: var(--hl-ink); border-radius: 3px; padding: 0 .1em; }
+
+.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; background: var(--bg); border-bottom: 1px solid var(--line);
+  display: flex; align-items: center; gap: 12px; padding-block: 10px; margin-inline: calc(-1 * max(16px, env(safe-area-inset-left, 0px))); padding-inline: max(16px, env(safe-area-inset-left, 0px)); }
+.brand { font: 700 18px/1 var(--font-head); letter-spacing: .04em; white-space: nowrap; }
+.brand span { color: var(--accent); }
+.brand small { font: 500 11px var(--font-mono); color: var(--muted); letter-spacing: .08em; margin-left: 8px; }
+.search { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; background: var(--panel); border: 1px solid var(--line); border-radius: 9px; padding: 0 12px; }
+.search:focus-within { border-color: var(--accent); outline: 2px solid var(--accent-soft); }
+.search input { flex: 1; min-width: 0; border: 0; background: transparent; color: var(--fg); font: inherit; padding: 9px 0; outline: none; }
+.search kbd { color: var(--muted); }
+.iconbtn { background: var(--panel); color: var(--fg); border: 1px solid var(--line); border-radius: 9px; padding: 8px 11px; font: 600 13px var(--font-body); cursor: pointer; white-space: nowrap; }
+.iconbtn:hover { border-color: var(--accent); }
+.iconbtn:focus-visible, .nav a:focus-visible, summary:focus-visible, .copy:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+#navtoggle { display: none; }
+
+.wrap { max-width: 1180px; margin: 0 auto; display: grid; grid-template-columns: 232px minmax(0, 1fr); gap: 40px; padding-top: 28px; }
+.nav { position: sticky; top: calc(64px + env(safe-area-inset-top, 0px)); align-self: start; max-height: calc(100vh - 84px); overflow: auto; padding-right: 4px; font-size: 14px; }
+.nav h4 { font: 600 11px var(--font-mono); letter-spacing: .14em; text-transform: uppercase; color: var(--muted); margin: 18px 0 6px; }
+.nav h4:first-child { margin-top: 0; }
+.nav a { display: block; padding: 5px 10px; border-left: 2px solid var(--line); color: var(--muted); text-decoration: none; }
+.nav a:hover { color: var(--fg); border-left-color: var(--accent); }
+.nav a.on { color: var(--accent); border-left-color: var(--accent); font-weight: 600; background: var(--accent-soft); }
+.nav a[hidden] { display: none; }
+
+main { min-width: 0; }
+.art { padding-bottom: 36px; margin-bottom: 36px; border-bottom: 1px solid var(--line); }
+.art:last-of-type { border-bottom: 0; }
+h1, h2, h3 { font-family: var(--font-head); text-wrap: balance; line-height: 1.25; }
+h1 { font-size: clamp(30px, 5vw, 44px); margin: 0 0 12px; letter-spacing: -.01em; }
+h2 { font-size: 26px; margin: 0 0 14px; letter-spacing: -.005em; }
+h2 .tag { font: 500 11px var(--font-mono); letter-spacing: .12em; color: var(--accent); background: var(--accent-soft); border-radius: 5px; padding: 3px 8px; vertical-align: middle; margin-left: 10px; }
+h3 { font-size: 17px; margin: 26px 0 8px; }
+p { margin: 0 0 14px; max-width: 72ch; }
+ul, ol { padding-left: 1.3em; margin: 0 0 14px; max-width: 76ch; }
+li { margin: 4px 0; }
+.lead { font-size: 17px; color: var(--muted); max-width: 66ch; }
+
+.info { float: right; width: 270px; margin: 4px 0 16px 28px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; font-size: 13.5px; }
+.info h5 { margin: 0 0 8px; font: 600 11px var(--font-mono); letter-spacing: .14em; color: var(--accent); text-transform: uppercase; }
+.info dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; }
+.info dt { color: var(--muted); } .info dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
+.clear { clear: both; }
+
+.callout { border: 1px solid var(--line); border-left: 4px solid var(--accent); background: var(--panel); border-radius: 8px; padding: 12px 16px; margin: 16px 0; max-width: 76ch; }
+.callout.warn { border-left-color: var(--warn); }
+.callout.good { border-left-color: var(--good); }
+.callout b:first-child { display: block; font: 600 12px var(--font-mono); letter-spacing: .1em; margin-bottom: 4px; }
+.callout p:last-child { margin-bottom: 0; }
+
+.tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; margin: 14px 0 18px; background: var(--panel); }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; padding: 9px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { background: var(--panel2); font: 600 12px var(--font-mono); letter-spacing: .08em; color: var(--muted); white-space: nowrap; }
+tr:last-child td { border-bottom: 0; }
+td:first-child { white-space: nowrap; }
+tr[hidden] { display: none; }
+.grp td { background: var(--panel2); font: 600 12px var(--font-mono); letter-spacing: .1em; color: var(--accent); white-space: normal; }
+
+.codewrap { position: relative; margin: 12px 0 18px; max-width: 76ch; }
+pre { margin: 0; background: var(--code-bg); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-size: 13px; line-height: 1.6; }
+.copy { position: absolute; top: 8px; right: 8px; font: 600 11px var(--font-mono); background: var(--panel); color: var(--muted); border: 1px solid var(--line); border-radius: 6px; padding: 3px 8px; cursor: pointer; }
+.copy:hover { color: var(--accent); border-color: var(--accent); }
+
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 12px; margin: 16px 0 6px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; text-decoration: none; color: inherit; display: block; }
+.card:hover { border-color: var(--accent); }
+.card b { display: block; font: 600 15px var(--font-head); color: var(--fg); margin-bottom: 4px; }
+.card span { font-size: 13px; color: var(--muted); line-height: 1.55; display: block; }
+
+.swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; margin: 14px 0; }
+.sw { display: flex; align-items: center; gap: 10px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 9px 12px; font-size: 13.5px; }
+.sw i { width: 22px; height: 22px; border-radius: 6px; flex: none; border: 1px solid var(--line); }
+.sw small { display: block; color: var(--muted); font: 11px var(--font-mono); }
+
+.diagram { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); padding: 12px; margin: 14px 0 18px; }
+.diagram svg { display: block; min-width: 640px; width: 100%; height: auto; }
+.diagram text { font-family: var(--font-mono); fill: var(--fg); }
+.diagram .box { fill: var(--panel2); stroke: var(--line); stroke-width: 1.2; }
+.diagram .hot { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 1.4; }
+.diagram .sub { fill: var(--muted); }
+.diagram .arr { stroke: var(--muted); stroke-width: 1.4; fill: none; }
+.diagram .arrh { fill: var(--muted); }
+
+details.qa { border: 1px solid var(--line); border-radius: 10px; background: var(--panel); margin: 10px 0; max-width: 76ch; }
+details.qa summary { cursor: pointer; padding: 12px 16px; font-weight: 600; list-style: none; display: flex; gap: 10px; justify-content: space-between; }
+details.qa summary::after { content: "+"; color: var(--accent); font: 600 18px/1 var(--font-mono); }
+details.qa[open] summary::after { content: "–"; }
+details.qa summary::-webkit-details-marker { display: none; }
+details.qa .ans { padding: 0 16px 8px; color: var(--fg); }
+details.qa .ans p { margin-bottom: 10px; }
+
+.empty { display: none; padding: 40px 0; color: var(--muted); }
+.empty.show { display: block; }
+footer { color: var(--muted); font-size: 13px; padding-top: 8px; max-width: 72ch; }
+
+@media (max-width: 900px) {
+  .wrap { grid-template-columns: minmax(0, 1fr); gap: 0; padding-top: 18px; }
+  #navtoggle { display: inline-block; }
+  .brand small { display: none; }
+  .search kbd { display: none; }
+  .nav { display: none; position: static; max-height: none; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; margin-bottom: 22px; }
+  .nav.open { display: block; }
+  .info { float: none; width: auto; margin: 0 0 18px; }
+  h2 { font-size: 23px; }
+}
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+
+/* ---- polish ---- */
+.top { backdrop-filter: saturate(1.4) blur(10px); background: color-mix(in srgb, var(--bg) 88%, transparent); }
+.brand { color: inherit; text-decoration: none; }
+.brand:hover span { text-shadow: 0 0 14px var(--accent); }
+.progress { position: fixed; top: env(safe-area-inset-top, 0px); left: 0; height: 2px; width: 100%; z-index: 40; background: linear-gradient(90deg, var(--accent), #ec4899); transform-origin: 0 50%; transform: scaleX(0); pointer-events: none; }
+#overview { position: relative; padding: 26px 26px 30px; margin-bottom: 40px; border: 1px solid var(--line); border-radius: 18px; overflow: hidden;
+  background: radial-gradient(520px 260px at 92% -10%, color-mix(in srgb, var(--accent) 22%, transparent), transparent 70%),
+              linear-gradient(var(--panel), var(--panel)); }
+#overview::before { content: ""; position: absolute; inset: 0; pointer-events: none; opacity: .5;
+  background-image: linear-gradient(var(--line) 1px, transparent 1px), linear-gradient(90deg, var(--line) 1px, transparent 1px);
+  background-size: 36px 36px; -webkit-mask-image: linear-gradient(120deg, transparent 40%, #000); mask-image: linear-gradient(120deg, transparent 40%, #000); }
+#overview > * { position: relative; }
+#overview h1 { background: linear-gradient(100deg, var(--fg) 30%, var(--accent)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.art h2 { position: relative; padding-left: 14px; }
+.art h2::before { content: ""; position: absolute; left: 0; top: .18em; bottom: .18em; width: 4px; border-radius: 4px; background: linear-gradient(var(--accent), #ec4899); }
+.card { transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease; }
+.card:hover { transform: translateY(-3px); border-color: var(--accent); box-shadow: 0 10px 28px -14px var(--accent); }
+.nav a { transition: background .15s, color .15s, border-color .15s; }
+.totop { position: fixed; right: max(16px, env(safe-area-inset-right, 0px)); bottom: max(16px, env(safe-area-inset-bottom, 0px)); z-index: 25; width: 42px; height: 42px; border-radius: 50%;
+  border: 1px solid var(--line); background: var(--panel); color: var(--accent); font: 700 18px var(--font-body); cursor: pointer; opacity: 0; visibility: hidden; transform: translateY(8px);
+  transition: opacity .2s, transform .2s, visibility .2s; box-shadow: 0 6px 20px -8px rgba(0,0,0,.4); }
+.totop.show { opacity: 1; visibility: visible; transform: none; }
+.totop:hover { border-color: var(--accent); }
+@media (max-width: 900px) { #overview { padding: 18px 16px 22px; border-radius: 14px; } }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } .card, .totop, .nav a { transition: none; } }
+.embed .totop { bottom: 16px; }
+
+</style>
+</head>
+<body>
+<div class="progress" id="progress" aria-hidden="true"></div>
+<header class="top">
+  <a class="brand" href="load.html" title="返回 LOOPZLX 主页">LOOP<span>ZLX</span><small>WIKI · v7.3.0</small></a>
+  <label class="search"><span aria-hidden="true">⌕</span><input id="q" type="search" placeholder="搜索命令、按键、存档键…" autocomplete="off" aria-label="搜索 Wiki"><kbd>/</kbd></label>
+  <button class="iconbtn" id="navtoggle" type="button" aria-expanded="false" aria-controls="nav">目录</button>
+  <button class="iconbtn" id="themebtn" type="button" aria-label="切换明暗主题">◐</button>
+</header>
+
+<div class="wrap">
+<nav class="nav" id="nav" aria-label="目录">
+  <h4>开始</h4>
+  <a href="#overview">概览</a><a href="#quickstart">快速开始</a><a href="#architecture">架构</a>
+  <h4>主页</h4>
+  <a href="#terminal">终端与快捷键</a><a href="#commands">命令表</a><a href="#themes">主题与外观</a>
+  <h4>模块</h4>
+  <a href="#osu">osu! 内核</a><a href="#celeste">Celeste 蔚蓝</a><a href="#gamehub">GameHub</a><a href="#achievements">成就</a><a href="#player">音乐与贡献墙</a>
+  <h4>数据与离线</h4>
+  <a href="#savecode">存档码与分享</a><a href="#storage">存储键一览</a><a href="#offline">离线与性能</a><a href="#privacy">隐私与外部依赖</a>
+  <h4>开发</h4>
+  <a href="#dev">构建与测试</a><a href="#faq">常见问题</a><a href="#changelog">版本记录</a><a href="#glossary">术语表</a>
+</nav>
+
+<main id="main">
+
+<section class="art" id="overview" data-title="概览">
+  <h1>LOOPZLX</h1>
+  <aside class="info" aria-label="站点速览">
+    <h5>速览</h5>
+    <dl>
+      <dt>类型</dt><dd>纯静态 PWA</dd>
+      <dt>后端</dt><dd>无</dd>
+      <dt>数据存放</dt><dd>浏览器 localStorage</dd>
+      <dt>入口</dt><dd><code>load.html</code></dd>
+      <dt>版本</dt><dd>7.3.0</dd>
+      <dt>模块</dt><dd>osu! · Celeste · GameHub</dd>
+      <dt>终端命令</dt><dd>26 条</dd>
+      <dt>主题</dt><dd>8 套</dd>
+      <dt>成就</dt><dd>18 项</dd>
+      <dt>回归测试</dt><dd>12 个脚本</dd>
+      <dt>离线</dt><dd>支持</dd>
+    </dl>
+  </aside>
+  <p class="lead">一个赛博终端风格的个人主页。首页是一个能敲命令的终端，里面还放着四模式 osu! 音游、Celeste 风格的平台跳跃加关卡编辑器、三个小游戏，以及可以把成绩打包搬到另一台设备的存档工具。</p>
+  <p>整站没有服务器程序。页面和脚本都是静态文件，成绩、成就、设置、自制关卡都保存在你自己的浏览器里，换设备时用「存档码」或分享链接手动搬运。</p>
+  <div class="cards">
+    <a class="card" href="#osu"><b>osu! 内核</b><span>std / taiko / catch / mania，导入 .osz，回放可拖进度和倍速</span></a>
+    <a class="card" href="#celeste"><b>Celeste 蔚蓝</b><span>手感复刻，关卡编辑器，影子回放，分享链接</span></a>
+    <a class="card" href="#gamehub"><b>GameHub</b><span>2048、贪吃蛇、扫雷，支持续局</span></a>
+    <a class="card" href="#player"><b>音乐与贡献墙</b><span>底部播放器、频谱、首页的 GitHub 贡献墙</span></a>
+    <a class="card" href="#savecode"><b>存档码与分享</b><span>打包、校验、合并，二维码，导入前先确认</span></a>
+    <a class="card" href="#commands"><b>终端命令</b><span>26 条命令，<kbd>⌘/Ctrl</kbd> + <kbd>K</kbd> 打开命令面板</span></a>
+  </div>
+  <div class="clear"></div>
+</section>
+
+<section class="art" id="quickstart" data-title="快速开始">
+  <h2>快速开始</h2>
+  <h3>本地预览</h3>
+  <p>需要一个 http 服务。直接双击 <code>index.html</code> 不行，浏览器会拦截页面对各模块片段的读取。</p>
+  <div class="codewrap"><pre>cd loopzlx
+python3 -m http.server 8770
+# 浏览器打开 http://localhost:8770/load.html</pre></div>
+  <h3>部署</h3>
+  <p>把整个文件夹上传到任何静态托管即可（GitHub Pages、Cloudflare Pages、Netlify、Nginx 都行）。部署时不需要安装 node，生成物已经在包里。</p>
+  <h3>改了代码之后</h3>
+  <div class="codewrap"><pre>npm install            # 只为 Tailwind，运行站点本身不需要
+npm run build:all      # Tailwind 编译 + 版本号 + Service Worker + robots/sitemap</pre></div>
+  <div class="callout warn"><b>注意</b><p>没有样式、页面一片空白或模块打不开，先检查是不是用 <code>file://</code> 打开的，再检查 <code>css/tailwind.local.css</code> 是否存在。</p></div>
+</section>
+
+<section class="art" id="architecture" data-title="架构">
+  <h2>架构</h2>
+  <p>整站只有一个真正的页面外壳 <code>load.html</code>。开机动画结束后跳到它，它负责加载样式和主页，并在你第一次打开某个模块时才去取该模块的片段和脚本。</p>
+  <div class="diagram" role="img" aria-label="加载流程：index.html 跳到 load.html，load.html 加载主页和核心脚本，并在首次打开时懒加载 osu、GameHub、Celeste，所有数据写入 localStorage">
+    <svg viewBox="0 0 760 310" xmlns="http://www.w3.org/2000/svg">
+      <defs><marker id="ah" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8Z" class="arrh"/></marker></defs>
+      <rect class="box" x="20" y="20" width="170" height="60" rx="10"/><text x="105" y="47" text-anchor="middle" font-size="14" font-weight="600">index.html</text><text class="sub" x="105" y="66" text-anchor="middle" font-size="11">开机动画</text>
+      <path class="arr" d="M190 50 H248" marker-end="url(#ah)"/>
+      <rect class="hot" x="250" y="20" width="200" height="60" rx="10"/><text x="350" y="47" text-anchor="middle" font-size="14" font-weight="600">load.html</text><text class="sub" x="350" y="66" text-anchor="middle" font-size="11">外壳 · 样式 · 调度</text>
+      <path class="arr" d="M450 50 H508" marker-end="url(#ah)"/>
+      <rect class="box" x="510" y="20" width="230" height="60" rx="10"/><text x="625" y="44" text-anchor="middle" font-size="13" font-weight="600">home.html + core/*.js</text><text class="sub" x="625" y="64" text-anchor="middle" font-size="11">主页 · 终端 · 播放器 · 工具箱</text>
+      <path class="arr" d="M350 80 V112 M130 112 H570 M130 112 V148 M350 112 V148 M570 112 V148" marker-end="url(#ah)"/>
+      <text class="sub" x="440" y="104" text-anchor="middle" font-size="11">第一次打开才 fetch 片段 + 脚本</text>
+      <rect class="box" x="30" y="150" width="200" height="64" rx="10"/><text x="130" y="178" text-anchor="middle" font-size="13" font-weight="600">osu!</text><text class="sub" x="130" y="198" text-anchor="middle" font-size="10.5">osu-loader.js</text>
+      <rect class="box" x="250" y="150" width="200" height="64" rx="10"/><text x="350" y="178" text-anchor="middle" font-size="13" font-weight="600">GameHub</text><text class="sub" x="350" y="198" text-anchor="middle" font-size="10.5">gamehub-loader.js</text>
+      <rect class="box" x="470" y="150" width="200" height="64" rx="10"/><text x="570" y="178" text-anchor="middle" font-size="13" font-weight="600">Celeste</text><text class="sub" x="570" y="198" text-anchor="middle" font-size="10.5">celeste-loader.js</text>
+      <path class="arr" d="M350 214 V250" marker-end="url(#ah)"/>
+      <rect class="hot" x="20" y="252" width="720" height="44" rx="10"/><text x="380" y="279" text-anchor="middle" font-size="12.5" font-weight="600">localStorage · lzx.* / osu.* / celeste.* / gh_*</text>
+    </svg>
+  </div>
+  <ul>
+    <li>三个模块都是<b>覆盖层</b>：打开时页面锁定滚动，<kbd>Esc</kbd> 或左上角返回键关闭，不会跳转页面。</li>
+    <li>所有数据在浏览器本地。站点自己的键以 <code>lzx.</code> 开头，其余按模块分前缀，完整清单见 <a href="#storage">存储键一览</a>。</li>
+    <li>外部依赖（音乐直链、Font Awesome 图标、GitHub 公开信息、osu! 镜像站）见<a href="#privacy">隐私与外部依赖</a>。它们不可用时对应功能降级，页面其余部分照常工作。</li>
+  </ul>
+  <h3>目录</h3>
+  <div class="tablewrap"><table>
+    <thead><tr><th>路径</th><th>内容</th></tr></thead>
+    <tbody>
+      <tr><td><code>index.html</code> / <code>load.html</code></td><td>开机动画 / 外壳</td></tr>
+      <tr><td><code>html/</code></td><td>主页与各覆盖层的 HTML 片段</td></tr>
+      <tr><td><code>css/</code></td><td><code>style.css</code> 站点样式，<code>tailwind.local.css</code> 由 Tailwind 编译生成（不要手改），另有 osu / celeste / gamehub 各自的样式</td></tr>
+      <tr><td><code>js/home/core/</code></td><td>主页、终端、存档工具箱、成就、播放器、各模块 loader、二维码生成</td></tr>
+      <tr><td><code>js/osu/</code> <code>js/celeste/</code> <code>js/gamehub/</code></td><td>三个游戏模块</td></tr>
+      <tr><td><code>img/projects/</code></td><td>「精选作品」封面（SVG，深浅主题各一套）</td></tr>
+      <tr><td><code>tools/</code></td><td><code>build.mjs</code>（版本号与 Service Worker）、<code>build-tailwind.mjs</code>、<code>sw.template.js</code></td></tr>
+      <tr><td><code>tests/</code></td><td>Playwright 回归脚本，<code>run.sh</code> 按编号依次运行</td></tr>
+      <tr><td><code>version.json</code></td><td>版本号与站点域名，唯一来源</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section class="art" id="terminal" data-title="终端与快捷键">
+  <h2>终端与快捷键</h2>
+  <p>主页中间的输入框就是终端。以 <code>/</code> 开头的内容当作命令执行，其他文字会作为一条弹幕广播到页面上。命令历史用 <kbd>↑</kbd> <kbd>↓</kbd> 翻，<kbd>Tab</kbd> 补全。</p>
+  <p>屏幕效果类命令（<code>/gravity</code>、<code>/glitch</code> 等）会在几秒后自动恢复，也可以用 <code>/exit</code> 立刻复位。</p>
+  <h3>快捷键</h3>
+  <div class="tablewrap"><table>
+    <thead><tr><th>按键</th><th>作用</th></tr></thead>
+    <tbody>
+      <tr><td><kbd>⌘ / Ctrl</kbd> + <kbd>K</kbd></td><td>命令面板（所有命令与模块）</td></tr>
+      <tr><td><kbd>?</kbd></td><td>快捷键速查表</td></tr>
+      <tr><td><kbd>/</kbd></td><td>把焦点跳到终端输入框</td></tr>
+      <tr><td><kbd>↑</kbd> / <kbd>↓</kbd></td><td>终端里翻命令历史</td></tr>
+      <tr><td><kbd>Tab</kbd></td><td>补全命令</td></tr>
+      <tr><td><kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd></td><td>依次打开 osu! / gamehub / celeste</td></tr>
+      <tr><td><kbd>Esc</kbd></td><td>关闭当前面板</td></tr>
+    </tbody>
+  </table></div>
+  <h3>精选作品</h3>
+  <p>主页的「Selected Works」是六张可点击的卡片，点击后分别聚焦终端、打开 osu!、Celeste、GameHub、在页内窗口打开本 Wiki，或滚动到贡献墙。卡片有 <kbd>Enter</kbd> / <kbd>Space</kbd> 键盘操作。</p>
+</section>
+
+<section class="art" id="commands" data-title="命令表">
+  <h2>命令表 <span class="tag">26 COMMANDS</span></h2>
+  <p>输入框里用 <code>/help</code> 也能列出全部命令。带方括号的是可选参数。</p>
+  <div class="tablewrap"><table>
+    <thead><tr><th>命令</th><th>作用</th></tr></thead>
+    <tbody>
+      <tr class="grp"><td colspan="2">导航</td></tr>
+      <tr><td><code>/warp &lt;osu|gamehub|celeste&gt;</code></td><td>打开对应模块</td></tr>
+      <tr><td><code>/goto &lt;osu|gamehub|celeste|home&gt;</code></td><td>跳转到模块或回主页（game 等同 gamehub）</td></tr>
+      <tr><td><code>/ls</code></td><td>列出所有模块</td></tr>
+      <tr class="grp"><td colspan="2">外观与效果</td></tr>
+      <tr><td><code>/theme &lt;名字&gt;</code></td><td>切换主题，如 <code>/theme paper</code></td></tr>
+      <tr><td><code>/lang &lt;zh|en&gt;</code></td><td>切换语言</td></tr>
+      <tr><td><code>/matrix</code></td><td>数字雨</td></tr>
+      <tr><td><code>/glitch</code></td><td>故障滤镜与闪烁，3 秒</td></tr>
+      <tr><td><code>/gravity</code></td><td>页面元素散落，5 秒</td></tr>
+      <tr><td><code>/vibrate</code></td><td>屏幕震动，3 秒</td></tr>
+      <tr><td><code>/exit</code></td><td>立刻复位所有特效</td></tr>
+      <tr class="grp"><td colspan="2">信息</td></tr>
+      <tr><td><code>/help</code></td><td>列出全部命令</td></tr>
+      <tr><td><code>/whoami</code></td><td>你的访客 uid 与访问次数</td></tr>
+      <tr><td><code>/date</code></td><td>当前日期时间</td></tr>
+      <tr><td><code>/uptime</code></td><td>本次在站时长</td></tr>
+      <tr><td><code>/stats</code></td><td>列出本地的最佳 / 记录类数据</td></tr>
+      <tr><td><code>/pb</code></td><td>各游戏个人最佳</td></tr>
+      <tr><td><code>/ach</code></td><td>成就进度</td></tr>
+      <tr><td><code>/about</code></td><td>关于面板（含工具箱）</td></tr>
+      <tr><td><code>/diag</code></td><td>环境自检</td></tr>
+      <tr class="grp"><td colspan="2">存档</td></tr>
+      <tr><td><code>/save</code></td><td>导出存档码</td></tr>
+      <tr><td><code>/load</code></td><td>导入存档码（先校验再合并）</td></tr>
+      <tr><td><code>/reset-ach yes</code></td><td>清空成就，必须带 yes</td></tr>
+      <tr class="grp"><td colspan="2">其他</td></tr>
+      <tr><td><code>/echo &lt;文字&gt;</code></td><td>文字回声效果，10 秒</td></tr>
+      <tr><td><code>/binary</code></td><td>把页面文字替换成二进制数字</td></tr>
+      <tr><td><code>/clear</code></td><td>清空终端日志</td></tr>
+      <tr><td><code>/coffee</code></td><td>ASCII 咖啡</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section class="art" id="themes" data-title="主题与外观">
+  <h2>主题与外观</h2>
+  <p>共 8 套主题。用 <code>/theme 名字</code> 切换，例如 <code>/theme paper</code>，也可以在「外观」面板里点选并预览。选择会记住。</p>
+  <div class="swatches">
+    <div class="sw"><i style="background:linear-gradient(135deg,#000 50%,#8a2be2 50%)"></i><span><b>CYBER</b> 赛博紫<small>/theme cyber</small></span></div>
+    <div class="sw"><i style="background:linear-gradient(135deg,#020202 50%,#00ff41 50%)"></i><span><b>HACKER</b> 终端绿<small>/theme hacker</small></span></div>
+    <div class="sw"><i style="background:linear-gradient(135deg,#0a192f 50%,#00b4d8 50%)"></i><span><b>OCEAN</b> 深海蓝<small>/theme ocean</small></span></div>
+    <div class="sw"><i style="background:linear-gradient(135deg,#1a0b0b 50%,#ff6b35 50%)"></i><span><b>SUNSET</b> 落日橙<small>/theme sunset</small></span></div>
+    <div class="sw"><i style="background:linear-gradient(135deg,#1A1A1D 50%,#E6397C 50%)"></i><span><b>SWEET</b> 樱粉<small>/theme sweet-pink</small></span></div>
+    <div class="sw"><i style="background:linear-gradient(135deg,#f3f4f6 50%,#111111 50%)"></i><span><b>SNEAKER</b> 浅灰<small>/theme sneaker</small></span></div>
+    <div class="sw"><i style="background:linear-gradient(135deg,#f4ebd9 50%,#4a3728 50%)"></i><span><b>PAPER</b> 纸白<small>/theme paper</small></span></div>
+    <div class="sw"><i style="background:linear-gradient(135deg,#0b0420 50%,#ff2d95 50%)"></i><span><b>SYNTHWAVE</b> 合成波<small>/theme synthwave</small></span></div>
+  </div>
+  <p>外观面板里还有三个开关：</p>
+  <ul>
+    <li><b>MOTION</b>：缩短 CSS 动画时长，减少动效。</li>
+    <li><b>LOW POWER</b>：低功耗模式。停掉数字雨、贡献墙贪吃蛇和频谱这些 JS 驱动的循环，同时关闭毛玻璃和 CSS 动画。设置存在 <code>lzx.lowpower</code>，会随存档码同步。从未设置过时，只有系统开启了「省流量」才会自动开启。</li>
+    <li><b>RESUME</b>：记住分区，刷新页面后回到上次打开的模块。</li>
+  </ul>
+</section>
+
+<section class="art" id="osu" data-title="osu! 内核">
+  <h2>osu! 内核 <span class="tag">OVERLAY</span></h2>
+  <p>四种模式：<b>std</b>（点圈）、<b>taiko</b>（太鼓）、<b>catch</b>（接果）、<b>mania</b>（下落键，1K 到 10K）。用 <code>/warp osu</code> 或数字键 <kbd>1</kbd> 打开。</p>
+  <h3>导入谱面</h3>
+  <ul>
+    <li>点右上角 IMPORT，选择 <code>.osu</code> 或 <code>.osz</code> 文件。</li>
+    <li>也可以在下载页搜索并从镜像站下载。镜像站都连不上时会提示 mirrors unreachable。</li>
+    <li>曲库、收藏和最近游玩保存在本地，可以随存档码恢复（osu 曲库按套数计）。</li>
+  </ul>
+  <h3>默认按键</h3>
+  <div class="tablewrap"><table>
+    <thead><tr><th>模式</th><th>按键</th></tr></thead>
+    <tbody>
+      <tr><td>std / taiko</td><td><kbd>Z</kbd> <kbd>X</kbd></td></tr>
+      <tr><td>catch</td><td><kbd>←</kbd> <kbd>→</kbd> 或 <kbd>A</kbd> <kbd>D</kbd></td></tr>
+      <tr><td>mania 4K</td><td><kbd>D</kbd> <kbd>F</kbd> <kbd>J</kbd> <kbd>K</kbd></td></tr>
+      <tr><td>mania 7K</td><td><kbd>S</kbd> <kbd>D</kbd> <kbd>F</kbd> <kbd>Space</kbd> <kbd>J</kbd> <kbd>K</kbd> <kbd>L</kbd></td></tr>
+      <tr><td>mania 1K、2K、3K、5K、6K、8K 到 10K</td><td>在设置的键位页查看和修改，每种列数各存一套（<code>osu_keybinds</code>）</td></tr>
+    </tbody>
+  </table></div>
+  <h3>结算与成绩</h3>
+  <p>结算页显示本谱面的最佳成绩、本地前 5 名和最近 5 次游玩（含段位与 Mods）。个人最佳存在 <code>osu.best.v2</code>，榜单存在 <code>osu.board.v1</code>。</p>
+  <h3>回放</h3>
+  <p>每次游玩会录下判定，结算页的 REPLAY 按钮可以重看。回放期间的控制条：</p>
+  <div class="tablewrap"><table>
+    <thead><tr><th>操作</th><th>说明</th></tr></thead>
+    <tbody>
+      <tr><td>暂停 / 继续</td><td>控制条左侧按钮</td></tr>
+      <tr><td>进度条</td><td>拖动跳转到任意时间，计分、连击和判定会按该时刻重新累计</td></tr>
+      <tr><td>倍速</td><td>0.5× / 1× / 1.5× / 2× / 4×</td></tr>
+      <tr><td><kbd>←</kbd> <kbd>→</kbd></td><td>后退 / 前进 5 秒</td></tr>
+    </tbody>
+  </table></div>
+  <p>回放期间键盘输入不会被游戏接收。回放数据在 <code>osu.replay.v1</code>，属于存档码里体积较大的可选项。</p>
+  <h3>外观与设置</h3>
+  <p>设置里可以调音量混音、键位、皮肤和多个档案（profile）。这些都会保存在本地并可随存档码同步。</p>
+</section>
+
+<section class="art" id="celeste" data-title="Celeste 蔚蓝">
+  <h2>Celeste 蔚蓝 <span class="tag">OVERLAY</span></h2>
+  <p>按 Player.cs 的手感重写的平台跳跃，带关卡编辑器。用 <code>/warp celeste</code> 或数字键 <kbd>3</kbd> 打开。</p>
+  <h3>默认按键（每个动作两组，可在设置里重绑）</h3>
+  <div class="tablewrap"><table>
+    <thead><tr><th>动作</th><th>按键</th></tr></thead>
+    <tbody>
+      <tr><td>移动 / 上 / 下（蹲）</td><td><kbd>←</kbd> <kbd>→</kbd> <kbd>↑</kbd> <kbd>↓</kbd> 或 <kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd></td></tr>
+      <tr><td>跳跃</td><td><kbd>Space</kbd> 或 <kbd>K</kbd></td></tr>
+      <tr><td>冲刺</td><td><kbd>Z</kbd> 或 <kbd>J</kbd></td></tr>
+      <tr><td>抓墙</td><td><kbd>Shift</kbd>（左）或 <kbd>L</kbd></td></tr>
+      <tr><td>蹲冲 DemoDash</td><td><kbd>X</kbd></td></tr>
+    </tbody>
+  </table></div>
+  <p>触屏设备有虚拟摇杆和按键，布局可调。</p>
+  <h3>功能</h3>
+  <ul>
+    <li><b>个人最佳与分段</b>：记录通关用时和各检查点（CP）的分段，存在 <code>celeste.pb.v1</code>。</li>
+    <li><b>影子（ghost）</b>：用你最好的一次通关回放做一个半透明的影子，和它赛跑。存在 <code>celeste.ghost.v1</code>。</li>
+    <li><b>关卡编辑器</b>：画格子、撤销重做、试玩校验（终点必须可达），可以存到图库，也可以复制或删除。自制关卡存在 <code>celeste.custom.v1</code>，图库在 <code>celeste.lib.v1</code>。</li>
+    <li><b>分享</b>：编辑器可以生成分享链接，把关卡放进地址的 hash 里，别人打开即可导入。名字来自链接的内容都会被转义后再显示。</li>
+  </ul>
+</section>
+
+<section class="art" id="gamehub" data-title="GameHub">
+  <h2>GameHub <span class="tag">OVERLAY</span></h2>
+  <p>三个小游戏：<b>2048</b>、<b>贪吃蛇</b>、<b>扫雷</b>。用 <code>/warp gamehub</code> 或数字键 <kbd>2</kbd> 打开。</p>
+  <ul>
+    <li>每个游戏记录个人最佳（<code>gh_2048_best</code>、<code>gh_snake_best</code>、<code>gh_mines_best</code>）。</li>
+    <li>支持续局：中途退出会保存局面（<code>gh_2048_save_v1</code>、<code>gh_snake_save_v1</code>、<code>gh_mines_save_v1</code>），下次打开可以接着玩。</li>
+    <li>语言单独记在 <code>gh_lang</code>。</li>
+    <li>相关成就：2048 合成出 2048、通关扫雷、贪吃蛇到 20 分和 50 分。</li>
+  </ul>
+  <div class="callout"><b>主页上的贪吃蛇</b><p>贡献墙里自己游走的那条蛇是主页装饰，不是 GameHub 里的游戏。它会随低功耗模式停止。</p></div>
+</section>
+
+<section class="art" id="achievements" data-title="成就">
+  <h2>成就 <span class="tag">18 TOTAL</span></h2>
+  <p>解锁时右上角弹出提示。用 <code>/ach</code> 查看进度，<code>/reset-ach yes</code> 重置。进度存在 <code>lzx.ach.v1</code>，会随存档码同步。</p>
+  <div class="tablewrap"><table>
+    <thead><tr><th>名称</th><th>英文名</th><th>条件</th></tr></thead>
+    <tbody>
+      <tr><td><b>初次跃迁</b></td><td>First Jump</td><td>打开任意一个覆盖层</td></tr>
+      <tr><td><b>三界通游</b></td><td>All Portals</td><td>osu! / gamehub / celeste 各打开过一次</td></tr>
+      <tr><td><b>登顶</b></td><td>Summit</td><td>通关蔚蓝</td></tr>
+      <tr><td><b>无伤登顶</b></td><td>Deathless</td><td>0 死亡通关蔚蓝</td></tr>
+      <tr><td><b>贪吃</b></td><td>Berry Picker</td><td>一次吃满全部草莓</td></tr>
+      <tr><td><b>造物主</b></td><td>Level Maker</td><td>自己做一张蔚蓝关卡并通关</td></tr>
+      <tr><td><b>S 级演奏</b></td><td>S Rank</td><td>osu! 任一模式拿到 S</td></tr>
+      <tr><td><b>完美节拍</b></td><td>SS Rank</td><td>osu! 拿到 SS / SS+</td></tr>
+      <tr><td><b>自带谱面</b></td><td>Bring Your Own</td><td>导入一首自己的 .osu / .osz</td></tr>
+      <tr><td><b>2048</b></td><td>2048</td><td>2048 合成出 2048</td></tr>
+      <tr><td><b>扫雷老兵</b></td><td>Sweeper</td><td>通关一局扫雷</td></tr>
+      <tr><td><b>长蛇</b></td><td>Long Snake</td><td>贪吃蛇吃到 20 分</td></tr>
+      <tr><td><b>终端常客</b></td><td>Terminal Regular</td><td>在终端里敲过 10 条命令</td></tr>
+      <tr><td><b>夜猫子</b></td><td>Night Owl</td><td>凌晨 0–5 点还在站里</td></tr>
+      <tr><td><b>全模式玩家</b></td><td>All Modes</td><td>分别启动 osu!、taiko、catch、mania</td></tr>
+      <tr><td><b>节奏常客</b></td><td>Rhythm Regular</td><td>完成 10 次 osu! 游玩</td></tr>
+      <tr><td><b>蛇王</b></td><td>Snake Master</td><td>贪吃蛇达到 50 分</td></tr>
+      <tr><td><b>探索者</b></td><td>Explorer</td><td>访问主页所有精选模块</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section class="art" id="player" data-title="音乐与贡献墙">
+  <h2>音乐与贡献墙</h2>
+  <h3>底部播放器</h3>
+  <p>首页往下滑，左下角会渐变出现播放器。歌单分为 SONGS、GAME MUSIC（Minecraft、Celeste OST、Strawberry Jam 三个文件夹）、PHONK、IDK、SYNTHWAVE 五组，共 44 首，支持上一首 / 下一首、音量滑块和频谱可视化。歌单写在 <code>js/home/core/audio-player.js</code> 里，改歌单只需编辑那份配置。</p>
+  <ul>
+    <li>音乐走外部直链（网盘解析），解析失败时会尝试备用链接（若该曲目配置了 <code>alt</code>）。</li>
+    <li>打开 osu!、Celeste、GameHub 任一覆盖层时，底部播放器和频谱会收起。</li>
+    <li>低功耗模式下频谱停止刷新。</li>
+  </ul>
+  <h3>GitHub 贡献墙</h3>
+  <p>首页右栏有一块 GitHub 贡献墙，上面有一条自己游走的装饰蛇。它不是 GameHub 里的游戏，也不计分。桌面端全速运行，触屏和小屏封顶 30fps，低功耗模式下停止。</p>
+  <h3>其他首页元素</h3>
+  <ul>
+    <li><b>打字机标题</b>和数字雨背景（<code>/matrix</code>）。</li>
+    <li><b>技术栈占比</b>（Stack Mix）：按站点自己的文件统计各语言体量。</li>
+    <li><b>能力雷达图</b>：Code / Design / Motion / Flow / Visual / Logic 六项。</li>
+    <li>弹幕：终端里不带 <code>/</code> 的文字会飘过屏幕。</li>
+  </ul>
+</section>
+
+<section class="art" id="savecode" data-title="存档码与分享">
+  <h2>存档码与分享</h2>
+  <p>数据只在浏览器里，所以换设备要手动搬。工具箱（<code>/about</code> 或 <code>/save</code> 打开）把成绩、成就、设置和自制关卡打包成一段文本。</p>
+  <h3>导出与导入</h3>
+  <ol>
+    <li>旧设备：<code>/save</code>，选择要打包的内容，复制存档码或下载成文件。</li>
+    <li>新设备：<code>/load</code>，粘贴存档码，点「校验」，再点「导入并合并」。</li>
+    <li>导入前会弹出确认，列出将写入多少项、保留多少项本机更好的数据。刷新页面后生效。</li>
+  </ol>
+  <h3>分享链接与二维码</h3>
+  <p>导出面板可以生成形如 <code>https://你的域名/load.html#lzx=…</code> 的链接，也可以显示二维码，用手机相机扫码打开。打开链接只会把内容预填并校验，<b>不会自动写入</b>，必须你点击确认。</p>
+  <h3>格式</h3>
+  <div class="codewrap"><pre>LZX1G-&lt;base64url 数据&gt;-&lt;8 位十六进制校验&gt;
+LZX1G = gzip 压缩，LZX1R = 未压缩</pre></div>
+  <p>校验位不对、前缀不对或版本高于当前支持的版本，都会在导入前被拒绝。</p>
+  <h3>合并规则与范围</h3>
+  <ul>
+    <li><b>取更优合并</b>：最高分、最佳用时这类数据保留本机和存档里更好的一份，不是直接覆盖。</li>
+    <li><b>只接受白名单键</b>：存档码里不在清单内的键一律忽略，值必须是字符串。</li>
+    <li><b>体积较大的可选项</b>（默认勾选）：Celeste 自制关卡、图库、影子，osu 榜单、回放。</li>
+    <li>音乐源和外部接口的数据不属于存档。</li>
+  </ul>
+</section>
+
+<section class="art" id="storage" data-title="存储键一览">
+  <h2>存储键一览</h2>
+  <p>下面是存档码会打包的键，按模块分组。其余键（例如探测用的临时键）不在其中。</p>
+  <div class="tablewrap"><table>
+    <thead><tr><th>模块</th><th>键</th></tr></thead>
+    <tbody>
+      <tr><td>osu!</td><td><code>osu.best.v2</code> <code>osu.board.v1</code> <code>osu.history.v1</code> <code>osu_settings</code> <code>osu_keybinds</code> <code>osu.profile</code> <code>osu.skin</code> <code>osu_lang</code> <code>osu_local_favorites_v1</code> <code>osu_local_recent_v1</code> <code>osu.replay.v1</code>，以及带后缀的 <code>osu.best.v2.*</code> <code>osu.board.v1.*</code> <code>osu.history.v1.*</code></td></tr>
+      <tr><td>Celeste</td><td><code>celeste.pb.v1</code> <code>celeste.custom.v1</code> <code>celeste.lib.v1</code> <code>celeste.ghost.v1</code> <code>celeste.settings.v2</code> <code>celeste.keys.v1</code></td></tr>
+      <tr><td>GameHub</td><td><code>gh_2048_best</code> <code>gh_2048_save_v1</code> <code>gh_snake_best</code> <code>gh_snake_save_v1</code> <code>gh_mines_best</code> <code>gh_mines_save_v1</code> <code>gh_lang</code></td></tr>
+      <tr><td>站点</td><td><code>lzx.ach.v1</code> <code>lzx.ach.seen</code> <code>lzx.ach.total</code> <code>lzx.theme</code> <code>theme</code> <code>lzx.motion</code> <code>lzx.lowpower</code> <code>lzx.visits</code> <code>lzx.lang</code> <code>lzx.hist</code> <code>lzx.lastview</code> <code>lzx.rememberview</code> <code>lzx.uid</code> <code>site_lang</code> <code>lang</code>，以及 <code>lzx.ach.cnt.*</code></td></tr>
+    </tbody>
+  </table></div>
+  <div class="callout warn"><b>清理缓存会丢数据</b><p>清除站点数据、换浏览器或无痕窗口都会让这些数据消失。重要的成绩先导出存档码。</p></div>
+</section>
+
+<section class="art" id="offline" data-title="离线与性能">
+  <h2>离线与性能</h2>
+  <h3>Service Worker</h3>
+  <ul>
+    <li>首次访问后预缓存全站 69 个静态文件，所以断网也能打开主页、osu!、Celeste 和 GameHub。音乐直链和图标字体需要联网。</li>
+    <li>代码文件（html / js / css / json）走<b>网络优先</b>，断网才回落到缓存，所以改了代码刷新就能看到。</li>
+    <li>图片和字体走<b>缓存优先</b>。</li>
+    <li>缓存名是 <code>lzx-v&lt;版本号&gt;</code>，升级版本会清掉旧缓存。匹配时忽略 <code>?v=</code> 查询串。</li>
+    <li>跨域请求（音乐、CDN）不经过缓存。</li>
+  </ul>
+  <h3>性能</h3>
+  <ul>
+    <li>背景透视网格只用 <code>transform</code> 做动画，不触发重绘。</li>
+    <li>贡献墙的蛇桌面端全速运行，触屏和小屏封顶 30fps，关闭时降到很低的刷新率。</li>
+    <li>手机端去掉 <code>backdrop-filter</code>。</li>
+    <li>覆盖层打开时，底层页面的动画循环会暂停。</li>
+    <li>仍然卡顿时，打开外观面板的 <b>LOW POWER</b>。</li>
+  </ul>
+</section>
+
+<section class="art" id="privacy" data-title="隐私与外部依赖">
+  <h2>隐私与外部依赖</h2>
+  <ul>
+    <li><b>没有账号、没有后端、没有统计脚本。</b>成绩、成就、设置只在你的浏览器里。</li>
+    <li>浏览器会向这些外部地址发请求：音乐直链、Font Awesome（cdnjs）图标字体、GitHub 公开仓库信息（ungh.cc / api.github.com，用于首页「最近提交」一行）、osu! 谱面镜像站（仅在你搜索下载时）。</li>
+    <li>这些不可用时对应功能降级，其余部分照常使用。</li>
+    <li>存档码和分享链接里只有白名单键的数据，不含账号或设备标识（<code>lzx.uid</code> 是随机生成的本地访客号）。</li>
+  </ul>
+</section>
+
+<section class="art" id="dev" data-title="构建与测试">
+  <h2>构建与测试</h2>
+  <h3>版本号与域名</h3>
+  <p>只改 <code>version.json</code>：</p>
+  <div class="codewrap"><pre>{ "version": "7.3.0", "siteUrl": "https://loopzlx.github.io/" }</pre></div>
+  <p>再运行 <code>npm run build</code>。它会统一 <code>load.html</code> 和各 loader 里的 <code>?v=</code>、重新生成 <code>sw.js</code> 和预缓存清单、同步 og / canonical，并按域名生成 <code>robots.txt</code> 与 <code>sitemap.xml</code>。</p>
+  <h3>Tailwind</h3>
+  <p>站点不再使用 CDN 版 Tailwind。新增或改动了 html / js 里的 Tailwind 类名之后，运行 <code>npm run build:css</code>，生成 <code>css/tailwind.local.css</code>。</p>
+  <h3>回归测试</h3>
+  <div class="codewrap"><pre>bash tests/run.sh
+PORT=8771 CHROMIUM=/path/to/chrome OUT_DIR=./out bash tests/run.sh</pre></div>
+  <p>依赖 python3 和 playwright。先对所有 JS 做语法检查，再按编号运行 12 个脚本：冒烟、外壳、关卡编辑器、影子、Celeste、实际游玩、工具箱、回放、回放控制、分享链接、判定与分区记忆、站点百科窗口。任何一项失败，整体退出码非 0。</p>
+  <p>CI 在 <code>.github/workflows/test.yml</code>：每次提交和 PR 自动构建并跑全部回归，并检查生成物是否已提交。</p>
+  <h3>安全约定</h3>
+  <ul>
+    <li>来自存档码、分享链接、导入文件（.osz 等）或外部接口的字符串，写入 <code>innerHTML</code> 前必须转义（各文件里的 <code>esc()</code>）。能用 <code>textContent</code> 就用 <code>textContent</code>。</li>
+    <li>不使用 <code>eval</code> 或 <code>new Function</code> 执行导入的内容。</li>
+    <li>存档码导入只接受白名单键，分享链接只预填、不自动写入。</li>
+  </ul>
+</section>
+
+<section class="art" id="faq" data-title="常见问题">
+  <h2>常见问题</h2>
+  <details class="qa"><summary>双击 index.html 打开是空白或缺模块</summary><div class="ans"><p>页面要用 fetch 读取各个片段，浏览器会拦截 <code>file://</code> 下的读取。请用 <code>python3 -m http.server</code> 之类的 http 服务打开。</p></div></details>
+  <details class="qa"><summary>页面没有样式，排版全乱</summary><div class="ans"><p>检查 <code>css/tailwind.local.css</code> 是否存在且被 <code>load.html</code> 引用。缺失时运行 <code>npm run build:css</code>。</p></div></details>
+  <details class="qa"><summary>我改了代码，刷新后还是旧的</summary><div class="ans"><p>代码文件是网络优先，通常刷新即可。若仍是旧的，在浏览器开发者工具的 Application 里注销 Service Worker 并清除站点数据，或者升高 <code>version.json</code> 的版本后重新构建。</p></div></details>
+  <details class="qa"><summary>Market 行情去哪了</summary><div class="ans"><p>v7.1.0 起已移除。导航、命令面板、精选作品里的入口都删了，<code>/warp market</code> 不再可用。旧存档码里的 <code>mk.*</code> 数据导入时会被忽略。</p></div></details>
+  <details class="qa"><summary>音乐不响或播放器提示解析失败</summary><div class="ans"><p>音乐走外部直链，播放器解析失败时会回退到直链再试。链接失效属于外部来源的问题，不影响其余功能。</p></div></details>
+  <details class="qa"><summary>换了设备成绩没了</summary><div class="ans"><p>数据只在原浏览器里。在原设备上用 <code>/save</code> 导出存档码，到新设备用 <code>/load</code> 导入。详见<a href="#savecode">存档码与分享</a>。</p></div></details>
+  <details class="qa"><summary>按数字键 4 没反应</summary><div class="ans"><p>移除 Market 后数字键改为 <kbd>1</kbd> osu!、<kbd>2</kbd> gamehub、<kbd>3</kbd> celeste。</p></div></details>
+  <details class="qa"><summary>想关掉所有动画省电</summary><div class="ans"><p>打开外观面板，开启 <b>LOW POWER</b>。它会停掉数字雨、贡献墙蛇和频谱，并关闭毛玻璃与 CSS 动画。</p></div></details>
+  <details class="qa"><summary>导入存档码提示格式不对</summary><div class="ans"><p>存档码必须以 <code>LZX1G-</code> 或 <code>LZX1R-</code> 开头，并以 8 位校验结尾，中间不能被换行或空格截断。复制时要完整。</p></div></details>
+</section>
+
+<section class="art" id="changelog" data-title="版本记录">
+  <h2>版本记录 <span class="tag">LATEST 7.3.0</span></h2>
+  <p>完整历史见包里的 <code>CHANGELOG.txt</code>，这里列 v7.0.0 以来的版本。</p>
+  <h3>v7.3.0</h3>
+  <ul>
+    <li>Wiki 改为在<b>页内窗口</b>里打开（iframe 弹层，<kbd>Esc</kbd> 或右上角 ✕ 关闭，主题跟随站点），窗口里仍可「新标签页」单独打开；按住 Ctrl / ⌘ 点链接也会新开标签。</li>
+    <li>歌单更新为 5 组 44 首，歌单仍写在 <code>audio-player.js</code> 里。</li>
+  </ul>
+  <h3>v7.2.0</h3>
+  <ul>
+    <li>站点域名改为 <code>loopzlx.github.io</code>（canonical、og、robots、sitemap 随 <code>version.json</code> 同步）。</li>
+    <li>本 Wiki 随站点发布（<code>wiki.html</code>），导航 More 菜单、手机菜单、命令面板和精选作品第 6 张卡片都有入口，已加入离线预缓存与 sitemap。</li>
+    <li>精选作品封面新增 Wiki 款，补满 3×2 网格；Wiki 页面加了阅读进度条、回到顶部按钮和头图。</li>
+  </ul>
+  <h3>v7.1.0</h3>
+  <ul>
+    <li><b>移除 Market（行情）模块</b>，连同导航入口、命令面板条目、精选作品卡片、样式和测试。</li>
+    <li><code>/warp</code> 与 <code>/goto</code> 不再接受 market；数字键改为 1 / 2 / 3。</li>
+    <li>成就「四界通游」改名「三界通游」，条件改为 osu! / gamehub / celeste 各打开一次，总数仍是 18。</li>
+    <li>存档码白名单去掉 <code>mk.*</code>，预缓存文件从 74 降到 69，回归脚本从 13 个降到 11 个（v7.2.0 新增 1 个，共 12 个）。</li>
+  </ul>
+  <h3>v7.0.0</h3>
+  <ul>
+    <li><b>安全</b>：触屏布局导入不再用 <code>new Function</code>；存档码导入只接受白名单键和字符串值；osu! 元数据、皮肤名、Celeste 关卡名、自检明细等写入 HTML 前统一转义。</li>
+    <li><b>修复</b>：存档码导出 v:2 却被导入拒绝；文档里的命令数、主题数与代码不符；统计面板引用不存在的文件。</li>
+    <li><b>性能</b>：背景网格改为只动 transform；贡献墙贪吃蛇取消过狠的节流；Tailwind 改为本地编译。</li>
+    <li><b>新增</b>：可点击的精选作品卡片和新封面、低功耗模式、osu! 回放进度条与倍速、存档码分享链接与二维码、全站离线预缓存、<code>version.json</code>、robots.txt 与 sitemap.xml、CI。</li>
+  </ul>
+</section>
+
+<section class="art" id="glossary" data-title="术语表">
+  <h2>术语表</h2>
+  <div class="tablewrap"><table>
+    <thead><tr><th>术语</th><th>含义</th></tr></thead>
+    <tbody>
+      <tr><td>覆盖层 overlay</td><td>osu!、Celeste、GameHub 以整屏层的形式盖在首页上，不跳转页面</td></tr>
+      <tr><td>warp</td><td>站内对「打开某个模块」的叫法，<code>/warp</code> 命令</td></tr>
+      <tr><td>片段 fragment</td><td><code>html/</code> 下的 HTML 文件，由 loader 在首次打开时 fetch 并注入</td></tr>
+      <tr><td>存档码</td><td><code>LZX1G-…</code> 这样的一段文本，打包了成绩、成就和设置</td></tr>
+      <tr><td>ghost 影子</td><td>Celeste 里按你最好通关回放出来的半透明角色</td></tr>
+      <tr><td>CP</td><td>Celeste 的检查点，分段用时按 CP 统计</td></tr>
+      <tr><td>DemoDash 蹲冲</td><td>Celeste 里蹲下时冲刺，默认按 <kbd>X</kbd></td></tr>
+      <tr><td>低功耗</td><td>停掉 JS 驱动的循环动画并关闭毛玻璃的外观开关</td></tr>
+      <tr><td>precache</td><td>Service Worker 安装时一次性缓存的静态文件清单</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<p class="empty" id="empty">没有找到匹配的内容。试试换个关键词，比如命令名、按键或存储键。</p>
+<footer>本 Wiki 依据 LOOPZLX v7.3.0 的代码整理。表格中的命令、主题、成就由源码直接提取。</footer>
+</main>
+</div>
+<button class="totop" id="totop" type="button" aria-label="回到顶部">↑</button>
+
+<script>
+(function () {
+  var root = document.documentElement;
+  function safe(fn) { try { return fn(); } catch (e) { return null; } }
+
+  /* 嵌入模式：被主站的页内窗口加载（?embed=1&t=light|dark）。主题跟随主站，Esc 通知外层关闭，标题链接不再跳走 */
+  var qs = new URLSearchParams(location.search), embedded = qs.get('embed') === '1';
+  if (embedded) {
+    root.classList.add('embed');
+    var bl = document.querySelector('.brand'); if (bl) { bl.setAttribute('href', '#overview'); bl.removeAttribute('title'); }
+    var t0 = qs.get('t'); if (t0 === 'light' || t0 === 'dark') root.setAttribute('data-theme', t0);
+    document.addEventListener('keydown', function (e) {
+      var tg = (e.target.tagName || '').toLowerCase();
+      if (e.key === 'Escape' && tg !== 'input') { try { parent.postMessage('lzx-wiki-close', location.origin); } catch (x) {} }
+    });
+  }
+  /* 明暗主题：跟随系统，点按钮可强制切换并记住 */
+  var saved = safe(function () { return localStorage.getItem('lzxwiki.theme'); });
+  if (!embedded && (saved === 'dark' || saved === 'light')) root.setAttribute('data-theme', saved);
+  document.getElementById('themebtn').addEventListener('click', function () {
+    var cur = root.getAttribute('data-theme') || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    var next = cur === 'dark' ? 'light' : 'dark';
+    root.setAttribute('data-theme', next);
+    safe(function () { localStorage.setItem('lzxwiki.theme', next); });
+  });
+
+  /* 手机端目录开关 */
+  var nav = document.getElementById('nav'), tog = document.getElementById('navtoggle');
+  tog.addEventListener('click', function () { var o = nav.classList.toggle('open'); tog.setAttribute('aria-expanded', o); });
+  nav.addEventListener('click', function (e) { if (e.target.tagName === 'A') { nav.classList.remove('open'); tog.setAttribute('aria-expanded', 'false'); } });
+
+  /* 代码块复制按钮 */
+  Array.prototype.forEach.call(document.querySelectorAll('.codewrap'), function (w) {
+    var b = document.createElement('button'); b.type = 'button'; b.className = 'copy'; b.textContent = '复制';
+    b.addEventListener('click', function () {
+      var t = w.querySelector('pre').innerText;
+      var done = function () { b.textContent = '已复制'; setTimeout(function () { b.textContent = '复制'; }, 1400); };
+      var fallback = function () { var r = document.createRange(); r.selectNodeContents(w.querySelector('pre')); var s = getSelection(); s.removeAllRanges(); s.addRange(r); b.textContent = '已选中'; setTimeout(function () { b.textContent = '复制'; }, 1400); };
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(done, fallback); else fallback();
+    });
+    w.appendChild(b);
+  });
+
+  /* 搜索：隐藏不含关键词的章节；含关键词的章节里，只要有表格行命中就只留命中的行 */
+  var secs = Array.prototype.slice.call(document.querySelectorAll('.art'));
+  var links = {}; Array.prototype.forEach.call(nav.querySelectorAll('a'), function (a) { links[a.getAttribute('href').slice(1)] = a; });
+  var texts = secs.map(function (s) { return s.textContent.toLowerCase(); });
+  var input = document.getElementById('q'), empty = document.getElementById('empty');
+  function run() {
+    var q = input.value.trim().toLowerCase(), shown = 0;
+    secs.forEach(function (s, i) {
+      var rows = Array.prototype.slice.call(s.querySelectorAll('tbody tr'));
+      var hit = !q || texts[i].indexOf(q) >= 0;
+      s.hidden = !hit; if (hit) shown++;
+      if (links[s.id]) links[s.id].hidden = !hit;
+      var any = q && rows.some(function (r) { return !r.classList.contains('grp') && r.textContent.toLowerCase().indexOf(q) >= 0; });
+      rows.forEach(function (r) {
+        if (!q || !any) r.hidden = false;
+        else r.hidden = r.classList.contains('grp') || r.textContent.toLowerCase().indexOf(q) < 0;
+      });
+    });
+    empty.classList.toggle('show', !!q && shown === 0);
+  }
+  input.addEventListener('input', run);
+  document.addEventListener('keydown', function (e) {
+    var tag = (e.target.tagName || '').toLowerCase();
+    if (e.key === '/' && tag !== 'input' && tag !== 'textarea') { e.preventDefault(); input.focus(); input.select(); }
+    else if (e.key === 'Escape' && document.activeElement === input) { input.value = ''; run(); input.blur(); }
+  });
+
+  /* 当前章节高亮 */
+  if ('IntersectionObserver' in window) {
+    var cur = null;
+    var io = new IntersectionObserver(function (es) {
+      es.forEach(function (en) {
+        if (!en.isIntersecting) return;
+        if (cur) cur.classList.remove('on');
+        cur = links[en.target.id]; if (cur) cur.classList.add('on');
+      });
+    }, { rootMargin: '-80px 0px -65% 0px', threshold: 0 });
+    secs.forEach(function (s) { io.observe(s); });
+  }
+
+  /* 阅读进度条 + 回到顶部 */
+  var bar = document.getElementById('progress'), top = document.getElementById('totop'), tick = false;
+  function onScroll() {
+    tick = false;
+    var h = document.documentElement, max = h.scrollHeight - h.clientHeight;
+    bar.style.transform = 'scaleX(' + (max > 0 ? Math.min(1, h.scrollTop / max) : 0) + ')';
+    top.classList.toggle('show', h.scrollTop > 600);
+  }
+  addEventListener('scroll', function () { if (!tick) { tick = true; requestAnimationFrame(onScroll); } }, { passive: true });
+  top.addEventListener('click', function () { scrollTo({ top: 0, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }); });
+  onScroll();
+})();
+
+</script>
+</body>
+</html>

@@ -3,20 +3,83 @@ window.CyberAudioPlayer = (function () {
     /* 歌单：group 可以直接有 tracks，也可以再分一层 folders（文件夹） */
     const playlists = [
         {
-            name: 'SONGS',
-            tracks: [
-                { title: "月揺(Tsukiyura)", artist: "초록물꼬기 / Narae", src: "https://lz.qaiu.top/parser?url=https://wwatu.lanzouv.com/iND4z4gqy15c&pwd=376t", alt: "https://pdf3.webgetstore.com/b695c48d708224efa5c288b0edaa9c4a/6b01b7b8/2026/11/20/4757e66a91e9913349c1c92c3e060494.mp3", duration: "02:56" }
+            name: "SONGS",
+            folders: [
+                {
+                    name: "FOLDER1",
+                    tracks: [
+                        { title: "月摇", artist: "초록물꼬기 / Narae", src: "https://lz.qaiu.top/parser?url=https://wwatu.lanzouv.com/iND4z4gqy15c&pwd=376t", alt: "https://pdf3.webgetstore.com/b695c48d708224efa5c288b0edaa9c4a/6b01b7b8/2026/11/20/4757e66a91e9913349c1c92c3e060494.mp3", duration: "02:56" },
+                        { title: "r-906-まにまに 随之任之(feat. 初音ミク)", artist: "Kaozaki", src: "https://lz.qaiu.top/parser?url=https://wwatu.lanzouv.com/ieHAx4hiae5e&pwd=4bc3" },
+                        { title: "ノンブレス・オブリージュ", artist: "十五少女", src: "https://lz.qaiu.top/parser?url=https://wwatu.lanzouv.com/iLkmI4hifqhi&pwd=2e3x" },
+                        { title: "One Last Kiss", artist: "Sawako碎花", src: "https://lz.qaiu.top/parser?url=https://wwatu.lanzouv.com/iGZN64hkwzod&pwd=c3ry" },
+                        { title: "群青(Remix)", artist: "DJ Agos、Ayase", src: "https://lz.qaiu.top/parser?url=https://wwatu.lanzouv.com/isXGD4hkwz6f&pwd=5g2z" }
+                    ]
+                }
             ]
         },
         {
-            name: 'PHONK',
-            tracks: [
-                { title: "In Your Heart(PHONK)", artist: "SØRIXEN", src: "https://lz.qaiu.top/parser?url=https://wwatu.lanzouv.com/ibkAe4gv3hif&pwd=fbwf", alt: "https://pdf3.webgetstore.com/33710d196c190c8a5442c39fc76a04b7/6b018512/2026/11/21/bbc2c49a8e4618d6920511496b375bc0.flac", duration: "02:50" },
-                { title: "Eyes In This Feeling", artist: "Eric_Enyou", src: "https://lz.qaiu.top/parser?url=https://wwatu.lanzouv.com/i8byd4gvqevi&pwd=btan", alt: "https://pdf3.webgetstore.com/5f131a8410bf79bbea17c2c30d0bc38d/6b0184b3/2026/11/21/52e92962f9aa03a0869bb7c44e534b24.mp3", duration: "03:24" }
+            name: "GAME MUSIC",
+            folders: [
+                {
+                    name: "MINECRAFT",
+                    tracks: [
+                        { title: "Alpha", artist: "C418", src: "https://lz.qaiu.top/parser?url=https://wwatu.lanzouv.com/i3gdZ4hkqpwf&pwd=5wua" },
+                        { title: "Moog City", artist: "C418", src: "https://lz.qaiu.top/parser?url=https://wwatu.lanzouv.com/i2HlF4hkqryj&pwd=3sex" }
+                    ]
+                },
+                {
+                    name: "CELESTE OST",
+                    tracks: [
+                        { title: "Prologue", artist: "Lena RaineLena Raine", src: "https://lz.qaiu.top/parser?url=https://wwatu.lanzouv.com/iU7vi4hkthzi&pwd=42jw" },
+                        { title: "First Steps", artist: "Lena Raine", src: "https://lz.qaiu.top/parser?url=https://wwatu.lanzouv.com/i0auq4hktjyj&pwd=ec4s" },
+                        { title: "Resurrections", artist: "Lena Raine", src: "https://lz.qaiu.top/parser?url=https://wwatu.lanzouv.com/ih8GJ4hktmng&pwd=7ct9" },
+                        { title: "Awake", artist: "Lena Raine", src: "https://lz.qaiu.top/parser?url=https://wwatu.lanzouv.com/idm604hktn1a&pwd=59b9" },
+                        { title: "Postcard from Celeste Mountain", artist: "Lena Raine", src: "https://lz.qaiu.top/parser?url=https://wwatu.lanzouv.com/iuQy34hktn7g&pwd=2uze" },
+                        { title: "Checking In", artist: "Lena Raine", src: "https://lz.qaiu.top/parser?url=https://wwatu.lanzouv.com/irnrm4hktopa&pwd=6rmo" },
+                        { title: "Spirit of Hospitality", artist: "Lena Raine", src: "https://lz.qaiu.top/parser?url=https://wwatu.lanzouv.com/ih3RU4hktpef&pwd=epfx" },
+                        { title: "Scattered and Lost", artist: "Lena Raine", src: "https://lz.qaiu.top/parser?url=https://wwatu.lanzouv.com/ifNlM4hktqyb&pwd=bhez" },
+                        { title: "Golden", artist: "Lena Raine", src: "https://lz.qaiu.top/parser?url=https://wwatu.lanzouv.com/irJjf4hktt0f&pwd=2yk7" },
+                        { title: "Anxiety", artist: "Lena Raine", src: "https://lz.qaiu.top/parser?url=https://wwatu.lanzouv.com/iyPRH4hkttid&pwd=cxcb" },
+                        { title: "Quiet and Falling", artist: "Lena Raine", src: "https://lz.qaiu.top/parser?url=https://wwatu.lanzouv.com/iGs1t4hktuhi&pwd=84i9" },
+                        { title: "In the Mirror", artist: "Lena Raine", src: "https://lz.qaiu.top/parser?url=https://wwatu.lanzouv.com/iHTf74hktvif&pwd=1zz4" },
+                        { title: "Madeline and Theo", artist: "Lena Raine", src: "https://lz.qaiu.top/parser?url=https://wwatu.lanzouv.com/iM0R34hktvwj&pwd=3o61" },
+                        { title: "Starjump", artist: "Lena Raine", src: "https://lz.qaiu.top/parser?url=https://wwatu.lanzouv.com/iftHh4hktw3g&pwd=23ru" },
+                        { title: "Reflection", artist: "Lena Raine", src: "https://lz.qaiu.top/parser?url=https://wwatu.lanzouv.com/iKITM4hktwng&pwd=fuh1" },
+                        { title: "Confronting Myself", artist: "Lena Raine", src: "https://lz.qaiu.top/parser?url=https://wwatu.lanzouv.com/iRGlA4hktxih&pwd=h6v3" },
+                        { title: "Little Goth", artist: "Lena Raine", src: "https://lz.qaiu.top/parser?url=https://wwatu.lanzouv.com/iQSgk4hkty2h&pwd=hi68" },
+                        { title: "Reach for the Summit", artist: "Lena Raine", src: "https://lz.qaiu.top/parser?url=https://wwatu.lanzouv.com/iKdpS4hku0cj&pwd=97xr" },
+                        { title: "Exhale", artist: "Lena Raine", src: "https://lz.qaiu.top/parser?url=https://wwatu.lanzouv.com/iHz0U4hku0jg&pwd=akx6" },
+                        { title: "Heart of the Mountain", artist: "Lena Raine", src: "https://lz.qaiu.top/parser?url=https://wwatu.lanzouv.com/ip2Xx4hku13g&pwd=grw3" },
+                        { title: "My Dearest Friends", artist: "Lena Raine", src: "https://lz.qaiu.top/parser?url=https://wwatu.lanzouv.com/iWpUm4hku1cf&pwd=2hee" }
+                    ]
+                },
+                {
+                    name: "STRAWBERRY JAM",
+                    tracks: [
+                        { title: "Starfruit Supernova (Pillars of Creation Mix)", artist: "Celeste Strawberry", src: "https://lz.qaiu.top/parser?url=https://wwatu.lanzouv.com/i3eC74hkui0f&pwd=d0n3" },
+                        { title: "Passionfruit Pantheon (Apotheosis Mix)", artist: "Celeste Strawberry", src: "https://lz.qaiu.top/parser?url=https://wwatu.lanzouv.com/izBjC4hkujpg&pwd=hou3" },
+                        { title: "Starfruit Supernova", artist: "Celeste Strawberry", src: "https://lz.qaiu.top/parser?url=https://wwatu.lanzouv.com/iTYGD4hkug1e&pwd=bt09" },
+                        { title: "Passionfruit Pantheon", artist: "Celeste Strawberry", src: "https://lz.qaiu.top/parser?url=https://wwatu.lanzouv.com/iOyRZ4hkufeb&pwd=49ts" },
+                        { title: "A Walk Down Strawberry Lane", artist: "Celeste Strawberry", src: "https://lz.qaiu.top/parser?url=https://wwatu.lanzouv.com/iWpUm4hku1cf&pwd=2hee" }
+                    ]
+                }
             ]
         },
         {
-            name: 'SYNTHWAVE',
+            name: "PHONK",
+            tracks: [
+                { title: "Eyes In This Feeling", artist: "", src: "https://lz.qaiu.top/parser?url=https://wwatu.lanzouv.com/i8byd4gvqevi&pwd=btan", alt: "https://pdf3.webgetstore.com/5f131a8410bf79bbea17c2c30d0bc38d/6b0184b3/2026/11/21/52e92962f9aa03a0869bb7c44e534b24.mp3", duration: "03:24" },
+                { title: "In Your Heart", artist: "", src: "https://lz.qaiu.top/parser?url=https://wwatu.lanzouv.com/ibkAe4gv3hif&pwd=fbwf", alt: "https://pdf3.webgetstore.com/33710d196c190c8a5442c39fc76a04b7/6b018512/2026/11/21/bbc2c49a8e4618d6920511496b375bc0.flac", duration: "02:50" }
+            ]
+        },
+        {
+            name: "IDK",
+            tracks: [
+                { title: "Next to You", artist: "Øneheart", src: "https://lz.qaiu.top/parser?url=https://wwatu.lanzouv.com/ikWJl4hifrfc&pwd=fm1u" }
+            ]
+        },
+        {
+            name: "SYNTHWAVE",
             tracks: [
                 { title: "Locke", artist: "Pylot", src: "https://lz.qaiu.top/parser?url=https://wwatu.lanzouv.com/idilD4gvs09e&pwd=f6oi", alt: "https://pdf3.webgetstore.com/4f579d7cef90004c5753e805e038f1c5/6b0188a3/2026/11/21/03b5b6a221c03b4c524637f0ae39001c.mp3", duration: "05:26" },
                 { title: "Moments in Time", artist: "Timecop1983", src: "https://lz.qaiu.top/parser?url=https://wwatu.lanzouv.com/iDHag4gvs0ni&pwd=5dy7", alt: "https://pdf3.webgetstore.com/0fb9482510569dfb93c4c0c9a69e6cf0/6b018908/2026/11/21/6ac7658e9b3b399a8115c1cc69cf17c9.mp3", duration: "04:18" },

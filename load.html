@@ -7,13 +7,31 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>loopzlx | Cyber Nexus Terminal</title>
+<meta name="description" content="LOOPZLX 的赛博终端风个人主页：osu! 四模式音游内核、GameHub、Celeste 关卡编辑器，18 项成就。">
+<meta name="author" content="loopzlx">
+<link rel="canonical" href="https://loopzlx.github.io/">
+<link rel="apple-touch-icon" href="assets/icon-192.png">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://loopzlx.github.io/">
+<meta property="og:site_name" content="LOOPZLX">
+<meta property="og:title" content="LOOPZLX // Cyber Portfolio">
+<meta property="og:description" content="赛博终端风个人主页：osu! 四模式内核、GameHub、Celeste 关卡编辑器，18 项成就。">
+<meta property="og:image" content="https://loopzlx.github.io/assets/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="LOOPZLX // Cyber Portfolio">
+<meta name="twitter:description" content="Cyber portfolio: osu! kernel, game hub, Celeste layer.">
+<meta name="twitter:image" content="https://loopzlx.github.io/assets/og.png">
 <script>const t=localStorage.getItem('theme')||'theme-cyber';document.documentElement.classList.add(t);</script>
-<link rel="stylesheet" href="css/style.css?v=6.9.2">
+<link rel="stylesheet" href="css/style.css?v=7.3.0">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="preload" as="style" href="css/style.css?v=6.9.2">
+<link rel="preload" as="style" href="css/style.css?v=7.3.0">
+<link rel="preload" as="style" href="css/tailwind.local.css?v=7.3.0">
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Share+Tech+Mono&family=Noto+Sans+SC:wght@400;700;900&display=swap" rel="stylesheet">
-<script src="https://cdn.tailwindcss.com"></script>
+<!-- 本地编译的 Tailwind 子集（node tools/build-tailwind.mjs 生成），必须在 style.css 之后：与原 CDN 注入的层叠顺序一致 -->
+<link rel="stylesheet" href="css/tailwind.local.css?v=7.3.0">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <style>
@@ -80,49 +98,45 @@ fetch('html/home/home.html')
       document.getElementById('app').innerHTML = html;
       
       const achScript = document.createElement('script');
-      achScript.src = 'js/home/core/achievements.js?v=6.9.2';
+      achScript.src = 'js/home/core/achievements.js?v=7.3.0';
       achScript.onerror = () => console.warn('[ach] 成就模块跳过');
       document.body.appendChild(achScript);
 
       const extrasScript = document.createElement('script');
-      extrasScript.src = 'js/home/core/ui-extras.js?v=6.9.2';
+      extrasScript.src = 'js/home/core/ui-extras.js?v=7.3.0';
       extrasScript.onerror = () => console.warn('[ui] 增强模块跳过');
       document.body.appendChild(extrasScript);
 
       const toolScript = document.createElement('script');
-      toolScript.src = 'js/home/core/toolkit.js?v=6.9.3';
+      toolScript.src = 'js/home/core/toolkit.js?v=7.3.0';
       toolScript.onerror = () => console.warn('[tool] 工具箱跳过');
       document.body.appendChild(toolScript);
 
       const audioScript = document.createElement('script');
-      audioScript.src = 'js/home/core/audio-player.js?v=6.9.2';
+      audioScript.src = 'js/home/core/audio-player.js?v=7.3.0';
       audioScript.onload = () => {
           const mainScript = document.createElement('script');
-          mainScript.src = 'js/home/core/main.js?v=6.9.2';
+          mainScript.src = 'js/home/core/main.js?v=7.3.0';
           mainScript.onerror = () => showError('main.js 加载失败');
           mainScript.onload = () => {
-              const loaderScript = document.createElement('script');
-              loaderScript.src = 'js/home/core/market-loader.js?v=6.9.2';
-              loaderScript.onerror = () => console.warn('[market] loader 加载失败，行情片段跳过');
-              loaderScript.onload = () => {
+              {
                   const osuScript = document.createElement('script');
-                  osuScript.src = 'js/home/core/osu-loader.js?v=6.9.2';
+                  osuScript.src = 'js/home/core/osu-loader.js?v=7.3.0';
                   osuScript.onerror = () => console.warn('[osu] loader 加载失败，音游模块跳过');
                   osuScript.onload = () => {
                       const ghScript = document.createElement('script');
-                      ghScript.src = 'js/home/core/gamehub-loader.js?v=6.9.2';
+                      ghScript.src = 'js/home/core/gamehub-loader.js?v=7.3.0';
                       ghScript.onerror = () => console.warn('[gamehub] loader 加载失败，游戏中心跳过');
                       ghScript.onload = () => {
                           const celScript = document.createElement('script');
-                          celScript.src = 'js/home/core/celeste-loader.js?v=6.9.2';
+                          celScript.src = 'js/home/core/celeste-loader.js?v=7.3.0';
                           celScript.onerror = () => console.warn('[celeste] loader 加载失败，蔚蓝模块跳过');
                           document.body.appendChild(celScript);
                       };
                       document.body.appendChild(ghScript);
                   };
                   document.body.appendChild(osuScript);
-              };
-              document.body.appendChild(loaderScript);
+              }
           };
           document.body.appendChild(mainScript);
       };

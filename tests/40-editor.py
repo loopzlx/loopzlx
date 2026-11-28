@@ -1,12 +1,15 @@
 import asyncio
+import os, tempfile
+PORT = os.environ.get("PORT", "8770")
+OUT_DIR = os.environ.get("OUT_DIR", tempfile.gettempdir())
 from playwright.async_api import async_playwright
 async def main():
     async with async_playwright() as p:
-        b = await p.chromium.launch(executable_path="/usr/local/bin/chromium", args=["--no-sandbox"])
+        b = await p.chromium.launch(executable_path=(os.environ.get("CHROMIUM") or None), args=["--no-sandbox"])
         pg = await b.new_page(viewport={"width":1440,"height":900})
         errs=[]; pg.on("pageerror", lambda e: errs.append("E:"+str(e)))
         pg.on("console", lambda m: errs.append("C:"+m.text[:100]) if m.type=="error" else None)
-        await pg.goto("http://localhost:8770/load.html"); await pg.wait_for_timeout(7000)
+        await pg.goto(f"http://localhost:{PORT}/load.html"); await pg.wait_for_timeout(7000)
         await pg.evaluate("window.CelesteWarp.open()")
         await pg.wait_for_function("()=>window.Celeste && CelesteWarp.app()", timeout=20000)
         await pg.wait_for_timeout(600)
@@ -30,12 +33,13 @@ async def main():
         print("hash:", await pg.evaluate("()=>location.hash.slice(0,26)+' len='+location.hash.length"))
         print("sharebox:", await pg.evaluate("()=>{const o=document.querySelector('.cl-edit-sharebox');return o?o.className+'|'+o.querySelector('textarea').value.length:'none'}"))
         print("clip:", await pg.evaluate("()=>!!navigator.clipboard"))
-        # 图库
+        # 图库（分享框是模态层，先关掉，否则它会挡住后面的按钮）
+        await pg.evaluate("()=>{const o=document.querySelector('.cl-edit-sharebox'); if(o) o.classList.remove('show');}"); await pg.wait_for_timeout(300)
         await pg.click("#cl-edit-lib"); await pg.wait_for_timeout(400)
         await pg.evaluate("""()=>document.querySelector('[data-act="save-cur"]').click()"""); await pg.wait_for_timeout(400)
         print("lib:", await pg.evaluate("()=>JSON.parse(localStorage.getItem('celeste.lib.v1')||'[]').map(x=>x.name)"))
         print("librows:", await pg.evaluate("()=>document.querySelectorAll('.cl-edit-librow').length"))
-        await pg.screenshot(path="/tmp/v5-lib.png")
+        await pg.screenshot(path=os.path.join(OUT_DIR, "v5-lib.png"))
         print("errs:", errs[:5])
         await b.close()
 asyncio.run(main())

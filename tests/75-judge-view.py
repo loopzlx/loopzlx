@@ -1,14 +1,26 @@
+import os, tempfile
+PORT = os.environ.get("PORT", "8770")
+OUT_DIR = os.environ.get("OUT_DIR", tempfile.gettempdir())
 #!/usr/bin/env python3
 """v5.3 自检：osu!std 三档判定（无 PERFECT）+ 分区记忆（刷新回到原分区）+ 音频有声。"""
 import asyncio, sys
 from playwright.async_api import async_playwright
 
-BASE = "http://localhost:8770"
+BASE = f"http://localhost:{PORT}"
 ok = True
 
 
-def check(name, cond, detail=""):
+NET = os.environ.get("LZX_NET", "1") != "0"   # run.sh 探测不到外网时置 0
+
+
+NET_AUDIO = True
+
+
+def check(name, cond, detail="", net=False):
     global ok
+    if net and not (NET and NET_AUDIO):                         # 依赖外网（音频直链 / GitHub API）的检查，离线环境跳过
+        print("  skip " + name + "  (offline)")
+        return
     print(("  ok   " if cond else "  FAIL ") + name + ("  " + str(detail) if detail else ""))
     if not cond:
         ok = False
@@ -16,13 +28,18 @@ def check(name, cond, detail=""):
 
 async def main():
     async with async_playwright() as p:
-        b = await p.chromium.launch(executable_path="/usr/local/bin/chromium", args=["--no-sandbox"])
+        b = await p.chromium.launch(executable_path=(os.environ.get("CHROMIUM") or None), args=["--no-sandbox"])
 
         pg = await b.new_page(viewport={"width": 1440, "height": 900})
         cors = []
         pg.on("console", lambda m: cors.append(m.text) if ("CORS" in m.text or "zeroes" in m.text) else None)
         await pg.goto(BASE + "/load.html")
         await pg.wait_for_timeout(7000)
+        global NET
+        if NET:   # 浏览器里真能访问外网才跑依赖外网的检查（命令行能连不代表无头浏览器能连）
+            NET = await pg.evaluate("() => fetch('https://api.github.com/').then(() => true).catch(() => false)")
+            global NET_AUDIO   # 音乐直链的域名（网盘解析服务）单独探测：GitHub 通不代表它通
+            NET_AUDIO = await pg.evaluate("() => fetch('https://lz.qaiu.top/', { mode: 'no-cors' }).then(() => true).catch(() => false)")
 
         # --- 音频 ---
         audio = await pg.evaluate("""async () => {
@@ -33,8 +50,8 @@ async def main():
             await new Promise(r => setTimeout(r, 1200));
             return { t: au.currentTime, paused: au.paused };
         }""")
-        check("audio 能播放", isinstance(audio, dict) and audio and audio["t"] > 0.2, audio)
-        check("无 CORS 零输出警告", len(cors) == 0, cors[:1])
+        check("audio 能播放", isinstance(audio, dict) and audio and audio["t"] > 0.2, audio, net=True)
+        check("无 CORS 零输出警告", len(cors) == 0, cors[:1], net=True)
 
         # --- std 判定 ---
         await pg.evaluate("() => window.OsuWarp.open()")
@@ -81,7 +98,7 @@ async def main():
             ring: !!(document.querySelector('.lzx-aw-prog .ring-fg')),
             nan: /NaN/.test(document.querySelector('.lzx-aw-sum').textContent)
         })""")
-        check("成就墙 14 项 + 徽章 + 环形", aw["items"] == 14 and aw["badge"] == 14 and aw["ring"], aw)
+        check("成就墙 18 项 + 徽章 + 环形", aw["items"] == 18 and aw["badge"] == 18 and aw["ring"], aw)
         check("成就墙无 NaN", aw["nan"] is False, aw)
 
         await pg.evaluate("() => document.querySelector('.lzx-aw-x').click()")
@@ -93,24 +110,28 @@ async def main():
             prev: document.querySelectorAll('.lzx-pk-prev').length,
             resume: !!document.getElementById('lzx-pk-resume')
         })""")
-        check("主题面板 7 项 + 预览块 + RESUME 开关",
-              pk["items"] == 7 and pk["prev"] == 7 and pk["resume"], pk)
+        check("主题面板 8 项 + 预览块 + RESUME 开关",
+              pk["items"] == 8 and pk["prev"] == 8 and pk["resume"], pk)
 
         await b.close()
 
     # --- 手机端不溢出 / 底部层不重叠 ---
     async with async_playwright() as p:
-        b = await p.chromium.launch(executable_path="/usr/local/bin/chromium", args=["--no-sandbox"])
+        b = await p.chromium.launch(executable_path=(os.environ.get("CHROMIUM") or None), args=["--no-sandbox"])
         m = await b.new_page(viewport={"width": 390, "height": 844}, is_mobile=True, has_touch=True)
         await m.goto(BASE + "/load.html")
         await m.wait_for_timeout(6500)
         box = await m.evaluate("""() => {
             const de = document.documentElement;
-            const r = el => { const b = el.getBoundingClientRect(); return [b.top, b.bottom]; };
+            const r = el => { const b = el.getBoundingClientRect(); return [b.left, b.top, b.right, b.bottom]; };
             const pl = document.querySelector('.audio-player-wrapper');
             const lw = document.getElementById('log-window');
+            /* 日志窗口现在随页面滚动（非 fixed），不会浮在播放器上；只有它是 fixed 时才需要比较矩形是否相交 */
+            const lwFixed = lw && getComputedStyle(lw).position === 'fixed';
+            const a = pl && r(pl), c = lw && r(lw);
+            const hit = (a && c && lwFixed) ? !(a[2] <= c[0] || c[2] <= a[0] || a[3] <= c[1] || c[3] <= a[1]) : false;
             return { sw: de.scrollWidth, cw: de.clientWidth,
-                     overlap: (pl && lw) ? (r(pl)[0] < r(lw)[1] - 1) : null,
+                     overlap: (pl && lw) ? hit : null,
                      blurred: getComputedStyle(lw).backdropFilter };
         }""")
         check("390px 无横向溢出", box["sw"] <= box["cw"] + 2, box)

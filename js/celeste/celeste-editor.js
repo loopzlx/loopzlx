@@ -3,6 +3,9 @@
    存的是 tile 位图（solid），导出时按行合并成 LEVEL 需要的 rects。 */
 (function () {
   'use strict';
+  /* 写入 innerHTML 前转义（名称 / 段位 / 币种码等可能来自存档码、分享链接或外部接口） */
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+
   var Celeste = window.Celeste;
   var C = Celeste.C;
 
@@ -426,7 +429,7 @@
     ov.innerHTML = '<div class="cl-edit-libcard"><b>LEVEL LIBRARY // ' + lib.length + '</b>' +
       '<div class="cl-edit-liblist">' +
       (lib.length ? lib.map(function (it, i) {
-        return '<div class="cl-edit-librow"><span>' + it.name + '</span>' +
+        return '<div class="cl-edit-librow"><span>' + esc(it.name) + '</span>' +
           '<em>' + new Date(it.at).toLocaleDateString() + '</em>' +
           '<i data-act="load" data-idx="' + i + '">载入</i>' +
           '<i data-act="dup" data-idx="' + i + '">复制</i>' +

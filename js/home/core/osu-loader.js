@@ -22,7 +22,7 @@
     function loadScript(src) {
         return new Promise(function (resolve, reject) {
             var s = document.createElement('script');
-            s.src = src + '?v=3.6';  /* 版本号：避免浏览器拿旧的缓存脚本 */
+            s.src = src + '?v=7.3.0';  /* 版本号：避免浏览器拿旧的缓存脚本 */
             s.async = false;
             s.onload = function () { resolve(); };
             s.onerror = function () { reject(new Error('script fail: ' + src)); };
@@ -37,7 +37,7 @@
         if (document.querySelector('link[data-osu-css]')) return;
         var l = document.createElement('link');
         l.rel = 'stylesheet';
-        l.href = CSS_PATH + '?v=3.6';
+        l.href = CSS_PATH + '?v=7.3.0';
         l.setAttribute('data-osu-css', '1');
         document.head.appendChild(l);
     }

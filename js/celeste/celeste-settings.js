@@ -157,16 +157,7 @@
             }
         }
 
-        /* 兜底：整段当脚本跑，只暴露 setTouchLayout 给它 */
-        if (!data) {
-            var before = JSON.stringify(S.pad);
-            try {
-                var sandbox = { Celeste: { setTouchLayout: function (d) { data = d; } } };
-                var fn = new Function('Celeste', '"use strict";' + String(text));
-                fn(sandbox.Celeste);
-            } catch (e2) { data = null; }
-            if (!data && JSON.stringify(S.pad) !== before) { cb(true); return; }
-        }
+        /* 不再把导入文本当脚本执行（new Function 能访问 window / localStorage）；只接受 JSON 或 setTouchLayout({...}) 里的对象 */
 
         if (!data) { cb(false); return; }
         if (!data.buttons || !data.buttons.length) {

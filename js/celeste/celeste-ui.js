@@ -1,6 +1,9 @@
 /* celeste-ui.js —— HUD / 暂停 / 通关 / 触屏按键（可编辑布局）/ 设置面板 / 音效 */
 (function () {
     'use strict';
+  /* 写入 innerHTML 前转义（名称 / 段位 / 币种码等可能来自存档码、分享链接或外部接口） */
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+
     var Celeste = window.Celeste;
     var C = Celeste.C;
 
@@ -440,10 +443,10 @@
             var rows = built.map(function (lv) {
                 var pb = pbs[lv.name];
                 return '<button type="button" class="cl-row cl-lv-row' + (lv.name === cur ? ' on' : '') +
-                    '" data-lv="' + lv.id + '"><span>' + lv.name + ' <i>内置</i></span><b>' +
+                    '" data-lv="' + esc(lv.id) + '"><span>' + esc(lv.name) + ' <i>内置</i></span><b>' +
                     (pb ? fmtTime(pb.t) : '—') + '</b></button>';
             });
-            if (custom) rows.push('<div class="cl-row"><span>' + custom.name + ' <i>自定义</i></span><b>' +
+            if (custom) rows.push('<div class="cl-row"><span>' + esc(custom.name) + ' <i>自定义</i></span><b>' +
                 (pbs[custom.name] ? fmtTime(pbs[custom.name].t) : '—') + '</b></div>');
             rows.push('<div class="cl-row cl-lv-tip"><span>点一下内置关卡名即可直接载入</span><b></b></div>');
             box.innerHTML = rows.join('');
